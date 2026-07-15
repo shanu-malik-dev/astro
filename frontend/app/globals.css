@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes fadeUp {
+  to {
+    opacity: 1;
+  }
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-parchment text-ink font-body antialiased;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-display;
+  }
+
+  ::selection {
+    @apply bg-gold/30 text-ink;
+  }
+
+  :focus-visible {
+    outline: 2px solid theme('colors.gold.DEFAULT');
+    outline-offset: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  .eyebrow {
+    @apply font-mono text-[11px] tracking-[0.22em] uppercase text-gold-dark;
+  }
+
+  .eyebrow-on-dark {
+    @apply font-mono text-[11px] tracking-[0.22em] uppercase text-gold-light;
+  }
+
+  .hairline {
+    @apply border-t border-mist;
+  }
+
+  .hairline-dark {
+    @apply border-t border-white/10;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-sm px-6 py-3 text-sm font-medium tracking-wide transition-colors duration-200;
+  }
+
+  .btn-primary {
+    @apply btn bg-wine text-parchment hover:bg-wine-light;
+  }
+
+  .btn-secondary {
+    @apply btn border border-ink/20 text-ink hover:border-ink/60;
+  }
+
+  .btn-on-dark {
+    @apply btn border border-parchment/30 text-parchment hover:border-parchment/70;
+  }
+
+  .btn-gold {
+    @apply btn bg-gold text-ink hover:bg-gold-light;
+  }
+}
