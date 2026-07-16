@@ -54,7 +54,9 @@ export class AuthService {
       userId = existingUser?.['id']
     }
 
-    if(existingUser && existingUser.status === 0 && existingUser.is_delete !== 0){
+    
+    if(!existingUser || existingUser?.status !== 0){
+      
       const user = await this.authRepository.createUser({
         role_id: role.id,
         name: dto.name,
@@ -68,15 +70,19 @@ export class AuthService {
 
     try {
 
-      await this.createAndSendOtp(userId, dto.country_code, dto.mobile);
+      const otpMeta = await this.createAndSendOtp(
+        userId,
+        dto.country_code,
+        dto.mobile,
+      );
 
       return successResponse(
         'OTP_SENT',
         {
           country_code: dto.country_code,
           mobile: dto.mobile,
-        },
-        2,
+          ...otpMeta,
+        }
       );
     } catch (error) {
       if (this.isDuplicateKeyError(error)) {
@@ -89,15 +95,19 @@ export class AuthService {
 
   async login(dto: LoginDto): Promise<unknown> {
     const user = await this.findActiveUser(dto.country_code, dto.mobile);
-    await this.createAndSendOtp(user.id, dto.country_code, dto.mobile);
+    const otpMeta = await this.createAndSendOtp(
+      user.id,
+      dto.country_code,
+      dto.mobile,
+    );
 
     return successResponse(
       'OTP_SENT',
       {
         country_code: dto.country_code,
         mobile: dto.mobile,
-      },
-      2,
+        ...otpMeta,
+      }
     );
   }
 
@@ -147,23 +157,32 @@ export class AuthService {
         token_type: AUTH_CONSTANTS.TOKEN_TYPE,
         expires_in: this.getAccessTokenSeconds(),
         user: this.toSafeUser(user),
-      },
-      200,
+      }
     );
   }
 
   async resendOtp(dto: ResendOtpDto): Promise<unknown> {
-    const user = await this.findActiveUser(dto.country_code, dto.mobile);
-    await this.createAndSendOtp(user.id, dto.country_code, dto.mobile);
+    const user = await this.findActiveUser(dto.country_code, dto.mobile,false,true);
+    const otpMeta = await this.createAndSendOtp(
+      user.id,
+      dto.country_code,
+      dto.mobile,
+    );
 
     return successResponse(
       'OTP_SENT',
       {
         country_code: dto.country_code,
         mobile: dto.mobile,
-      },
-      2,
+        ...otpMeta,
+      }
     );
+  }
+
+  async logout(userId: string | number): Promise<unknown> {
+    await this.authRepository.clearUserToken(Number(userId));
+
+    return successResponse('LOGOUT_SUCCESSFUL');
   }
 
   private async createAndSendOtp(
@@ -173,12 +192,18 @@ export class AuthService {
   ) {
     const otp = this.otpService.generateOtp();
     const hashedOtp = await this.otpService.hashOtp(otp);
+    const otpExpiresIn = this.configService.get<number>('OTP_EXPIRY_SECONDS', 300);
     const otpExpiry = new Date(
-      Date.now() + this.configService.get<number>('OTP_EXPIRY_SECONDS', 300) * 1000,
+      Date.now() + otpExpiresIn * 1000,
     );
 
     await this.authRepository.updateUserOtp(userId, hashedOtp, otpExpiry);
     await this.otpService.sendOtp(countryCode, mobile, otp);
+
+    return {
+      otp_expires_at: otpExpiry.toISOString(),
+      otp_expires_in: otpExpiresIn,
+    };
   }
 
   private async findActiveUser(

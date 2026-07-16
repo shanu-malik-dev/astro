@@ -1,56 +1,53 @@
+'use client';
+
 import { Section, SectionHeading } from '@/components/ui/Section';
 import { ConstellationLine } from '@/components/ui/ConstellationLine';
 import Link from 'next/link';
+import { useLanguage } from '@/lib/language-context';
 
 export default function AboutPage() {
+  const { t } = useLanguage();
+
   return (
     <>
-      <Section tone="dark" className="pb-16 pt-20">
-        <p className="eyebrow-on-dark">About AstroNova</p>
-        <h1 className="mt-5 max-w-2xl text-4xl leading-tight md:text-5xl">
-          Astrology, treated like a serious consultation — not a party trick.
+      <Section tone="dark" className="py-10 md:py-12">
+        <p className="eyebrow-on-dark">{t("about.eyebrow")}</p>
+        <h1 className="mt-3 max-w-2xl text-3xl leading-tight md:text-4xl">
+          {t("about.title")}
         </h1>
-        <ConstellationLine className="mt-10 h-auto w-full max-w-sm" variant="gold" />
+        <ConstellationLine className="mt-6 h-auto w-full max-w-xs" variant="gold" />
       </Section>
 
       <Section>
         <div className="grid gap-14 lg:grid-cols-2">
           <div className="space-y-5 text-[15px] leading-relaxed text-ink/70">
             <p>
-              AstroNova began with a simple frustration: most online astrology felt either
-              impersonal — a rotating cast of readers on a chat app — or theatrical, heavy on
-              performance and light on anything you could use afterward.
+              {t("about.paragraph1")}
             </p>
             <p>
-              We built something narrower on purpose. One practicing astrologer. A booking
-              system that respects your time zone and your calendar. A video session where the
-              chart is on screen and the conversation is about your actual questions —
-              a relationship, a career decision, a business bet.
+              {t("about.paragraph2")}
             </p>
             <p>
-              Every consultation is logged to your account: what was discussed, what was
-              recommended, and what to revisit later. No starting over at the next session.
+              {t("about.paragraph3")}
             </p>
           </div>
           <div className="space-y-6 hairline pt-8 lg:border-t-0 lg:pt-0 lg:pl-10 lg:border-l lg:border-mist">
             <div>
-              <p className="eyebrow">Who it's for</p>
+              <p className="eyebrow">{t("about.whoTitle")}</p>
               <p className="mt-2 text-[15px] text-ink/70">
-                Adults navigating a specific decision — love, marriage, career, business, or
-                family — who want a grounded second read on the timing.
+                {t("about.whoBody")}
               </p>
             </div>
             <div>
-              <p className="eyebrow">How sessions run</p>
+              <p className="eyebrow">{t("about.sessionsTitle")}</p>
               <p className="mt-2 text-[15px] text-ink/70">
-                20 to 90 minutes, over Google Meet, with your birth chart reviewed in advance.
+                {t("about.sessionsBody")}
               </p>
             </div>
             <div>
-              <p className="eyebrow">Where we operate</p>
+              <p className="eyebrow">{t("about.whereTitle")}</p>
               <p className="mt-2 text-[15px] text-ink/70">
-                Currently serving the United States and India, with pricing and scheduling
-                adapted to each region.
+                {t("about.whereBody")}
               </p>
             </div>
           </div>
@@ -58,9 +55,9 @@ export default function AboutPage() {
       </Section>
 
       <Section tone="dim" className="text-center">
-        <SectionHeading align="center" eyebrow="Start here" title="See which reading fits your question" />
+        <SectionHeading align="center" eyebrow={t("about.ctaEyebrow")} title={t("about.ctaTitle")} />
         <Link href="/services" className="btn-primary mt-8 inline-flex">
-          Browse Services
+          {t("about.ctaButton")}
         </Link>
       </Section>
     </>

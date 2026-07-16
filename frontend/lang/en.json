@@ -1,0 +1,443 @@
+{
+  "common": {
+    "language": {
+      "english": "English",
+      "hindi": "Hindi"
+    },
+    "actions": {
+      "continue": "Continue",
+      "pleaseWait": "Please wait...",
+      "verifyOtp": "Verify OTP",
+      "resendOtp": "Resend OTP",
+      "resending": "Resending...",
+      "login": "Log In",
+      "logout": "Logout",
+      "bookConsultation": "Book Consultation",
+      "booking": "Booking...",
+      "callNow": "Call Now",
+      "whatsApp": "WhatsApp",
+      "book": "Book"
+    },
+    "fields": {
+      "countryCode": "Code",
+      "mobileNumber": "Mobile Number",
+      "enterMobileNumber": "Enter Mobile Number",
+      "enterOtp": "Enter OTP",
+      "name": "Your Name",
+      "phoneNumber": "Phone Number"
+    },
+    "validation": {
+      "countryRequired": "Please select a country code.",
+      "mobileInvalid": "Please enter a valid mobile number.",
+      "otpRequired": "Please enter a valid 6-digit OTP.",
+      "otpSent": "OTP sent successfully.",
+      "otpResent": "OTP resent successfully.",
+      "otpExpiresIn": "OTP expires in",
+      "sendFailed": "Unable to send OTP. Please try again.",
+      "nameRequired": "Please enter your name.",
+      "phoneInvalid": "Please enter a valid 10 digit phone number.",
+      "concernRequired": "Please select your concern."
+    }
+  },
+  "header": {
+    "nav": {
+      "about": "About",
+      "services": "Services",
+      "astrologer": "Astrologer",
+      "bookConsultation": "Book Consultation"
+    },
+    "userFallback": "User"
+  },
+  "login": {
+    "eyebrow": "Welcome Back",
+    "title": "Login with Mobile",
+    "loginFailed": "Unable to login. Please try again.",
+    "registerPrompt": "Don't have an account?",
+    "registerLink": "Register"
+  },
+  "register": {
+    "eyebrow": "Get Started",
+    "title": "Create your account",
+    "fields": {
+      "fullName": "Full Name"
+    },
+    "validation": {
+      "nameRequired": "Please enter your full name."
+    },
+    "registerFailed": "Unable to create account. Please try again.",
+    "loginPrompt": "Already have an account?",
+    "loginLink": "Log in"
+  },
+  "home": {
+    "hero": {
+      "eyebrow": "A private reading, not a script",
+      "titleLine1": "Clarity on love,",
+      "titleLine2": "career and the",
+      "titleLine3": "decisions you're",
+      "titleAccent": "circling.",
+      "description": "Personal astrology consultations designed to help you move forward with confidence. Every reading is private, practical and focused on your real questions.",
+      "stats": {
+        "consultations": "✓ 1000+ Consultations",
+        "private": "✓ Private & Confidential",
+        "video": "✓ Video Sessions"
+      },
+      "formTitle": "Book Your Consultation",
+      "formDescription": "Fill your details to schedule your private reading.",
+      "concernPlaceholder": "Select Your Concern",
+      "success": "Consultation Booked Successfully!",
+      "trust": {
+        "private": "🔒 Private",
+        "trusted": "★★★★★ Trusted",
+        "online": "Online"
+      },
+      "concerns": {
+        "love": "❤️ Love & Relationship",
+        "career": "💼 Career",
+        "marriage": "💍 Marriage",
+        "finance": "💰 Finance",
+        "family": "👨‍👩‍👧 Family",
+        "health": "🩺 Health",
+        "other": "✨ Other"
+      }
+    },
+    "trustBar": {
+      "averageRating": "Average rating",
+      "bookingTime": "To book a slot",
+      "sessionLengths": "Session lengths",
+      "regionsServed": "Regions served"
+    },
+    "servicesBar": {
+      "eyebrow": "Our Services",
+      "title": "Astrology Services",
+      "seeMore": "See More →",
+      "items": {
+        "love": {
+          "title": "Love & Relationship",
+          "description": "Gain clarity in your relationships, compatibility, and emotional decisions."
+        },
+        "career": {
+          "title": "Career Guidance",
+          "description": "Discover the right career path, job opportunities, and professional growth."
+        },
+        "marriage": {
+          "title": "Marriage Consultation",
+          "description": "Get guidance on marriage timing, compatibility, and long-term happiness."
+        },
+        "finance": {
+          "title": "Finance & Business",
+          "description": "Understand financial opportunities, investments, and business success."
+        },
+        "health": {
+          "title": "Health & Wellness",
+          "description": "Receive astrological insights for better health, balance, and well-being."
+        }
+      }
+    },
+    "howItWorks": {
+      "eyebrow": "The process",
+      "title": "From question to consultation in five steps",
+      "steps": {
+        "choose": {
+          "title": "Choose a reading",
+          "body": "Pick a service by topic and length — love, career, business, or a full birth chart."
+        },
+        "time": {
+          "title": "Pick a time",
+          "body": "Only real, open slots are shown, already converted to your timezone."
+        },
+        "details": {
+          "title": "Share your details",
+          "body": "Birth date, time, and place — reviewed ahead of your session, not during it."
+        },
+        "pay": {
+          "title": "Pay securely",
+          "body": "Card, Apple Pay, or Google Pay via Stripe. Confirmation is instant."
+        },
+        "meet": {
+          "title": "Meet on video",
+          "body": "A Google Meet link is generated automatically and emailed to you."
+        }
+      }
+    },
+    "aboutTeaser": {
+      "eyebrow": "Why AstroNova",
+      "title": "One astrologer. Full attention. No app to download.",
+      "description": "Most astrology platforms optimize for volume — quick chats, rotating readers, upsells at every turn. AstroNova is built around a single, focused practice: you book a real slot, meet by video, and get a session shaped around your actual chart and questions.",
+      "items": {
+        "prepared": {
+          "title": "Prepared, not improvised",
+          "body": "Your birth details are reviewed before the session, so time isn’t spent on setup."
+        },
+        "thread": {
+          "title": "One continuous thread",
+          "body": "Every consultation, note, and follow-up lives on your account — nothing repeated twice."
+        }
+      },
+      "link": "Read the full story"
+    },
+    "faq": {
+      "eyebrow": "Common questions",
+      "title": "Before you book",
+      "allQuestions": "All questions",
+      "items": {
+        "accurate": {
+          "question": "How accurate is a video consultation compared to in-person?",
+          "answer": "Every reading is done live with your full chart pulled up on screen, so you see exactly what’s being interpreted in real time."
+        },
+        "birthTime": {
+          "question": "What if I don’t know my exact birth time?",
+          "answer": "You can still book — we’ll ask what you do know and adjust the reading approach accordingly during the session."
+        },
+        "reschedule": {
+          "question": "Can I reschedule after paying?",
+          "answer": "Yes, from your account up to 12 hours before your slot, subject to availability."
+        }
+      }
+    },
+    "cta": {
+      "eyebrow": "Ready when you are",
+      "title": "The chart doesn't change. The right moment to read it does.",
+      "button": "Book Your Consultation"
+    },
+    "dataSections": {
+      "services": {
+        "eyebrow": "Services",
+        "title": "Readings shaped around a real decision",
+        "description": "Every session is built for a specific kind of question — pick the one closest to yours, or start with a Quick Reading if you're not sure.",
+        "loading": "Loading services…",
+        "error": "Services will appear here once the backend API is running.",
+        "empty": "Services will be published here shortly.",
+        "minutes": "minutes"
+      },
+      "testimonials": {
+        "eyebrow": "From past sessions",
+        "title": "What clients say afterward",
+        "loading": "Loading testimonials…",
+        "error": "Testimonials will appear here once the backend API is running."
+      },
+      "blog": {
+        "eyebrow": "From the journal",
+        "title": "Notes on astrology, decisions, and timing",
+        "viewAll": "View all"
+      }
+    }
+  },
+  "about": {
+    "eyebrow": "About AstroNova",
+    "title": "Astrology, treated like a serious consultation — not a party trick.",
+    "paragraph1": "AstroNova began with a simple frustration: most online astrology felt either impersonal — a rotating cast of readers on a chat app — or theatrical, heavy on performance and light on anything you could use afterward.",
+    "paragraph2": "We built something narrower on purpose. One practicing astrologer. A booking system that respects your time zone and your calendar. A video session where the chart is on screen and the conversation is about your actual questions — a relationship, a career decision, a business bet.",
+    "paragraph3": "Every consultation is logged to your account: what was discussed, what was recommended, and what to revisit later. No starting over at the next session.",
+    "whoTitle": "Who it's for",
+    "whoBody": "Adults navigating a specific decision — love, marriage, career, business, or family — who want a grounded second read on the timing.",
+    "sessionsTitle": "How sessions run",
+    "sessionsBody": "20 to 90 minutes, over Google Meet, with your birth chart reviewed in advance.",
+    "whereTitle": "Where we operate",
+    "whereBody": "Currently serving the United States and India, with pricing and scheduling adapted to each region.",
+    "ctaEyebrow": "Start here",
+    "ctaTitle": "See which reading fits your question",
+    "ctaButton": "Browse Services"
+  },
+  "servicesPage": {
+    "eyebrow": "Our Services",
+    "title": "Discover the right consultation for every stage of your life.",
+    "description": "Every consultation is completely private and tailored to your unique questions. Choose the service that best matches your current concern.",
+    "ctaEyebrow": "Need Help Choosing?",
+    "ctaTitle": "Let's Find the Right Consultation for You",
+    "ctaDescription": "If you're unsure which consultation suits your situation, book a general consultation and we'll help you identify the best path forward.",
+    "pagination": {
+      "previous": "Previous",
+      "next": "Next"
+    },
+    "items": {
+      "love": {
+        "category": "Love",
+        "name": "Love & Relationship Reading",
+        "description": "Get personalized guidance on relationships, compatibility, breakups, and emotional clarity."
+      },
+      "career": {
+        "category": "Career",
+        "name": "Career Guidance",
+        "description": "Find the right career path, job opportunities, promotions, and professional growth."
+      },
+      "marriage": {
+        "category": "Marriage",
+        "name": "Marriage Consultation",
+        "description": "Understand marriage timing, compatibility, and build a stronger future together."
+      },
+      "finance": {
+        "category": "Finance",
+        "name": "Finance & Business",
+        "description": "Receive astrological insights for financial stability, investments, and business success."
+      },
+      "health": {
+        "category": "Health",
+        "name": "Health & Wellness",
+        "description": "Gain guidance for better health, peace of mind, and overall well-being."
+      },
+      "family": {
+        "category": "Family",
+        "name": "Family & Personal Life",
+        "description": "Resolve family conflicts, improve harmony, and strengthen personal relationships."
+      }
+    }
+  },
+  "astrologersPage": {
+    "eyebrow": "Our Experts",
+    "title": "Consult India's Trusted Astrologers",
+    "description": "Choose an experienced astrologer for personalized guidance on love, career, marriage, finance, health and life decisions.",
+    "labels": {
+      "experience": "Experience",
+      "languages": "Languages",
+      "consultations": "Consultations",
+      "expertise": "Expertise",
+      "previous": "Previous",
+      "next": "Next"
+    },
+    "loginRequired": "You are not logged in or signed up. Please log in or sign up first, then you can use this feature.",
+    "loginRequiredTitle": "Login required",
+    "loginRequiredCancel": "Not now",
+    "signup": "Sign up",
+    "experts": {
+      "rahul": {
+        "name": "Acharya Rahul Sharma",
+        "experience": "12+ Years",
+        "expertise": "Love, Marriage, Career",
+        "languages": "Hindi, English",
+        "consultations": "8,500+",
+        "about": "Specialist in Vedic Astrology with over 12 years of experience helping people with love, marriage, career and family guidance."
+      },
+      "anil": {
+        "name": "Pandit Anil Joshi",
+        "experience": "18+ Years",
+        "expertise": "Finance, Business, Vastu",
+        "languages": "Hindi",
+        "consultations": "12,000+",
+        "about": "Expert in Finance, Business Astrology and Vastu consultations with thousands of satisfied clients."
+      },
+      "neha": {
+        "name": "Dr. Neha Verma",
+        "experience": "10+ Years",
+        "expertise": "Tarot, Relationship, Health",
+        "languages": "Hindi, English",
+        "consultations": "6,000+",
+        "about": "Professional Tarot Reader and Astrology Consultant helping people find clarity and confidence."
+      },
+      "meera": {
+        "name": "Acharya Meera Kapoor",
+        "experience": "15+ Years",
+        "expertise": "Kundli, Marriage, Remedies",
+        "languages": "Hindi, English",
+        "consultations": "9,200+",
+        "about": "Known for detailed Kundli analysis and practical remedies for relationship and marriage concerns."
+      },
+      "vikram": {
+        "name": "Pandit Vikram Trivedi",
+        "experience": "20+ Years",
+        "expertise": "Vastu, Business, Finance",
+        "languages": "Hindi, Gujarati",
+        "consultations": "14,500+",
+        "about": "Senior consultant for business astrology, Vastu corrections, and financial decision timing."
+      },
+      "kavita": {
+        "name": "Dr. Kavita Rao",
+        "experience": "11+ Years",
+        "expertise": "Numerology, Career, Health",
+        "languages": "Hindi, English",
+        "consultations": "7,400+",
+        "about": "Combines numerology and astrology to guide career choices, health balance, and life planning."
+      },
+      "suresh": {
+        "name": "Acharya Suresh Nair",
+        "experience": "16+ Years",
+        "expertise": "Prashna, Family, Career",
+        "languages": "Hindi, Malayalam",
+        "consultations": "10,800+",
+        "about": "Specializes in Prashna astrology and family guidance with clear, action-focused consultations."
+      },
+      "pooja": {
+        "name": "Tarot Pooja Malhotra",
+        "experience": "9+ Years",
+        "expertise": "Tarot, Love, Self Growth",
+        "languages": "Hindi, English",
+        "consultations": "5,900+",
+        "about": "Tarot and intuitive astrology reader helping clients navigate love, clarity, and personal growth."
+      },
+      "devendra": {
+        "name": "Pandit Devendra Shastri",
+        "experience": "22+ Years",
+        "expertise": "Vedic Astrology, Remedies, Marriage",
+        "languages": "Hindi, Sanskrit",
+        "consultations": "16,000+",
+        "about": "Experienced Vedic astrologer offering traditional analysis and remedies for major life decisions."
+      },
+      "isha": {
+        "name": "Astrologer Isha Sen",
+        "experience": "8+ Years",
+        "expertise": "Relationship, Career, Tarot",
+        "languages": "Hindi, Bengali, English",
+        "consultations": "4,800+",
+        "about": "Offers compassionate relationship and career readings with astrology and tarot-based clarity."
+      }
+    }
+  },
+  "astrologerProfile": {
+    "consultations": "Consultations",
+    "bookConsultation": "Book Consultation",
+    "aboutTitle": "About Astrologer",
+    "includesTitle": "Consultation Includes",
+    "reviewsTitle": "Client Reviews",
+    "experienceTitle": "Experience",
+    "rating": "Rating",
+    "guidanceTitle": "Need Guidance?",
+    "guidanceBody": "Book your private consultation today and receive personalized astrological guidance.",
+    "expertise": {
+      "love": "Love",
+      "marriage": "Marriage",
+      "career": "Career",
+      "finance": "Finance",
+      "family": "Family",
+      "health": "Health"
+    },
+    "about": "Acharya Rahul Sharma is a renowned Vedic astrologer with more than 12 years of experience. He has guided thousands of people in love, marriage, career, finance and family matters. Every consultation is completely private and focused on practical solutions.",
+    "services": {
+      "birthChart": "Birth Chart Analysis",
+      "love": "Love & Relationship Guidance",
+      "marriage": "Marriage Compatibility",
+      "career": "Career & Job Consultation",
+      "finance": "Finance & Business Advice",
+      "remedies": "Personalized Remedies"
+    },
+    "reviews": {
+      "rahul": "Very accurate consultation. I received clear guidance for my career.",
+      "sneha": "Highly recommended. The remedies and predictions were very helpful."
+    }
+  },
+  "footer": {
+    "description": "Considered astrology consultations for the questions that matter — love, career, business, and the paths between them.",
+    "columns": {
+      "explore": "Explore",
+      "support": "Support",
+      "legal": "Legal"
+    },
+    "links": {
+      "about": "About",
+      "services": "Services",
+      "faq": "FAQ",
+      "contact": "Contact",
+      "myBookings": "My Bookings",
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service",
+      "refund": "Refund Policy"
+    },
+    "rights": "All rights reserved.",
+    "meta": "Consultations conducted via Google Meet · Payments secured by Stripe"
+  },
+  "mobileValidation": {
+    "generic": "Please enter a valid mobile number.",
+    "india": "Please enter a valid 10-digit Indian mobile number.",
+    "us": "Please enter a valid 10-digit US mobile number.",
+    "uk": "Please enter a valid 10-digit UK mobile number starting with 7.",
+    "uae": "Please enter a valid 9-digit UAE mobile number starting with 5."
+  }
+}

@@ -72,6 +72,7 @@ export interface BookingDto {
 
 export interface AuthUser {
   id: string;
+  role_id?: number | string;
   fullName: string;
   name?: string;
   email?: string;
@@ -105,6 +106,14 @@ export interface OtpResponse {
   statusCode?: number;
   message?: string;
   success?: boolean;
+  otp_expires_at?: string;
+  otp_expires_in?: string | number;
+  data?: {
+    country_code?: string;
+    mobile?: string;
+    otp_expires_at?: string;
+    otp_expires_in?: string | number;
+  };
 }
 
 // ---- Auth ----
@@ -146,6 +155,15 @@ export const authApi = {
         country_code: data.countryCode,
         mobile: data.mobile,
         otp: data.otp,
+      }),
+    }),
+  resendOtp: (tenantId: TenantId, data: { countryCode: string; mobile: string }) =>
+    request<OtpResponse>('/auth/resend-otp', {
+      tenantId,
+      method: 'POST',
+      body: JSON.stringify({
+        country_code: data.countryCode,
+        mobile: data.mobile,
       }),
     }),
   refresh: (tenantId: TenantId, refreshToken: string) =>

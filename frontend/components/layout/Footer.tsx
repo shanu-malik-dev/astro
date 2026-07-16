@@ -1,54 +1,58 @@
+'use client';
+
 import Link from 'next/link';
 import { Container } from '@/components/ui/Container';
+import { useLanguage } from '@/lib/language-context';
 
 const COLUMNS = [
   {
-    title: 'Explore',
+    titleKey: 'footer.columns.explore',
     links: [
-      { href: '/about', label: 'About' },
-      { href: '/services', label: 'Services' }
+      { href: '/about', labelKey: 'footer.links.about' },
+      { href: '/services', labelKey: 'footer.links.services' }
     ],
   },
   {
-    title: 'Support',
+    titleKey: 'footer.columns.support',
     links: [
-      { href: '/faq', label: 'FAQ' },
-      { href: '/contact', label: 'Contact' },
-      { href: '/account', label: 'My Bookings' },
+      { href: '/faq', labelKey: 'footer.links.faq' },
+      { href: '/contact', labelKey: 'footer.links.contact' },
+      { href: '/account', labelKey: 'footer.links.myBookings' },
     ],
   },
   {
-    title: 'Legal',
+    titleKey: 'footer.columns.legal',
     links: [
-      { href: '/privacy', label: 'Privacy Policy' },
-      { href: '/terms', label: 'Terms of Service' },
-      { href: '/refund-policy', label: 'Refund Policy' },
+      { href: '/privacy', labelKey: 'footer.links.privacy' },
+      { href: '/terms', labelKey: 'footer.links.terms' },
+      { href: '/refund-policy', labelKey: 'footer.links.refund' },
     ],
   },
 ];
 
 export function Footer() {
+  const { t } = useLanguage();
+
   return (
     <footer className="bg-ink text-parchment">
-      <Container className="grid grid-cols-2 gap-10 py-16 md:grid-cols-5">
+      <Container className="grid grid-cols-2 gap-6 py-8 md:grid-cols-5 md:py-10">
         <div className="col-span-2">
           <p className="font-display text-2xl italic">
             AstroNova<span className="text-gold not-italic">.</span>
           </p>
-          <p className="mt-4 max-w-xs text-sm leading-relaxed text-parchment/60">
-            Considered astrology consultations for the questions that matter — love, career,
-            business, and the paths between them.
+          <p className="mt-3 max-w-xs text-sm leading-relaxed text-parchment/60">
+            {t("footer.description")}
           </p>
         </div>
 
         {COLUMNS.map((col) => (
-          <div key={col.title}>
-            <p className="eyebrow-on-dark">{col.title}</p>
-            <ul className="mt-4 space-y-2.5">
+          <div key={col.titleKey}>
+            <p className="eyebrow-on-dark">{t(col.titleKey)}</p>
+            <ul className="mt-3 space-y-1.5">
               {col.links.map((link) => (
                 <li key={link.href}>
                   <Link href={link.href} className="text-sm text-parchment/70 hover:text-parchment">
-                    {link.label}
+                    {t(link.labelKey)}
                   </Link>
                 </li>
               ))}
@@ -58,9 +62,9 @@ export function Footer() {
       </Container>
 
       <div className="hairline-dark">
-        <Container className="flex flex-col items-center justify-between gap-3 py-6 text-xs text-parchment/40 md:flex-row">
-          <p>© {new Date().getFullYear()} AstroNova. All rights reserved.</p>
-          <p>Consultations conducted via Google Meet · Payments secured by Stripe</p>
+        <Container className="flex flex-col items-center justify-between gap-2 py-3 text-xs text-parchment/40 md:flex-row">
+          <p>© {new Date().getFullYear()} AstroNova. {t("footer.rights")}</p>
+          <p>{t("footer.meta")}</p>
         </Container>
       </div>
     </footer>

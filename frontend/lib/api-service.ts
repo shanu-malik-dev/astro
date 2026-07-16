@@ -1,6 +1,11 @@
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
 
+function getAcceptLanguage() {
+  if (typeof window === "undefined") return "en";
+  return window.localStorage.getItem("astronova_language") || "en";
+}
+
 export class ApiError extends Error {
   status: number;
 
@@ -29,6 +34,7 @@ export async function apiService<T>(
           : JSON.stringify(body),
     headers: {
       "Content-Type": "application/json",
+      "Accept-Language": getAcceptLanguage(),
       ...headers,
     },
   });

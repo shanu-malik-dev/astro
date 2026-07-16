@@ -11,7 +11,7 @@ export type ApiResponse<T = undefined> = {
 export function successResponse<T>(
   messageKey: string,
   data?: T,
-  statusCode?: number,
+  statusCode: number = 200,
 ): ApiResponse<T> {
   const message = getMessage(messageKey, LanguageContext.getLang());
 

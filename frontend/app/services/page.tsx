@@ -1,88 +1,63 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { Section, SectionHeading } from "@/components/ui/Section";
+import { useLanguage } from "@/lib/language-context";
+
+const PAGE_SIZE = 3;
 
 const services = [
-  {
-    id: 1,
-    category: "Love",
-    name: "Love & Relationship Reading",
-    description:
-      "Get personalized guidance on relationships, compatibility, breakups, and emotional clarity.",
-  },
-  {
-    id: 2,
-    category: "Career",
-    name: "Career Guidance",
-    description:
-      "Find the right career path, job opportunities, promotions, and professional growth.",
-  },
-  {
-    id: 3,
-    category: "Marriage",
-    name: "Marriage Consultation",
-    description:
-      "Understand marriage timing, compatibility, and build a stronger future together.",
-  },
-  {
-    id: 4,
-    category: "Finance",
-    name: "Finance & Business",
-    description:
-      "Receive astrological insights for financial stability, investments, and business success.",
-  },
-  {
-    id: 5,
-    category: "Health",
-    name: "Health & Wellness",
-    description:
-      "Gain guidance for better health, peace of mind, and overall well-being.",
-  },
-  {
-    id: 6,
-    category: "Family",
-    name: "Family & Personal Life",
-    description:
-      "Resolve family conflicts, improve harmony, and strengthen personal relationships.",
-  },
+  { id: 1, key: "love" },
+  { id: 2, key: "career" },
+  { id: 3, key: "marriage" },
+  { id: 4, key: "finance" },
+  { id: 5, key: "health" },
+  { id: 6, key: "family" },
 ];
 
 export default function ServicesPage() {
+  const { t } = useLanguage();
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.ceil(services.length / PAGE_SIZE);
+  const paginatedServices = services.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
+
   return (
     <>
       {/* Hero */}
-      <Section tone="dark" className="pb-14 pt-20">
-        <p className="eyebrow-on-dark">Our Services</p>
+      <Section tone="dark" className="py-10 md:py-12">
+        <p className="eyebrow-on-dark">{t("servicesPage.eyebrow")}</p>
 
-        <h1 className="mt-5 max-w-2xl text-4xl leading-tight md:text-5xl">
-          Discover the right consultation for every stage of your life.
+        <h1 className="mt-3 max-w-2xl text-3xl leading-tight md:text-4xl">
+          {t("servicesPage.title")}
         </h1>
 
-        <p className="mt-6 max-w-2xl text-parchment/70">
-          Every consultation is completely private and tailored to your unique
-          questions. Choose the service that best matches your current concern.
+        <p className="mt-4 max-w-2xl text-sm leading-6 text-parchment/70 md:text-base">
+          {t("servicesPage.description")}
         </p>
       </Section>
 
       {/* Services */}
       <Section>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {services.map((service) => (
+          {paginatedServices.map((service) => (
             <div
               key={service.id}
               className="flex flex-col justify-between rounded-xl border border-mist bg-white p-8 transition hover:-translate-y-1 hover:shadow-lg"
             >
               <div>
-                <p className="eyebrow">{service.category}</p>
+                <p className="eyebrow">{t(`servicesPage.items.${service.key}.category`)}</p>
 
                 <h2 className="mt-3 text-2xl text-ink">
-                  {service.name}
+                  {t(`servicesPage.items.${service.key}.name`)}
                 </h2>
 
                 <p className="mt-4 text-sm leading-7 text-ink/60">
-                  {service.description}
+                  {t(`servicesPage.items.${service.key}.description`)}
                 </p>
               </div>
 
@@ -91,28 +66,67 @@ export default function ServicesPage() {
                   href="/book"
                   className="inline-flex items-center gap-2 text-wine font-medium hover:underline"
                 >
-                  Book Consultation
+                  {t("common.actions.bookConsultation")}
                   <ArrowRight size={16} />
                 </Link>
               </div>
             </div>
           ))}
         </div>
+
+        <div className="mt-8 flex items-center justify-center gap-2">
+          <button
+            type="button"
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+            className="rounded-md border border-mist px-4 py-2 text-sm font-medium text-ink/70 transition hover:border-gold hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {t("servicesPage.pagination.previous")}
+          </button>
+
+          {Array.from({ length: totalPages }).map((_, index) => {
+            const page = index + 1;
+
+            return (
+              <button
+                key={page}
+                type="button"
+                onClick={() => setCurrentPage(page)}
+                className={
+                  page === currentPage
+                    ? "rounded-md border border-gold bg-gold px-4 py-2 text-sm font-medium text-black"
+                    : "rounded-md border border-mist px-4 py-2 text-sm font-medium text-ink/70 transition hover:border-gold hover:text-ink"
+                }
+              >
+                {page}
+              </button>
+            );
+          })}
+
+          <button
+            type="button"
+            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+            className="rounded-md border border-mist px-4 py-2 text-sm font-medium text-ink/70 transition hover:border-gold hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {t("servicesPage.pagination.next")}
+          </button>
+        </div>
       </Section>
 
       {/* CTA */}
       <Section tone="dim">
         <SectionHeading
-          eyebrow="Need Help Choosing?"
-          title="Let's Find the Right Consultation for You"
-          description="If you're unsure which consultation suits your situation, book a general consultation and we'll help you identify the best path forward."
+          eyebrow={t("servicesPage.ctaEyebrow")}
+          title={t("servicesPage.ctaTitle")}
+          description={t("servicesPage.ctaDescription")}
         />
 
         <Link
           href="/book"
           className="btn-primary mt-8 inline-flex"
         >
-          Book Consultation
+          {t("common.actions.bookConsultation")}
         </Link>
       </Section>
     </>

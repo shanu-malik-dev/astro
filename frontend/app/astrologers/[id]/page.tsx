@@ -12,51 +12,33 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { Section } from "@/components/ui/Section";
+import { useLanguage } from "@/lib/language-context";
 
 const astrologer = {
   id: 1,
-  name: "Acharya Rahul Sharma",
+  key: "rahul",
   image: "",
-  experience: "12+ Years",
   rating: 4.9,
-  consultations: "8,500+",
-  languages: "Hindi, English",
   phone: "+919876543210",
-  expertise: [
-    "Love",
-    "Marriage",
-    "Career",
-    "Finance",
-    "Family",
-    "Health",
-  ],
-  about:
-    "Acharya Rahul Sharma is a renowned Vedic astrologer with more than 12 years of experience. He has guided thousands of people in love, marriage, career, finance and family matters. Every consultation is completely private and focused on practical solutions.",
-  services: [
-    "Birth Chart Analysis",
-    "Love & Relationship Guidance",
-    "Marriage Compatibility",
-    "Career & Job Consultation",
-    "Finance & Business Advice",
-    "Personalized Remedies",
-  ],
+  expertise: ["love", "marriage", "career", "finance", "family", "health"],
+  services: ["birthChart", "love", "marriage", "career", "finance", "remedies"],
   reviews: [
     {
       name: "Rahul Verma",
       rating: 5,
-      comment:
-        "Very accurate consultation. I received clear guidance for my career.",
+      commentKey: "rahul",
     },
     {
       name: "Sneha Patel",
       rating: 5,
-      comment:
-        "Highly recommended. The remedies and predictions were very helpful.",
+      commentKey: "sneha",
     },
   ],
 };
 
 export default function AstrologerProfilePage() {
+  const { t } = useLanguage();
+
   return (
     <>
       <Section tone="dark" className="pt-20 pb-16">
@@ -67,7 +49,7 @@ export default function AstrologerProfilePage() {
             {astrologer.image ? (
               <Image
                 src={astrologer.image}
-                alt={astrologer.name}
+                alt={t(`astrologersPage.experts.${astrologer.key}.name`)}
                 width={180}
                 height={180}
                 className="h-44 w-44 rounded-2xl object-cover"
@@ -85,7 +67,7 @@ export default function AstrologerProfilePage() {
 
             <div className="flex-1 text-center lg:text-left">
               <h1 className="text-4xl font-semibold">
-                {astrologer.name}
+                {t(`astrologersPage.experts.${astrologer.key}.name`)}
               </h1>
 
               <div className="mt-4 flex flex-wrap items-center justify-center gap-4 lg:justify-start">
@@ -97,9 +79,9 @@ export default function AstrologerProfilePage() {
                   {astrologer.rating}
                 </span>
 
-                <span>{astrologer.experience}</span>
+                <span>{t(`astrologersPage.experts.${astrologer.key}.experience`)}</span>
 
-                <span>{astrologer.consultations} Consultations</span>
+                <span>{t(`astrologersPage.experts.${astrologer.key}.consultations`)} {t("astrologerProfile.consultations")}</span>
               </div>
 
               <div className="mt-6 flex flex-wrap gap-2 justify-center lg:justify-start">
@@ -108,7 +90,7 @@ export default function AstrologerProfilePage() {
                     key={item}
                     className="rounded-full bg-white/10 px-4 py-2 text-sm"
                   >
-                    {item}
+                    {t(`astrologerProfile.expertise.${item}`)}
                   </span>
                 ))}
               </div>
@@ -119,7 +101,7 @@ export default function AstrologerProfilePage() {
                   className="btn-primary"
                 >
                   <Phone size={18} />
-                  Call Now
+                  {t("common.actions.callNow")}
                 </a>
 
                 <a
@@ -128,14 +110,14 @@ export default function AstrologerProfilePage() {
                   className="rounded-lg border border-green-500 px-5 py-3 font-medium text-green-500 hover:bg-green-500 hover:text-white"
                 >
                   <MessageCircle size={18} />
-                  WhatsApp
+                  {t("common.actions.whatsApp")}
                 </a>
 
                 <Link
                   href="/book"
                   className="rounded-lg border border-gold px-5 py-3 hover:bg-gold hover:text-black"
                 >
-                  Book Consultation
+                  {t("astrologerProfile.bookConsultation")}
                 </Link>
               </div>
             </div>
@@ -150,17 +132,17 @@ export default function AstrologerProfilePage() {
           <div>
             <div className="rounded-2xl border border-mist bg-white p-8">
               <h2 className="text-2xl font-semibold">
-                About Astrologer
+                {t("astrologerProfile.aboutTitle")}
               </h2>
 
               <p className="mt-5 leading-8 text-ink/70">
-                {astrologer.about}
+                {t("astrologerProfile.about")}
               </p>
             </div>
 
             <div className="mt-8 rounded-2xl border border-mist bg-white p-8">
               <h2 className="text-2xl font-semibold">
-                Consultation Includes
+                {t("astrologerProfile.includesTitle")}
               </h2>
 
               <div className="mt-6 grid gap-4 md:grid-cols-2">
@@ -171,7 +153,7 @@ export default function AstrologerProfilePage() {
                   >
                     <CheckCircle className="text-green-600" size={18} />
 
-                    <span>{service}</span>
+                    <span>{t(`astrologerProfile.services.${service}`)}</span>
                   </div>
                 ))}
               </div>
@@ -179,7 +161,7 @@ export default function AstrologerProfilePage() {
 
             <div className="mt-8 rounded-2xl border border-mist bg-white p-8">
               <h2 className="text-2xl font-semibold">
-                Client Reviews
+                {t("astrologerProfile.reviewsTitle")}
               </h2>
 
               <div className="mt-6 space-y-6">
@@ -198,7 +180,7 @@ export default function AstrologerProfilePage() {
                     </div>
 
                     <p className="mt-3 text-ink/70">
-                      "{review.comment}"
+                      "{t(`astrologerProfile.reviews.${review.commentKey}`)}"
                     </p>
 
                     <p className="mt-4 font-medium">
@@ -215,35 +197,35 @@ export default function AstrologerProfilePage() {
           <div className="space-y-6">
             <div className="rounded-2xl border border-mist bg-white p-6">
               <h3 className="font-semibold">
-                Experience
+                {t("astrologerProfile.experienceTitle")}
               </h3>
 
               <p className="mt-3 flex items-center gap-2">
                 <BriefcaseBusiness size={18} />
-                {astrologer.experience}
+                {t(`astrologersPage.experts.${astrologer.key}.experience`)}
               </p>
 
               <p className="mt-4 flex items-center gap-2">
                 <Languages size={18} />
-                {astrologer.languages}
+                {t(`astrologersPage.experts.${astrologer.key}.languages`)}
               </p>
 
               <p className="mt-4">
-                ⭐ {astrologer.rating} Rating
+                ⭐ {astrologer.rating} {t("astrologerProfile.rating")}
               </p>
 
               <p className="mt-2">
-                👥 {astrologer.consultations}
+                👥 {t(`astrologersPage.experts.${astrologer.key}.consultations`)}
               </p>
             </div>
 
             <div className="rounded-2xl border border-mist bg-white p-6">
               <h3 className="font-semibold">
-                Need Guidance?
+                {t("astrologerProfile.guidanceTitle")}
               </h3>
 
               <p className="mt-3 text-sm text-ink/60">
-                Book your private consultation today and receive personalized astrological guidance.
+                {t("astrologerProfile.guidanceBody")}
               </p>
 
               <div className="mt-6 space-y-3">
@@ -251,7 +233,7 @@ export default function AstrologerProfilePage() {
                   href={`tel:${astrologer.phone}`}
                   className="btn-primary w-full justify-center"
                 >
-                  Call Now
+                  {t("common.actions.callNow")}
                 </a>
 
                 <a
@@ -259,7 +241,7 @@ export default function AstrologerProfilePage() {
                   target="_blank"
                   className="flex w-full items-center justify-center rounded-lg border border-green-600 px-4 py-3 font-medium text-green-600"
                 >
-                  WhatsApp
+                  {t("common.actions.whatsApp")}
                 </a>
               </div>
             </div>

@@ -15,6 +15,7 @@ interface AuthContextValue extends AuthState {
   login: (data: { countryCode: string; mobile: string }) => Promise<OtpResponse>;
   register: (data: { fullName: string; countryCode: string; mobile: string }) => Promise<OtpResponse>;
   verifyOtp: (data: { countryCode: string; mobile: string; otp: string }) => Promise<AuthUser>;
+  resendOtp: (data: { countryCode: string; mobile: string }) => Promise<OtpResponse>;
   logout: () => Promise<void>;
 }
 
@@ -97,6 +98,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return session.user!;
   }, [tenant.id]);
 
+  const resendOtp = useCallback(async (data: { countryCode: string; mobile: string }) => {
+    return authApi.resendOtp(tenant.id, data);
+  }, [tenant.id]);
+
   const logout = useCallback(async () => {
     try {
       if (state.accessToken) await authApi.logout(tenant.id, state.accessToken);
@@ -107,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [state.accessToken, tenant.id]);
 
   return (
-    <AuthContext.Provider value={{ ...state, loading, login, register, verifyOtp, logout }}>
+    <AuthContext.Provider value={{ ...state, loading, login, register, verifyOtp, resendOtp, logout }}>
       {children}
     </AuthContext.Provider>
   );

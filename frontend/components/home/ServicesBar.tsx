@@ -1,48 +1,43 @@
+"use client";
+
 import Link from "next/link";
+import { useLanguage } from "@/lib/language-context";
 
 const SERVICES = [
   {
-    title: "Love & Relationship",
-    description:
-      "Gain clarity in your relationships, compatibility, and emotional decisions.",
+    key: "love",
     icon: "❤️",
   },
   {
-    title: "Career Guidance",
-    description:
-      "Discover the right career path, job opportunities, and professional growth.",
+    key: "career",
     icon: "💼",
   },
   {
-    title: "Marriage Consultation",
-    description:
-      "Get guidance on marriage timing, compatibility, and long-term happiness.",
+    key: "marriage",
     icon: "💍",
   },
   {
-    title: "Finance & Business",
-    description:
-      "Understand financial opportunities, investments, and business success.",
+    key: "finance",
     icon: "💰",
   },
   {
-    title: "Health & Wellness",
-    description:
-      "Receive astrological insights for better health, balance, and well-being.",
+    key: "health",
     icon: "🩺",
   },
 ];
 
 export function ServicesBar() {
+  const { t } = useLanguage();
+
   return (
     <section className="border-b border-mist bg-parchment">
       <div className="mx-auto max-w-container px-6 py-12 md:px-10">
         {/* Heading */}
         <div className="mb-10 flex items-center justify-between">
           <div>
-            <p className="eyebrow">Our Services</p>
+            <p className="eyebrow">{t("home.servicesBar.eyebrow")}</p>
             <h2 className="mt-2 font-display text-3xl text-ink">
-              Astrology Services
+              {t("home.servicesBar.title")}
             </h2>
           </div>
 
@@ -50,7 +45,7 @@ export function ServicesBar() {
             href="/services"
             className="text-sm font-medium text-wine transition hover:underline"
           >
-            See More →
+            {t("home.servicesBar.seeMore")}
           </Link>
         </div>
 
@@ -58,17 +53,17 @@ export function ServicesBar() {
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
           {SERVICES.map((service) => (
             <div
-              key={service.title}
+              key={service.key}
               className="rounded-xl border border-mist bg-white p-6 text-center transition duration-300 hover:-translate-y-1 hover:shadow-lg"
             >
               <div className="text-4xl">{service.icon}</div>
 
               <h3 className="mt-4 text-lg font-semibold text-ink">
-                {service.title}
+                {t(`home.servicesBar.items.${service.key}.title`)}
               </h3>
 
               <p className="mt-2 text-sm leading-6 text-ink/60">
-                {service.description}
+                {t(`home.servicesBar.items.${service.key}.description`)}
               </p>
             </div>
           ))}

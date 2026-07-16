@@ -1,11 +1,17 @@
-import { Body, Controller, Headers, Ip, Post } from '@nestjs/common';
+import { Body, Controller, Headers, Ip, Post, Req } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { Request } from 'express';
 import { IsPublic } from '../decorators/is-public.decorator';
 import { LoginDto } from '../dto/login.dto';
 import { ResendOtpDto } from '../dto/resend-otp.dto';
 import { SignupDto } from '../dto/signup.dto';
 import { VerifyOtpDto } from '../dto/verify-otp.dto';
 import { AuthService } from '../service/auth.service';
+import { JwtPayload } from '../strategies/jwt.strategy';
+
+type AuthenticatedRequest = Request & {
+  user: JwtPayload;
+};
 
 @ApiTags('auth')
 @Controller('auth')
@@ -41,5 +47,10 @@ export class AuthController {
   @Post('resend-otp')
   resendOtp(@Body() dto: ResendOtpDto) {
     return this.authService.resendOtp(dto);
+  }
+
+  @Post('logout')
+  logout(@Req() req: AuthenticatedRequest) {
+    return this.authService.logout(req.user.sub);
   }
 }

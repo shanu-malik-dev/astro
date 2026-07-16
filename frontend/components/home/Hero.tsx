@@ -4,19 +4,23 @@ import { useEffect, useState } from "react";
 import { Container } from "@/components/ui/Container";
 import CustomSelect, { SelectOption } from "../ui/CustomSelect";
 import { useCountryCodes } from "@/lib/country-code-store";
+import { useLanguage } from "@/lib/language-context";
+import { useAuth } from "@/lib/auth-context";
 
-const concerns: SelectOption[] = [
-  { value: "love", label: "❤️ Love & Relationship" },
-  { value: "career", label: "💼 Career" },
-  { value: "marriage", label: "💍 Marriage" },
-  { value: "finance", label: "💰 Finance" },
-  { value: "family", label: "👨‍👩‍👧 Family" },
-  { value: "health", label: "🩺 Health" },
-  { value: "other", label: "✨ Other" },
+const concernKeys = [
+  "love",
+  "career",
+  "marriage",
+  "finance",
+  "family",
+  "health",
+  "other",
 ];
 
 export function Hero() {
   const { countryCodes } = useCountryCodes();
+  const { t } = useLanguage();
+  const { user } = useAuth();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
 
@@ -25,6 +29,13 @@ export function Hero() {
   const [concern, setConcern] = useState<SelectOption | null>(null);
 
   const [loading, setLoading] = useState(false);
+  const concerns: SelectOption[] = concernKeys.map((key) => ({
+    value: key,
+    label: t(`home.hero.concerns.${key}`),
+  }));
+  const selectedConcern = concern
+    ? concerns.find((option) => option.value === concern.value) || null
+    : null;
 
   useEffect(() => {
     if (!countryCode && countryCodes.length > 0) {
@@ -36,22 +47,22 @@ export function Hero() {
     e.preventDefault();
 
     if (!name.trim()) {
-      alert("Please enter your name.");
+      alert(t("common.validation.nameRequired"));
       return;
     }
 
     if (!countryCode) {
-      alert("Please select country code.");
+      alert(t("common.validation.countryRequired"));
       return;
     }
 
     if (!/^[0-9]{10}$/.test(phone)) {
-      alert("Please enter a valid 10 digit phone number.");
+      alert(t("common.validation.phoneInvalid"));
       return;
     }
 
     if (!concern) {
-      alert("Please select your concern.");
+      alert(t("common.validation.concernRequired"));
       return;
     }
 
@@ -77,7 +88,7 @@ export function Hero() {
     // });
 
     setTimeout(() => {
-      alert("Consultation Booked Successfully!");
+      alert(t("home.hero.success"));
 
       setName("");
       setPhone("");
@@ -92,50 +103,49 @@ export function Hero() {
     <section className="relative overflow-hidden bg-ink text-parchment">
       <div className="pointer-events-none absolute inset-0 bg-grain" />
 
-      <Container className="relative grid gap-12 py-12 sm:py-16 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-16 lg:py-20">
+      <Container className={user ? "relative py-12 sm:py-16 lg:py-20" : "relative grid gap-12 py-12 sm:py-16 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-16 lg:py-20"}>
 
         {/* LEFT */}
-        <div>
+        <div className={user ? "max-w-3xl" : undefined}>
           <p className="eyebrow-on-dark">
-            A private reading, not a script
+            {t("home.hero.eyebrow")}
           </p>
 
           <h1 className="mt-6 text-4xl leading-tight sm:text-5xl lg:text-7xl lg:leading-[1.05]">
-            Clarity on love,
+            {t("home.hero.titleLine1")}
             <br />
-            career and the
+            {t("home.hero.titleLine2")}
             <br />
-            decisions you're
+            {t("home.hero.titleLine3")}
             <span className="text-gold-light italic">
               {" "}
-              circling.
+              {t("home.hero.titleAccent")}
             </span>
           </h1>
 
           <p className="mt-6 max-w-lg text-base leading-7 text-parchment/70 sm:text-lg sm:leading-8">
-            Personal astrology consultations designed to help you move forward
-            with confidence. Every reading is private, practical and focused on
-            your real questions.
+            {t("home.hero.description")}
           </p>
 
           <div className="mt-8 flex flex-wrap gap-4 text-sm text-parchment/70">
-            <div>✓ 1000+ Consultations</div>
-            <div>✓ Private & Confidential</div>
-            <div>✓ Video Sessions</div>
+            <div>{t("home.hero.stats.consultations")}</div>
+            <div>{t("home.hero.stats.private")}</div>
+            <div>{t("home.hero.stats.video")}</div>
           </div>
         </div>
 
         {/* RIGHT */}
+        {!user && (
         <div className="mx-auto w-full max-w-md">
 
           <div className="rounded-2xl border border-white/10 bg-[#151521]/95 p-5 shadow-2xl backdrop-blur-xl sm:p-6">
 
             <h3 className="text-2xl font-serif">
-              Book Your Consultation
+              {t("home.hero.formTitle")}
             </h3>
 
             <p className="mt-2 text-sm text-parchment/60">
-              Fill your details to schedule your private reading.
+              {t("home.hero.formDescription")}
             </p>
 
             <form
@@ -145,7 +155,7 @@ export function Hero() {
 
               <input
                 type="text"
-                placeholder="Your Name"
+                placeholder={t("common.fields.name")}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-parchment placeholder:text-parchment/40 outline-none focus:border-gold-light"
@@ -165,7 +175,7 @@ export function Hero() {
 
                 <input
                   type="tel"
-                  placeholder="Phone Number"
+                  placeholder={t("common.fields.phoneNumber")}
                   value={phone}
                   maxLength={10}
                   onChange={(e) =>
@@ -177,8 +187,8 @@ export function Hero() {
 
               <CustomSelect
                 options={concerns}
-                value={concern}
-                placeholder="Select Your Concern"
+                value={selectedConcern}
+                placeholder={t("home.hero.concernPlaceholder")}
                 onChange={(option) => setConcern(option)}
               />
 
@@ -187,20 +197,23 @@ export function Hero() {
                 disabled={loading}
                 className="w-full rounded-lg bg-gold px-5 py-3 font-medium text-black transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {loading ? "Booking..." : "Book Consultation"}
+                {loading
+                  ? t("common.actions.booking")
+                  : t("common.actions.bookConsultation")}
               </button>
 
             </form>
 
             <div className="mt-5 flex justify-between text-xs text-parchment/50">
-              <span>🔒 Private</span>
-              <span>★★★★★ Trusted</span>
-              <span>Online</span>
+              <span>{t("home.hero.trust.private")}</span>
+              <span>{t("home.hero.trust.trusted")}</span>
+              <span>{t("home.hero.trust.online")}</span>
             </div>
 
           </div>
 
         </div>
+        )}
 
       </Container>
     </section>

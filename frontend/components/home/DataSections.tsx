@@ -6,6 +6,7 @@ import { Star, ArrowRight } from 'lucide-react';
 import { Section, SectionHeading } from '@/components/ui/Section';
 import { useTenant } from '@/lib/tenant-context';
 import { servicesApi, testimonialsApi, blogApi } from '@/lib/api';
+import { useLanguage } from '@/lib/language-context';
 
 function EmptyState({ message }: { message: string }) {
   return <p className="mt-10 text-sm text-ink/50">{message}</p>;
@@ -13,6 +14,7 @@ function EmptyState({ message }: { message: string }) {
 
 export function ServicesGrid({ limit }: { limit?: number }) {
   const { tenant, formatMoney } = useTenant();
+  const { t } = useLanguage();
   const { data, isLoading, isError } = useQuery({
     queryKey: ['services', tenant.id],
     queryFn: () => servicesApi.listPublic(tenant.id),
@@ -23,13 +25,13 @@ export function ServicesGrid({ limit }: { limit?: number }) {
   return (
     <Section>
       <SectionHeading
-        eyebrow="Services"
-        title="Readings shaped around a real decision"
-        description="Every session is built for a specific kind of question — pick the one closest to yours, or start with a Quick Reading if you're not sure."
+        eyebrow={t("home.dataSections.services.eyebrow")}
+        title={t("home.dataSections.services.title")}
+        description={t("home.dataSections.services.description")}
       />
 
-      {isLoading && <EmptyState message="Loading services…" />}
-      {isError && <EmptyState message="Services will appear here once the backend API is running." />}
+      {isLoading && <EmptyState message={t("home.dataSections.services.loading")} />}
+      {isError && <EmptyState message={t("home.dataSections.services.error")} />}
 
       {services && services.length > 0 && (
         <div className="mt-12 grid gap-6 md:grid-cols-3">
@@ -43,13 +45,13 @@ export function ServicesGrid({ limit }: { limit?: number }) {
               <div className="mt-8 flex items-end justify-between">
                 <div>
                   <p className="font-display text-2xl text-ink">{formatMoney(service.price)}</p>
-                  <p className="text-xs uppercase tracking-wide text-ink/40">{service.durationMinutes} minutes</p>
+                  <p className="text-xs uppercase tracking-wide text-ink/40">{service.durationMinutes} {t("home.dataSections.services.minutes")}</p>
                 </div>
                 <Link
                   href={`/book?service=${service.id}`}
                   className="flex items-center gap-1 text-sm text-wine opacity-0 transition-opacity group-hover:opacity-100"
                 >
-                  Book <ArrowRight size={14} />
+                  {t("common.actions.book")} <ArrowRight size={14} />
                 </Link>
               </div>
             </div>
@@ -57,13 +59,14 @@ export function ServicesGrid({ limit }: { limit?: number }) {
         </div>
       )}
 
-      {data && data.length === 0 && <EmptyState message="Services will be published here shortly." />}
+      {data && data.length === 0 && <EmptyState message={t("home.dataSections.services.empty")} />}
     </Section>
   );
 }
 
 export function TestimonialsCarousel() {
   const { tenant } = useTenant();
+  const { t } = useLanguage();
   const { data, isLoading, isError } = useQuery({
     queryKey: ['testimonials', tenant.id],
     queryFn: () => testimonialsApi.listApproved(tenant.id),
@@ -71,10 +74,10 @@ export function TestimonialsCarousel() {
 
   return (
     <Section tone="dark">
-      <SectionHeading tone="dark" eyebrow="From past sessions" title="What clients say afterward" align="center" />
+      <SectionHeading tone="dark" eyebrow={t("home.dataSections.testimonials.eyebrow")} title={t("home.dataSections.testimonials.title")} align="center" />
 
-      {isLoading && <p className="mt-10 text-center text-sm text-parchment/50">Loading testimonials…</p>}
-      {isError && <p className="mt-10 text-center text-sm text-parchment/50">Testimonials will appear here once the backend API is running.</p>}
+      {isLoading && <p className="mt-10 text-center text-sm text-parchment/50">{t("home.dataSections.testimonials.loading")}</p>}
+      {isError && <p className="mt-10 text-center text-sm text-parchment/50">{t("home.dataSections.testimonials.error")}</p>}
 
       {data && data.length > 0 && (
         <div className="mt-14 grid gap-8 md:grid-cols-3">
@@ -97,6 +100,7 @@ export function TestimonialsCarousel() {
 
 export function BlogTeaser() {
   const { tenant } = useTenant();
+  const { t } = useLanguage();
   const { data, isLoading, isError } = useQuery({
     queryKey: ['blog-latest', tenant.id],
     queryFn: () => blogApi.listPublished(tenant.id),
@@ -107,9 +111,9 @@ export function BlogTeaser() {
   return (
     <Section tone="dim">
       <div className="flex items-end justify-between">
-        <SectionHeading eyebrow="From the journal" title="Notes on astrology, decisions, and timing" />
+        <SectionHeading eyebrow={t("home.dataSections.blog.eyebrow")} title={t("home.dataSections.blog.title")} />
         <Link href="/blog" className="hidden text-sm uppercase tracking-[0.12em] text-wine md:block">
-          View all
+          {t("home.dataSections.blog.viewAll")}
         </Link>
       </div>
       <div className="mt-12 grid gap-8 md:grid-cols-3">

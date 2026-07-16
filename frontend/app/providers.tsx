@@ -4,6 +4,7 @@ import { ReactNode, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TenantProvider } from '@/lib/tenant-context';
 import { AuthProvider } from '@/lib/auth-context';
+import { LanguageProvider } from '@/lib/language-context';
 
 export function Providers({ children }: { children: ReactNode }) {
   const [client] = useState(() => new QueryClient({
@@ -12,9 +13,11 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <QueryClientProvider client={client}>
-      <TenantProvider>
-        <AuthProvider>{children}</AuthProvider>
-      </TenantProvider>
+      <LanguageProvider>
+        <TenantProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </TenantProvider>
+      </LanguageProvider>
     </QueryClientProvider>
   );
 }

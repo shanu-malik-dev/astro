@@ -70,6 +70,13 @@ export class AuthRepository {
     );
   }
 
+  clearUserToken(userId: number) {
+    return this.userRepository.update(
+      { id: userId },
+      { token: null, token_expiry: null },
+    );
+  }
+
   createLoginLog(input: LoginLogInput) {
     return this.loginLogRepository.save(
       this.loginLogRepository.create({
