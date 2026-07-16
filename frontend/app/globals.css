@@ -83,3 +83,50 @@
     @apply btn bg-gold text-ink hover:bg-gold-light;
   }
 }
+
+@layer utilities {
+  .admin-theme {
+    --admin-accent: #B08A2E;
+    --admin-accent-light: #D4B463;
+    --admin-accent-soft: rgb(176 138 46 / 0.12);
+    --admin-accent-softer: rgb(176 138 46 / 0.16);
+    --admin-accent-dark: #8A6B20;
+  }
+
+  .admin-theme .bg-gold {
+    background-color: var(--admin-accent) !important;
+  }
+
+  .admin-theme .bg-gold\/10 {
+    background-color: var(--admin-accent-soft) !important;
+  }
+
+  .admin-theme .bg-gold\/15 {
+    background-color: var(--admin-accent-softer) !important;
+  }
+
+  .admin-theme .text-gold,
+  .admin-theme .text-gold-dark {
+    color: var(--admin-accent-dark) !important;
+  }
+
+  .admin-theme .border-gold {
+    border-color: var(--admin-accent) !important;
+  }
+
+  .admin-theme .hover\:border-gold:hover {
+    border-color: var(--admin-accent) !important;
+  }
+
+  .admin-theme .hover\:bg-gold\/10:hover {
+    background-color: var(--admin-accent-soft) !important;
+  }
+
+  .admin-theme .focus\:border-gold:focus {
+    border-color: var(--admin-accent) !important;
+  }
+
+  .admin-theme :focus-visible {
+    outline-color: var(--admin-accent);
+  }
+}

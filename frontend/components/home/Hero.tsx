@@ -6,36 +6,46 @@ import CustomSelect, { SelectOption } from "../ui/CustomSelect";
 import { useCountryCodes } from "@/lib/country-code-store";
 import { useLanguage } from "@/lib/language-context";
 import { useAuth } from "@/lib/auth-context";
+import { useTenant } from "@/lib/tenant-context";
+import { ApiError, enquiryApi, problemApi, type ProblemDropdownOptionDto } from "@/lib/api";
+import { getMobileMaxLength, validateMobileNumber } from "@/lib/mobile-validation";
 
-const concernKeys = [
-  "love",
-  "career",
-  "marriage",
-  "finance",
-  "family",
-  "health",
-  "other",
-];
+type FormErrors = {
+  name?: string;
+  countryCode?: string;
+  phone?: string;
+  problem?: string;
+};
+
+type ToastState = {
+  type: "success" | "error";
+  message: string;
+} | null;
 
 export function Hero() {
   const { countryCodes } = useCountryCodes();
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const { user } = useAuth();
+  const { tenant } = useTenant();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [problems, setProblems] = useState<ProblemDropdownOptionDto[]>([]);
 
   const [countryCode, setCountryCode] = useState<SelectOption | null>(null);
 
-  const [concern, setConcern] = useState<SelectOption | null>(null);
+  const [problem, setProblem] = useState<SelectOption | null>(null);
 
   const [loading, setLoading] = useState(false);
-  const concerns: SelectOption[] = concernKeys.map((key) => ({
-    value: key,
-    label: t(`home.hero.concerns.${key}`),
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [toast, setToast] = useState<ToastState>(null);
+  const problemOptions: SelectOption[] = problems.map((item) => ({
+    value: String(item.value),
+    label: language === "hi" ? item.hi_label : item.en_label,
   }));
-  const selectedConcern = concern
-    ? concerns.find((option) => option.value === concern.value) || null
+  const selectedProblem = problem
+    ? problemOptions.find((option) => option.value === problem.value) || null
     : null;
+  const maxMobileLength = getMobileMaxLength(countryCode?.value || "");
 
   useEffect(() => {
     if (!countryCode && countryCodes.length > 0) {
@@ -43,60 +53,104 @@ export function Hero() {
     }
   }, [countryCode, countryCodes]);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  useEffect(() => {
+    let active = true;
+
+    async function loadProblems() {
+      try {
+        const response = await problemApi.dropdown(tenant.id);
+        if (active) setProblems(response.data || []);
+      } catch (err) {
+        if (!active) return;
+        setToast({
+          type: "error",
+          message:
+            err instanceof ApiError
+              ? err.message
+              : "Unable to load problem list.",
+        });
+      }
+    }
+
+    loadProblems();
+
+    return () => {
+      active = false;
+    };
+  }, [tenant.id]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timeout = window.setTimeout(() => setToast(null), 3500);
+    return () => window.clearTimeout(timeout);
+  }, [toast]);
+
+  const validateForm = () => {
+    const nextErrors: FormErrors = {};
 
     if (!name.trim()) {
-      alert(t("common.validation.nameRequired"));
-      return;
+      nextErrors.name = t("common.validation.nameRequired");
     }
 
     if (!countryCode) {
-      alert(t("common.validation.countryRequired"));
-      return;
+      nextErrors.countryCode = t("common.validation.countryRequired");
     }
 
-    if (!/^[0-9]{10}$/.test(phone)) {
-      alert(t("common.validation.phoneInvalid"));
-      return;
+    if (!phone.trim()) {
+      nextErrors.phone = t("common.validation.phoneInvalid");
+    } else if (countryCode) {
+      const validation = validateMobileNumber(countryCode.value, phone, language);
+      if (!validation.valid) nextErrors.phone = validation.message;
     }
 
-    if (!concern) {
-      alert(t("common.validation.concernRequired"));
-      return;
+    if (!problem) {
+      nextErrors.problem = t("common.validation.concernRequired");
     }
+
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    if (!validateForm() || !countryCode || !problem) return;
 
     setLoading(true);
 
-    const formData = {
-      name,
-      phone: countryCode.value + phone,
-      concern: concern.value,
-    };
+    try {
+      const customerId = Number(user?.id);
+      const response = await enquiryApi.create(tenant.id, {
+        ...(Number.isFinite(customerId) && customerId > 0
+          ? { customer_id: customerId }
+          : {}),
+        customer_name: name.trim(),
+        country_code: countryCode.value,
+        mobile: phone,
+        problem_id: Number(problem.value),
+        problem_name: selectedProblem?.label || problem.label,
+      });
 
-    console.log(formData);
-
-    // ==========================
-    // API CALL
-    // ==========================
-    // await fetch("/api/consultation", {
-    //   method: "POST",
-    //   headers: {
-    //     "Content-Type": "application/json",
-    //   },
-    //   body: JSON.stringify(formData),
-    // });
-
-    setTimeout(() => {
-      alert(t("home.hero.success"));
-
+      setToast({
+        type: "success",
+        message: response.message || t("home.hero.success"),
+      });
       setName("");
       setPhone("");
-      setConcern(null);
+      setProblem(null);
       setCountryCode(null);
-
+      setErrors({});
+    } catch (err) {
+      setToast({
+        type: "error",
+        message:
+          err instanceof ApiError
+            ? err.message
+            : "Unable to book consultation.",
+      });
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -157,9 +211,15 @@ export function Hero() {
                 type="text"
                 placeholder={t("common.fields.name")}
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setErrors((current) => ({ ...current, name: undefined }));
+                }}
                 className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-parchment placeholder:text-parchment/40 outline-none focus:border-gold-light"
               />
+              {errors.name && (
+                <p className="-mt-2 text-xs text-red-300">{errors.name}</p>
+              )}
 
               <div className="flex flex-col gap-3 sm:flex-row">
 
@@ -169,28 +229,51 @@ export function Hero() {
                     value={countryCode}
                     onChange={(option) => {
                       if (option) setCountryCode(option);
+                      setPhone("");
+                      setErrors((current) => ({
+                        ...current,
+                        countryCode: undefined,
+                        phone: undefined,
+                      }));
                     }}
                   />
+                  {errors.countryCode && (
+                    <p className="mt-2 text-xs text-red-300">
+                      {errors.countryCode}
+                    </p>
+                  )}
                 </div>
 
                 <input
                   type="tel"
                   placeholder={t("common.fields.phoneNumber")}
                   value={phone}
-                  maxLength={10}
-                  onChange={(e) =>
-                    setPhone(e.target.value.replace(/\D/g, ""))
-                  }
+                  maxLength={maxMobileLength}
+                  onChange={(e) => {
+                    setPhone(
+                      e.target.value.replace(/\D/g, "").slice(0, maxMobileLength)
+                    );
+                    setErrors((current) => ({ ...current, phone: undefined }));
+                  }}
                   className="flex-1 rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-parchment placeholder:text-parchment/40 outline-none focus:border-gold-light"
                 />
               </div>
+              {errors.phone && (
+                <p className="-mt-2 text-xs text-red-300">{errors.phone}</p>
+              )}
 
               <CustomSelect
-                options={concerns}
-                value={selectedConcern}
+                options={problemOptions}
+                value={selectedProblem}
                 placeholder={t("home.hero.concernPlaceholder")}
-                onChange={(option) => setConcern(option)}
+                onChange={(option) => {
+                  setProblem(option);
+                  setErrors((current) => ({ ...current, problem: undefined }));
+                }}
               />
+              {errors.problem && (
+                <p className="-mt-2 text-xs text-red-300">{errors.problem}</p>
+              )}
 
               <button
                 type="submit"
@@ -216,6 +299,18 @@ export function Hero() {
         )}
 
       </Container>
+
+      {toast && (
+        <div className="fixed right-6 top-6 z-[100] max-w-sm rounded-lg border border-white/10 bg-[#151521] px-4 py-3 text-sm text-parchment shadow-2xl">
+          <p
+            className={
+              toast.type === "success" ? "text-green-200" : "text-red-200"
+            }
+          >
+            {toast.message}
+          </p>
+        </div>
+      )}
     </section>
   );
 }

@@ -1,5 +1,6 @@
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
+export const AUTH_UNAUTHORIZED_EVENT = "astronova:unauthorized";
 
 function getAcceptLanguage() {
   if (typeof window === "undefined") return "en";
@@ -14,6 +15,11 @@ export class ApiError extends Error {
     this.name = "ApiError";
     this.status = status;
   }
+}
+
+function notifyUnauthorized() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(AUTH_UNAUTHORIZED_EVENT));
 }
 
 type ApiRequestOptions = Omit<RequestInit, "body"> & {
@@ -42,6 +48,20 @@ export async function apiService<T>(
   const contentType = response.headers.get("content-type");
   const isJson = contentType?.includes("application/json");
   const data = isJson ? await response.json().catch(() => null) : null;
+
+  if (response.status === 401 || data?.statusCode === 401) {
+    notifyUnauthorized();
+
+    const message =
+      data?.message ||
+      data?.error ||
+      "Session expired. Please login again.";
+
+    throw new ApiError(
+      401,
+      Array.isArray(message) ? message.join(", ") : message
+    );
+  }
 
   if (!response.ok) {
     const message =

@@ -5,6 +5,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { LanguageMiddleware } from './common/middleware/language.middleware';
 import { getDatabaseConfig } from './config/database.config';
 import { AuthModule } from './modules/auth/auth.module';
+import { EnquiryModule } from './modules/enquiry/enquiry.module';
+import { FollowUpModule } from './modules/follow-up/follow-up.module';
+import { ProblemModule } from './modules/problem/problem.module';
+import { ServiceModule } from './modules/service/service.module';
 import { SharedModule } from './modules/shared-module/shared.module';
 
 @Module({
@@ -17,6 +21,10 @@ import { SharedModule } from './modules/shared-module/shared.module';
     }),
     AuthModule,
     SharedModule,
+    ProblemModule,
+    ServiceModule,
+    EnquiryModule,
+    FollowUpModule,
   ],
 })
 export class AppModule implements NestModule {

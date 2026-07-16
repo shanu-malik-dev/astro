@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { authApi, AuthUser, ApiError, OtpResponse } from './api';
+import { AUTH_UNAUTHORIZED_EVENT } from './api-service';
 import { useTenant } from './tenant-context';
 
 interface AuthState {
@@ -82,6 +83,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.localStorage.removeItem(STORAGE_KEY);
     }
   };
+
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      persist({ user: null, accessToken: null, refreshToken: null });
+    };
+
+    window.addEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized);
+
+    return () => {
+      window.removeEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized);
+    };
+  }, []);
 
   const login = useCallback(async (data: { countryCode: string; mobile: string }) => {
     return authApi.login(tenant.id, data);
