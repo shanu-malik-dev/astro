@@ -5,4 +5,5 @@ export const hi = {
   DEFAULT_ROLE_NOT_FOUND: 'Default role nahi mila.',
   INVALID_OR_EXPIRED_OTP: 'OTP galat hai ya expire ho chuka hai.',
   USER_NOT_FOUND_OR_INACTIVE: 'User nahi mila ya inactive hai.',
+  COUNTRY_LIST_FETCHED: 'Country list fetched successfully.',
 } as const;

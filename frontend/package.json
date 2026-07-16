@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "NEXT_PUBLIC_API_URL=http://localhost:3001/api next dev",
+    "build": "NEXT_PUBLIC_API_URL=http://localhost:3001/api next build",
+    "start": "NEXT_PUBLIC_API_URL=http://localhost:3001/api next start",
     "lint": "next lint"
   },
   "dependencies": {

@@ -1,15 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Container } from "@/components/ui/Container";
 import CustomSelect, { SelectOption } from "../ui/CustomSelect";
-
-const countryCodes: SelectOption[] = [
-  { value: "+91", label: "🇮🇳 +91" },
-  { value: "+1", label: "🇺🇸 +1" },
-  { value: "+44", label: "🇬🇧 +44" },
-  { value: "+61", label: "🇦🇺 +61" },
-];
+import { useCountryCodes } from "@/lib/country-code-store";
 
 const concerns: SelectOption[] = [
   { value: "love", label: "❤️ Love & Relationship" },
@@ -22,22 +16,32 @@ const concerns: SelectOption[] = [
 ];
 
 export function Hero() {
+  const { countryCodes } = useCountryCodes();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
 
-  const [countryCode, setCountryCode] = useState<SelectOption>(
-    countryCodes[0]
-  );
+  const [countryCode, setCountryCode] = useState<SelectOption | null>(null);
 
   const [concern, setConcern] = useState<SelectOption | null>(null);
 
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!countryCode && countryCodes.length > 0) {
+      setCountryCode(countryCodes[0]);
+    }
+  }, [countryCode, countryCodes]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!name.trim()) {
       alert("Please enter your name.");
+      return;
+    }
+
+    if (!countryCode) {
+      alert("Please select country code.");
       return;
     }
 
@@ -78,7 +82,7 @@ export function Hero() {
       setName("");
       setPhone("");
       setConcern(null);
-      setCountryCode(countryCodes[0]);
+      setCountryCode(null);
 
       setLoading(false);
     }, 1000);

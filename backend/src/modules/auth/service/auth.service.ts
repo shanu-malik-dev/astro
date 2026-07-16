@@ -76,6 +76,7 @@ export class AuthService {
           country_code: dto.country_code,
           mobile: dto.mobile,
         },
+        2,
       );
     } catch (error) {
       if (this.isDuplicateKeyError(error)) {
@@ -96,6 +97,7 @@ export class AuthService {
         country_code: dto.country_code,
         mobile: dto.mobile,
       },
+      2,
     );
   }
 
@@ -146,6 +148,7 @@ export class AuthService {
         expires_in: this.getAccessTokenSeconds(),
         user: this.toSafeUser(user),
       },
+      200,
     );
   }
 
@@ -159,6 +162,7 @@ export class AuthService {
         country_code: dto.country_code,
         mobile: dto.mobile,
       },
+      2,
     );
   }
 

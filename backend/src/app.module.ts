@@ -5,6 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { LanguageMiddleware } from './common/middleware/language.middleware';
 import { getDatabaseConfig } from './config/database.config';
 import { AuthModule } from './modules/auth/auth.module';
+import { SharedModule } from './modules/shared-module/shared.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { AuthModule } from './modules/auth/auth.module';
       useFactory: getDatabaseConfig,
     }),
     AuthModule,
+    SharedModule,
   ],
 })
 export class AppModule implements NestModule {

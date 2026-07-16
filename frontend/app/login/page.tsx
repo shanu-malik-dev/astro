@@ -1,38 +1,86 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import Select, { StylesConfig } from "react-select";
 import { Section } from "@/components/ui/Section";
 import { useAuth, ApiError } from "@/lib/auth-context";
+import { CountryCodeOption, useCountryCodes } from "@/lib/country-code-store";
+
+const countrySelectStyles: StylesConfig<CountryCodeOption, false> = {
+  control: (base, state) => ({
+    ...base,
+    minHeight: 46,
+    borderColor: state.isFocused ? "#c59d5f" : "#d8d2c4",
+    backgroundColor: "transparent",
+    borderRadius: 6,
+    boxShadow: "none",
+    fontSize: 14,
+    "&:hover": {
+      borderColor: state.isFocused ? "#c59d5f" : "#d8d2c4",
+    },
+  }),
+  indicatorSeparator: () => ({ display: "none" }),
+  menu: (base) => ({ ...base, zIndex: 20 }),
+};
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, verifyOtp } = useAuth();
+  const { countryCodes } = useCountryCodes();
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const redirectTo = searchParams.get("redirect") || "/account";
 
+  const [countryCode, setCountryCode] = useState("");
   const [mobile, setMobile] = useState("");
+  const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!countryCode && countryCodes.length > 0) {
+      setCountryCode(countryCodes[0].value);
+    }
+  }, [countryCode, countryCodes]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     setError("");
 
-    if (!/^[6-9]\d{9}$/.test(mobile)) {
+    if (!countryCode) {
+      setError("Please select a country code.");
+      return;
+    }
+
+    if (!/^[0-9]{10}$/.test(mobile)) {
       setError("Please enter a valid 10-digit mobile number.");
+      return;
+    }
+
+    if (otpSent && !/^\d{6}$/.test(otp)) {
+      setError("Please enter a valid 6-digit OTP.");
       return;
     }
 
     setLoading(true);
 
     try {
-      // Update login() according to your backend
-      await login(mobile);
+      if (!otpSent) {
+        const res = await login({ countryCode, mobile });
+        if (res.statusCode !== 2) {
+          setError(res.message || "Unable to send OTP. Please try again.");
+          return;
+        }
 
+        setOtpSent(true);
+        return;
+      }
+
+      await verifyOtp({ countryCode, mobile, otp });
       router.push(redirectTo);
     } catch (err) {
       setError(
@@ -59,16 +107,49 @@ export default function LoginPage() {
           onSubmit={onSubmit}
           className="mt-8 space-y-4"
         >
-          <input
-            type="tel"
-            placeholder="Enter Mobile Number"
-            value={mobile}
-            maxLength={10}
-            onChange={(e) =>
-              setMobile(e.target.value.replace(/\D/g, ""))
-            }
-            className="w-full rounded-md border border-mist bg-parchment px-4 py-3 text-sm outline-none focus:border-gold"
-          />
+          <div className="flex gap-3">
+            <div className="w-32">
+              <Select<CountryCodeOption>
+                instanceId="login-country-code"
+                isDisabled={otpSent}
+                isSearchable
+                options={countryCodes}
+                placeholder="Code"
+                styles={countrySelectStyles}
+                value={
+                  countryCodes.find(
+                    (option) => option.value === countryCode
+                  ) || null
+                }
+                onChange={(option) =>
+                  setCountryCode(option?.value || "")
+                }
+              />
+            </div>
+
+            <input
+              type="tel"
+              placeholder="Enter Mobile Number"
+              value={mobile}
+              maxLength={10}
+              disabled={otpSent}
+              onChange={(e) =>
+                setMobile(e.target.value.replace(/\D/g, ""))
+              }
+              className="min-w-0 flex-1 rounded-md border border-mist bg-parchment px-4 py-3 text-sm outline-none focus:border-gold disabled:opacity-70"
+            />
+          </div>
+
+          {otpSent && (
+            <input
+              type="tel"
+              placeholder="Enter OTP"
+              value={otp}
+              maxLength={6}
+              onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+              className="w-full rounded-md border border-mist bg-parchment px-4 py-3 text-sm outline-none focus:border-gold"
+            />
+          )}
 
           {error && (
             <p className="text-sm text-red-600">
@@ -81,7 +162,7 @@ export default function LoginPage() {
             disabled={loading}
             className="btn-primary w-full"
           >
-            {loading ? "Please wait..." : "Continue"}
+            {loading ? "Please wait..." : otpSent ? "Verify OTP" : "Continue"}
           </button>
         </form>
 

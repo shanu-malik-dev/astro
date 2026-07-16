@@ -1,14 +1,7 @@
 import { TenantId } from './tenant';
+import { apiService, ApiError } from './api-service';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
-
-export class ApiError extends Error {
-  status: number;
-  constructor(status: number, message: string) {
-    super(message);
-    this.status = status;
-  }
-}
+export { ApiError };
 
 interface RequestOptions extends RequestInit {
   tenantId: TenantId;
@@ -16,24 +9,14 @@ interface RequestOptions extends RequestInit {
 }
 
 async function request<T>(path: string, { tenantId, accessToken, headers, ...options }: RequestOptions): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
+  return apiService<T>(path, {
     ...options,
     headers: {
-      'Content-Type': 'application/json',
       'x-tenant-id': tenantId,
       ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       ...headers,
     },
   });
-
-  const isJson = res.headers.get('content-type')?.includes('application/json');
-  const body = isJson ? await res.json().catch(() => null) : null;
-
-  if (!res.ok) {
-    const message = body?.message || `Request failed with status ${res.status}`;
-    throw new ApiError(res.status, Array.isArray(message) ? message.join(', ') : message);
-  }
-  return body as T;
 }
 
 // ---- Types ----
@@ -90,24 +73,81 @@ export interface BookingDto {
 export interface AuthUser {
   id: string;
   fullName: string;
-  email: string;
+  name?: string;
+  email?: string;
   phone?: string;
+  mobile?: string;
+  countryCode?: string;
+  country_code?: string;
   role: string;
   isActive: boolean;
 }
 
 export interface AuthResponse {
-  user: AuthUser;
-  accessToken: string;
-  refreshToken: string;
+  statusCode?: number;
+  message?: string;
+  user?: AuthUser;
+  accessToken?: string;
+  access_token?: string;
+  refreshToken?: string;
+  refresh_token?: string;
+  data?: {
+    user?: AuthUser;
+    accessToken?: string;
+    access_token?: string;
+    refreshToken?: string;
+    refresh_token?: string;
+    token?: string;
+  };
+}
+
+export interface OtpResponse {
+  statusCode?: number;
+  message?: string;
+  success?: boolean;
 }
 
 // ---- Auth ----
 export const authApi = {
-  register: (tenantId: TenantId, data: { fullName: string; email: string; password: string; phone?: string }) =>
-    request<AuthResponse>('/auth/register', { tenantId, method: 'POST', body: JSON.stringify(data) }),
-  login: (tenantId: TenantId, data: { email: string; password: string }) =>
-    request<AuthResponse>('/auth/login', { tenantId, method: 'POST', body: JSON.stringify(data) }),
+  signup: (tenantId: TenantId, data: { fullName: string; countryCode: string; mobile: string }) =>
+    request<OtpResponse>('/auth/signup', {
+      tenantId,
+      method: 'POST',
+      body: JSON.stringify({
+        name: data.fullName,
+        country_code: data.countryCode,
+        mobile: data.mobile,
+      }),
+    }),
+  register: (tenantId: TenantId, data: { fullName: string; countryCode: string; mobile: string }) =>
+    request<OtpResponse>('/auth/signup', {
+      tenantId,
+      method: 'POST',
+      body: JSON.stringify({
+        name: data.fullName,
+        country_code: data.countryCode,
+        mobile: data.mobile,
+      }),
+    }),
+  login: (tenantId: TenantId, data: { countryCode: string; mobile: string }) =>
+    request<OtpResponse>('/auth/login', {
+      tenantId,
+      method: 'POST',
+      body: JSON.stringify({
+        country_code: data.countryCode,
+        mobile: data.mobile,
+      }),
+    }),
+  verifyOtp: (tenantId: TenantId, data: { countryCode: string; mobile: string; otp: string }) =>
+    request<AuthResponse>('/auth/verify-otp', {
+      tenantId,
+      method: 'POST',
+      body: JSON.stringify({
+        country_code: data.countryCode,
+        mobile: data.mobile,
+        otp: data.otp,
+      }),
+    }),
   refresh: (tenantId: TenantId, refreshToken: string) =>
     request<AuthResponse>('/auth/refresh', { tenantId, method: 'POST', body: JSON.stringify({ refreshToken }) }),
   logout: (tenantId: TenantId, accessToken: string) =>

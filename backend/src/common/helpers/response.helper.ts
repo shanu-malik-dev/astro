@@ -3,6 +3,7 @@ import { getMessage } from '../../lang';
 
 export type ApiResponse<T = undefined> = {
   success: boolean;
+  statusCode?: number;
   message: string;
   data?: T;
 };
@@ -10,10 +11,13 @@ export type ApiResponse<T = undefined> = {
 export function successResponse<T>(
   messageKey: string,
   data?: T,
+  statusCode?: number,
 ): ApiResponse<T> {
   const message = getMessage(messageKey, LanguageContext.getLang());
 
-  return data === undefined
-    ? { success: true, message }
-    : { success: true, message, data };
+  const response = statusCode
+    ? { success: true, statusCode, message }
+    : { success: true, message };
+
+  return data === undefined ? response : { ...response, data };
 }

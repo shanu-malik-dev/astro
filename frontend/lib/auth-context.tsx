@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
-import { authApi, AuthUser, ApiError } from './api';
+import { authApi, AuthUser, ApiError, OtpResponse } from './api';
 import { useTenant } from './tenant-context';
 
 interface AuthState {
@@ -12,14 +12,49 @@ interface AuthState {
 
 interface AuthContextValue extends AuthState {
   loading: boolean;
-  login: (email: string, password: string) => Promise<AuthUser>;
-  register: (data: { fullName: string; email: string; password: string; phone?: string }) => Promise<AuthUser>;
+  login: (data: { countryCode: string; mobile: string }) => Promise<OtpResponse>;
+  register: (data: { fullName: string; countryCode: string; mobile: string }) => Promise<OtpResponse>;
+  verifyOtp: (data: { countryCode: string; mobile: string; otp: string }) => Promise<AuthUser>;
   logout: () => Promise<void>;
 }
 
 const STORAGE_KEY = 'astronova_session';
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+function getAuthSession(res: Awaited<ReturnType<typeof authApi.verifyOtp>>): AuthState {
+  if (typeof res.statusCode === 'number' && res.statusCode !== 200) {
+    throw new ApiError(res.statusCode, res.message || 'Unable to verify OTP.');
+  }
+
+  const user = res.user || res.data?.user;
+  const accessToken =
+    res.accessToken ||
+    res.access_token ||
+    res.data?.accessToken ||
+    res.data?.access_token ||
+    res.data?.token ||
+    null;
+  const refreshToken =
+    res.refreshToken ||
+    res.refresh_token ||
+    res.data?.refreshToken ||
+    res.data?.refresh_token ||
+    null;
+
+  if (!user || !accessToken) {
+    throw new ApiError(200, res.message || 'OTP verified, but login session was not returned.');
+  }
+
+  return {
+    user: {
+      ...user,
+      fullName: user.fullName || user.name || '',
+    },
+    accessToken,
+    refreshToken,
+  };
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { tenant } = useTenant();
@@ -47,16 +82,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = useCallback(async (email: string, password: string) => {
-    const res = await authApi.login(tenant.id, { email, password });
-    persist({ user: res.user, accessToken: res.accessToken, refreshToken: res.refreshToken });
-    return res.user;
+  const login = useCallback(async (data: { countryCode: string; mobile: string }) => {
+    return authApi.login(tenant.id, data);
   }, [tenant.id]);
 
-  const register = useCallback(async (data: { fullName: string; email: string; password: string; phone?: string }) => {
-    const res = await authApi.register(tenant.id, data);
-    persist({ user: res.user, accessToken: res.accessToken, refreshToken: res.refreshToken });
-    return res.user;
+  const register = useCallback(async (data: { fullName: string; countryCode: string; mobile: string }) => {
+    return authApi.register(tenant.id, data);
+  }, [tenant.id]);
+
+  const verifyOtp = useCallback(async (data: { countryCode: string; mobile: string; otp: string }) => {
+    const res = await authApi.verifyOtp(tenant.id, data);
+    const session = getAuthSession(res);
+    persist(session);
+    return session.user!;
   }, [tenant.id]);
 
   const logout = useCallback(async () => {
@@ -69,7 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [state.accessToken, tenant.id]);
 
   return (
-    <AuthContext.Provider value={{ ...state, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ ...state, loading, login, register, verifyOtp, logout }}>
       {children}
     </AuthContext.Provider>
   );

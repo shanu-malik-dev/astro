@@ -24,7 +24,7 @@ export function formatMoney(amount: number, tenant: TenantMeta): string {
   }).format(amount);
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 
 export async function apiFetch(path: string, tenantId: TenantId, options: RequestInit = {}) {
   const res = await fetch(`${API_BASE}${path}`, {
