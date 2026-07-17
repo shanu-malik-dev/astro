@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { AdminSnackbarProvider } from "@/components/admin/AdminSnackbar";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { AstrologersModule } from "@/components/admin/modules/AstrologersModule";
 import { EnquiryModule } from "@/components/admin/modules/EnquiryModule";
 import { FollowUpModule } from "@/components/admin/modules/FollowUpModule";
 import { ProblemModule } from "@/components/admin/modules/ProblemModule";
@@ -66,6 +67,10 @@ export default function AdminPage() {
 
               {activeModule === "services" && (
                 <ServicesModule />
+              )}
+
+              {activeModule === "astrologers" && (
+                <AstrologersModule />
               )}
 
               {activeModule === "enquiry" && (

@@ -7,6 +7,10 @@ export const DATABASE_TABLES = {
   PROBLEM_TRANSLATIONS: 'problem_translation',
   SERVICES: 'services',
   SERVICE_TRANSLATIONS: 'service_translation',
+  ASTROLOGERS: 'astrologers',
+  ASTROLOGER_TRANSLATIONS: 'astrologers_translations',
+  ASTROLOGER_RATINGS: 'astrologer_ratings',
+  ASTROLOGER_CONSULTATIONS: 'astrologer_consultations',
   ENQUIRIES: 'enquiries',
   FOLLOW_UPS: 'follow_ups',
 } as const;

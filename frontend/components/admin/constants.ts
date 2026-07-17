@@ -1,4 +1,4 @@
-import { ClipboardList, HelpCircle, ListChecks, Settings } from "lucide-react";
+import { ClipboardList, HelpCircle, ListChecks, Settings, Sparkles } from "lucide-react";
 import type { SelectOption } from "@/components/ui/CustomSelect";
 import type { AdminModule, EnquiryRow, SimpleRow } from "./types";
 
@@ -34,6 +34,12 @@ export const MODULES: AdminModule[] = [
     label: "Services",
     description: "Manage service names, descriptions, and status.",
     icon: Settings,
+  },
+  {
+    key: "astrologers",
+    label: "Astrologers",
+    description: "Manage astrologer profiles, expertise, and languages.",
+    icon: Sparkles,
   },
   {
     key: "enquiry",

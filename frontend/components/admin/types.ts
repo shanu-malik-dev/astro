@@ -1,6 +1,11 @@
 import type { LucideIcon } from "lucide-react";
 
-export type ModuleKey = "problem" | "services" | "enquiry" | "followUp";
+export type ModuleKey =
+  | "problem"
+  | "services"
+  | "astrologers"
+  | "enquiry"
+  | "followUp";
 
 export type Translation = {
   lang: string;
@@ -10,6 +15,10 @@ export type Translation = {
 
 export type ServiceTranslation = Translation & {
   description: string;
+};
+
+export type AstrologerTranslation = ServiceTranslation & {
+  expertise: string;
 };
 
 export type Problem = {
@@ -31,6 +40,16 @@ export type ServiceRow = {
   displayOrder: number;
   status: "active" | "inactive";
   translations: ServiceTranslation[];
+};
+
+export type AstrologerRow = {
+  id: number;
+  experience: string;
+  languages: string;
+  rating: number;
+  consultations: string;
+  status: "active" | "inactive";
+  translations: AstrologerTranslation[];
 };
 
 export type EnquiryStatus = "open" | "closed";

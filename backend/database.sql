@@ -115,6 +115,61 @@ CREATE TABLE IF NOT EXISTS service_translation (
 DEFAULT CHARSET=utf8mb4
 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS astrologers (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  experience VARCHAR(50) NOT NULL,
+  languages TEXT NOT NULL COMMENT 'Comma separated languages',
+  rating DECIMAL(3,1) NOT NULL DEFAULT 0.0,
+  consultations VARCHAR(50) NOT NULL DEFAULT '0',
+  status TINYINT(1) NOT NULL DEFAULT 1 COMMENT '1=Active, 0=Inactive',
+  is_delete TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1=Deleted, 0=Not Deleted',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ON UPDATE CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (id),
+
+  KEY idx_astrologers_status_delete (
+    status,
+    is_delete
+  )
+) ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS astrologers_translations (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  astrologer_id BIGINT UNSIGNED NOT NULL,
+  lang_code VARCHAR(10) NOT NULL,
+  name VARCHAR(150) NOT NULL,
+  expertise TEXT NOT NULL COMMENT 'Comma separated expertise',
+  description TEXT NULL,
+  status TINYINT(1) NOT NULL DEFAULT 1 COMMENT '1=Active, 0=Inactive',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ON UPDATE CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (id),
+
+  UNIQUE KEY uq_astrologer_translation_lang (
+    astrologer_id,
+    lang_code
+  ),
+
+  KEY idx_astrologer_translation_lang_status (
+    lang_code,
+    status
+  ),
+
+  CONSTRAINT fk_astrologer_translation_astrologer
+    FOREIGN KEY (astrologer_id)
+    REFERENCES astrologers (id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE
+) ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS users (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   role_id BIGINT UNSIGNED NOT NULL,
@@ -147,6 +202,78 @@ CREATE TABLE IF NOT EXISTS users (
     REFERENCES roles (id)
     ON UPDATE CASCADE
     ON DELETE RESTRICT
+) ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS astrologer_ratings (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  astrologer_id BIGINT UNSIGNED NOT NULL,
+  customer_id BIGINT UNSIGNED NULL,
+  customer_name VARCHAR(100) NULL,
+  rating TINYINT UNSIGNED NOT NULL,
+  review TEXT NULL,
+  status TINYINT(1) NOT NULL DEFAULT 1 COMMENT '1=Active, 0=Inactive',
+  is_delete TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1=Deleted, 0=Not Deleted',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ON UPDATE CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (id),
+
+  KEY idx_astrologer_ratings_astrologer (
+    astrologer_id,
+    status,
+    is_delete
+  ),
+
+  CONSTRAINT fk_astrologer_ratings_astrologer
+    FOREIGN KEY (astrologer_id)
+    REFERENCES astrologers (id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE,
+
+  CONSTRAINT fk_astrologer_ratings_customer
+    FOREIGN KEY (customer_id)
+    REFERENCES users (id)
+    ON UPDATE CASCADE
+    ON DELETE SET NULL
+) ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS astrologer_consultations (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  astrologer_id BIGINT UNSIGNED NOT NULL,
+  customer_id BIGINT UNSIGNED NULL,
+  customer_name VARCHAR(100) NOT NULL,
+  country_code VARCHAR(10) NOT NULL,
+  mobile VARCHAR(20) NOT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'pending',
+  scheduled_at TIMESTAMP NULL,
+  notes TEXT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ON UPDATE CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (id),
+
+  KEY idx_astrologer_consultations_astrologer (
+    astrologer_id,
+    status
+  ),
+
+  CONSTRAINT fk_astrologer_consultations_astrologer
+    FOREIGN KEY (astrologer_id)
+    REFERENCES astrologers (id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE,
+
+  CONSTRAINT fk_astrologer_consultations_customer
+    FOREIGN KEY (customer_id)
+    REFERENCES users (id)
+    ON UPDATE CASCADE
+    ON DELETE SET NULL
 ) ENGINE=InnoDB
 DEFAULT CHARSET=utf8mb4
 COLLATE=utf8mb4_unicode_ci;
