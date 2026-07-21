@@ -6,8 +6,10 @@ import { AdminHeader } from "@/components/admin/AdminHeader";
 import { AdminSnackbarProvider } from "@/components/admin/AdminSnackbar";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { AstrologersModule } from "@/components/admin/modules/AstrologersModule";
+import { CustomersModule } from "@/components/admin/modules/CustomersModule";
 import { EnquiryModule } from "@/components/admin/modules/EnquiryModule";
 import { FollowUpModule } from "@/components/admin/modules/FollowUpModule";
+import { PaymentsModule } from "@/components/admin/modules/PaymentsModule";
 import { ProblemModule } from "@/components/admin/modules/ProblemModule";
 import { ServicesModule } from "@/components/admin/modules/ServicesModule";
 import type { ModuleKey } from "@/components/admin/types";
@@ -77,8 +79,16 @@ export default function AdminPage() {
                 <EnquiryModule />
               )}
 
+              {activeModule === "customers" && (
+                <CustomersModule />
+              )}
+
               {activeModule === "followUp" && (
                 <FollowUpModule />
+              )}
+
+              {activeModule === "payments" && (
+                <PaymentsModule />
               )}
             </div>
           </section>

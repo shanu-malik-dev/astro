@@ -302,6 +302,79 @@ export interface EnquiryResponse {
   data?: EnquiryDto | null;
 }
 
+export interface CustomerPaymentDto {
+  id: number;
+  enq_id?: number | null;
+  customer_name: string;
+  country_code: string;
+  customer_mobile: string;
+  amount: number;
+  currency: string;
+  provider: "razorpay" | "stripe";
+  provider_payment_id?: string | null;
+  payment_link?: string | null;
+  qr_code_url?: string | null;
+  payment_status: "created" | "pending" | "paid" | "failed" | "cancelled" | "expired";
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CustomerPaymentListResponse {
+  success?: boolean;
+  statusCode?: number;
+  message?: string;
+  data?: {
+    records: CustomerPaymentDto[];
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      total_pages: number;
+    };
+  };
+}
+
+export interface CustomerPaymentResponse {
+  success?: boolean;
+  statusCode?: number;
+  message?: string;
+  data?: CustomerPaymentDto | null;
+}
+
+export interface CustomerDto {
+  id: number;
+  name: string;
+  country_code: string;
+  mobile: string;
+  customer_mobile: string;
+  status: number;
+  call_status: "called" | "not_called";
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CustomerListResponse {
+  success?: boolean;
+  statusCode?: number;
+  message?: string;
+  data?: {
+    records: CustomerDto[];
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      total_pages: number;
+    };
+  };
+}
+
+export interface CustomerResponse {
+  success?: boolean;
+  statusCode?: number;
+  message?: string;
+  data?: CustomerDto | null;
+}
+
 export interface FollowUpDto {
   id: number;
   enq_id: number;
@@ -543,6 +616,72 @@ export const followUpApi = {
     }),
 };
 
+export const paymentApi = {
+  createIntent: (tenantId: TenantId, accessToken: string, bookingId: string) =>
+    request<{ clientSecret: string; amount: number; currency: string }>('/payments/create-intent', {
+      tenantId, accessToken, method: 'POST', body: JSON.stringify({ bookingId }),
+    }),
+  generateLink: (
+    tenantId: TenantId,
+    accessToken: string,
+    data: { enq_id: number; amount: number; currency?: string }
+  ) =>
+    request<CustomerPaymentResponse>('/payments/generate-link', {
+      tenantId,
+      accessToken,
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  list: (
+    tenantId: TenantId,
+    accessToken: string,
+    data: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      provider?: "razorpay" | "stripe";
+      payment_status?: CustomerPaymentDto["payment_status"];
+    }
+  ) =>
+    request<CustomerPaymentListResponse>('/payments/list', {
+      tenantId,
+      accessToken,
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+};
+
+export const customerApi = {
+  list: (
+    tenantId: TenantId,
+    accessToken: string,
+    data: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      range?: "today" | "all";
+      call_status?: CustomerDto["call_status"];
+    }
+  ) =>
+    request<CustomerListResponse>('/customer/list', {
+      tenantId,
+      accessToken,
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateCallStatus: (
+    tenantId: TenantId,
+    accessToken: string,
+    data: { id: number; call_status: CustomerDto["call_status"] }
+  ) =>
+    request<CustomerResponse>('/customer/call-status', {
+      tenantId,
+      accessToken,
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+};
+
 export const adminServiceApi = {
   list: (
     tenantId: TenantId,
@@ -758,14 +897,6 @@ export const bookingApi = {
     request<BookingDto>(`/bookings/${id}/cancel`, { tenantId, accessToken, method: 'PATCH' }),
   complete: (tenantId: TenantId, accessToken: string, id: string) =>
     request<BookingDto>(`/bookings/${id}/complete`, { tenantId, accessToken, method: 'PATCH' }),
-};
-
-// ---- Payments ----
-export const paymentApi = {
-  createIntent: (tenantId: TenantId, accessToken: string, bookingId: string) =>
-    request<{ clientSecret: string; amount: number; currency: string }>('/payments/create-intent', {
-      tenantId, accessToken, method: 'POST', body: JSON.stringify({ bookingId }),
-    }),
 };
 
 // ---- CRM (admin only) ----

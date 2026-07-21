@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Edit3, Loader2, Power, Save, Trash2, X } from "lucide-react";
 import { adminServiceApi, ApiError, type AdminServiceDto } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -69,6 +69,7 @@ export function ServicesModule() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formErrors, setFormErrors] = useState<ServiceFormErrors>({});
+  const lastFetchKeyRef = useRef("");
 
   const loadServices = useCallback(
     async (page: number) => {
@@ -104,8 +105,11 @@ export function ServicesModule() {
   );
 
   useEffect(() => {
+    const fetchKey = `services:1:${tenant.id}:${accessToken || ""}`;
+    if (lastFetchKeyRef.current === fetchKey) return;
+    lastFetchKeyRef.current = fetchKey;
     loadServices(1);
-  }, [loadServices]);
+  }, [accessToken, loadServices, tenant.id]);
 
   const startCreate = () => {
     setFormErrors({});

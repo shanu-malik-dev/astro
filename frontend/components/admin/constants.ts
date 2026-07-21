@@ -1,4 +1,4 @@
-import { ClipboardList, HelpCircle, ListChecks, Settings, Sparkles } from "lucide-react";
+import { ClipboardList, CreditCard, HelpCircle, ListChecks, Settings, Sparkles, Users } from "lucide-react";
 import type { SelectOption } from "@/components/ui/CustomSelect";
 import type { AdminModule, EnquiryRow, SimpleRow } from "./types";
 
@@ -48,10 +48,22 @@ export const MODULES: AdminModule[] = [
     icon: HelpCircle,
   },
   {
+    key: "customers",
+    label: "Customers",
+    description: "View customers and track whether they were called.",
+    icon: Users,
+  },
+  {
     key: "followUp",
     label: "Follow Up",
     description: "Track enquiry follow-ups by priority status.",
     icon: ListChecks,
+  },
+  {
+    key: "payments",
+    label: "Payments",
+    description: "Track generated payment links and payment status.",
+    icon: CreditCard,
   },
 ];
 
@@ -66,6 +78,8 @@ export const ENQUIRIES: EnquiryRow[] = [
     enq_id: 101,
     customer_name: "Amit Sharma",
     customer_number: "+91 9876543210",
+    country_code: "+91",
+    mobile: "9876543210",
     problem_name: "Marriage consultation",
     status: "open",
   },
@@ -73,6 +87,8 @@ export const ENQUIRIES: EnquiryRow[] = [
     enq_id: 102,
     customer_name: "Priya Singh",
     customer_number: "+91 9123456780",
+    country_code: "+91",
+    mobile: "9123456780",
     problem_name: "Career reading",
     status: "open",
     remark: "Customer asked for evening callback.",
@@ -81,6 +97,8 @@ export const ENQUIRIES: EnquiryRow[] = [
     enq_id: 103,
     customer_name: "Rahul Verma",
     customer_number: "+91 9988776655",
+    country_code: "+91",
+    mobile: "9988776655",
     problem_name: "Payment support",
     status: "closed",
     remark: "Resolved on first call.",

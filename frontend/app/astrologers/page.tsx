@@ -12,6 +12,7 @@ import {
   BriefcaseBusiness,
 } from "lucide-react";
 import { Section } from "@/components/ui/Section";
+import { FullPageLoader } from "@/components/ui/FullPageLoader";
 import { ApiError, astrologerApi, type PublicAstrologerDto } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useLanguage } from "@/lib/language-context";
@@ -75,6 +76,8 @@ export default function AstrologersPage() {
 
   return (
     <>
+      {loading && <FullPageLoader message={t("common.actions.pleaseWait")} />}
+
       <Section tone="dark" className="py-10 md:py-12">
         <div className="mx-auto max-w-3xl text-center">
           <p className="eyebrow-on-dark">{t("astrologersPage.eyebrow")}</p>
@@ -97,27 +100,7 @@ export default function AstrologersPage() {
         )}
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {loading
-            ? Array.from({ length: PAGE_SIZE }).map((_, index) => (
-                <div
-                  key={index}
-                  className="min-h-[430px] animate-pulse rounded-lg border border-mist bg-white p-4 shadow-sm"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="h-16 w-16 rounded-lg bg-parchment" />
-                    <div className="flex-1 space-y-3">
-                      <div className="h-4 w-3/4 rounded bg-parchment" />
-                      <div className="h-6 w-16 rounded-full bg-parchment" />
-                    </div>
-                  </div>
-                  <div className="mt-5 space-y-3">
-                    <div className="h-4 rounded bg-parchment" />
-                    <div className="h-4 rounded bg-parchment" />
-                    <div className="h-4 w-2/3 rounded bg-parchment" />
-                  </div>
-                </div>
-              ))
-            : astrologers.map((astrologer) => {
+          {astrologers.map((astrologer) => {
               const name =
                 language === "hi" ? astrologer.hi_name : astrologer.en_name;
               const description =

@@ -13,6 +13,7 @@ export const DATABASE_TABLES = {
   ASTROLOGER_CONSULTATIONS: 'astrologer_consultations',
   ENQUIRIES: 'enquiries',
   FOLLOW_UPS: 'follow_ups',
+  CUSTOMER_PAYMENTS: 'customer_payment',
 } as const;
 
 export const DATABASE_CONSTANTS = DATABASE_TABLES;

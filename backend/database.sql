@@ -182,6 +182,7 @@ CREATE TABLE IF NOT EXISTS users (
   token VARCHAR(255) NULL,
   token_expiry DATETIME NULL,
   status TINYINT NOT NULL DEFAULT 1,
+  call_status VARCHAR(20) NOT NULL DEFAULT 'not_called',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     ON UPDATE CURRENT_TIMESTAMP,
@@ -195,6 +196,7 @@ CREATE TABLE IF NOT EXISTS users (
 
   KEY idx_users_role_id (role_id),
   KEY idx_users_status_delete (status, is_delete),
+  KEY idx_users_role_call_created (role_id, call_status, created_at),
   KEY idx_users_otp_expiry (otp_expiry),
 
   CONSTRAINT fk_users_role
@@ -356,6 +358,39 @@ CREATE TABLE IF NOT EXISTS follow_ups (
     REFERENCES enquiries (id)
     ON UPDATE CASCADE
     ON DELETE CASCADE
+) ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS customer_payment (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  enq_id BIGINT UNSIGNED NULL,
+  customer_name VARCHAR(100) NOT NULL,
+  country_code VARCHAR(10) NOT NULL,
+  customer_mobile VARCHAR(20) NOT NULL,
+  amount BLOB NOT NULL,
+  currency VARCHAR(10) NOT NULL DEFAULT 'INR',
+  provider VARCHAR(20) NOT NULL,
+  provider_payment_id VARCHAR(150) NULL,
+  payment_link VARCHAR(500) NULL,
+  qr_code_url VARCHAR(700) NULL,
+  payment_status VARCHAR(20) NOT NULL DEFAULT 'created',
+  provider_response JSON NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ON UPDATE CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (id),
+
+  KEY idx_customer_payment_enquiry (enq_id),
+  KEY idx_customer_payment_provider_id (provider, provider_payment_id),
+  KEY idx_customer_payment_status (payment_status),
+
+  CONSTRAINT fk_customer_payment_enquiry
+    FOREIGN KEY (enq_id)
+    REFERENCES enquiries (id)
+    ON UPDATE CASCADE
+    ON DELETE SET NULL
 ) ENGINE=InnoDB
 DEFAULT CHARSET=utf8mb4
 COLLATE=utf8mb4_unicode_ci;

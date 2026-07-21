@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Search, X } from "lucide-react";
 import CustomDatePicker, { type DateRangeValue } from "@/components/ui/CustomDatePicker";
 import { ApiError, followUpApi, type FollowUpDto } from "@/lib/api";
@@ -74,6 +74,7 @@ export function FollowUpModule() {
     warm: 0,
     cold: 0,
   });
+  const lastFetchKeyRef = useRef("");
 
   const loadFollowUps = useCallback(
     async (
@@ -117,6 +118,17 @@ export function FollowUpModule() {
   );
 
   useEffect(() => {
+    const fetchKey = JSON.stringify({
+      module: "followUps",
+      tenantId: tenant.id,
+      accessToken: accessToken || "",
+      currentPage,
+      activeStatus,
+      appliedCustomerFilter,
+      appliedDateFilter,
+    });
+    if (lastFetchKeyRef.current === fetchKey) return;
+    lastFetchKeyRef.current = fetchKey;
     loadFollowUps(
       currentPage,
       activeStatus,
@@ -129,6 +141,8 @@ export function FollowUpModule() {
     appliedDateFilter,
     currentPage,
     loadFollowUps,
+    tenant.id,
+    accessToken,
   ]);
 
   const selectStatus = (status: FollowUpStatus) => {

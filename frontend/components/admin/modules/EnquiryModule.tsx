@@ -1,8 +1,15 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Phone, Save, Search, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Copy, CreditCard, ExternalLink, Phone, Save, Search, X } from "lucide-react";
 import CustomDatePicker, { type DateRangeValue } from "@/components/ui/CustomDatePicker";
 import CustomSelect from "@/components/ui/CustomSelect";
-import { ApiError, enquiryApi, followUpApi, type EnquiryDto } from "@/lib/api";
+import {
+  ApiError,
+  enquiryApi,
+  followUpApi,
+  paymentApi,
+  type CustomerPaymentDto,
+  type EnquiryDto,
+} from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useTenant } from "@/lib/tenant-context";
 import { useAdminSnackbar } from "../AdminSnackbar";
@@ -39,6 +46,8 @@ function mapEnquiryDto(enquiry: EnquiryDto): EnquiryRow {
     customer_name: enquiry.customer_name,
     customer_number:
       enquiry.customer_mobile || `${enquiry.country_code} ${enquiry.mobile}`,
+    country_code: enquiry.country_code,
+    mobile: enquiry.mobile,
     problem_name: enquiry.problem_name,
     status: enquiry.status,
     remark: enquiry.close_remark || undefined,
@@ -72,6 +81,12 @@ export function EnquiryModule() {
   const [closeDraft, setCloseDraft] = useState<EnquiryRow | null>(null);
   const [closeRemarkError, setCloseRemarkError] = useState("");
   const [followError, setFollowError] = useState("");
+  const [paymentDraft, setPaymentDraft] = useState<EnquiryRow | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentError, setPaymentError] = useState("");
+  const [generatedPayment, setGeneratedPayment] =
+    useState<CustomerPaymentDto | null>(null);
+  const lastFetchKeyRef = useRef("");
 
   const loadEnquiries = useCallback(
     async (
@@ -117,6 +132,17 @@ export function EnquiryModule() {
   );
 
   useEffect(() => {
+    const fetchKey = JSON.stringify({
+      module: "enquiries",
+      tenantId: tenant.id,
+      accessToken: accessToken || "",
+      currentPage,
+      activeTab,
+      appliedCustomerFilter,
+      appliedDateFilter,
+    });
+    if (lastFetchKeyRef.current === fetchKey) return;
+    lastFetchKeyRef.current = fetchKey;
     loadEnquiries(
       currentPage,
       activeTab,
@@ -130,6 +156,8 @@ export function EnquiryModule() {
     mainTab,
     currentPage,
     loadEnquiries,
+    tenant.id,
+    accessToken,
   ]);
 
   useEffect(() => {
@@ -206,6 +234,62 @@ export function EnquiryModule() {
     } finally {
       snackbar.setPageLoading(false);
     }
+  };
+
+  const openPaymentDraft = (enquiry: EnquiryRow) => {
+    setPaymentDraft(enquiry);
+    setPaymentAmount("");
+    setPaymentError("");
+    setGeneratedPayment(null);
+  };
+
+  const closePaymentDraft = () => {
+    setPaymentDraft(null);
+    setPaymentAmount("");
+    setPaymentError("");
+    setGeneratedPayment(null);
+  };
+
+  const generatePaymentLink = async () => {
+    if (!paymentDraft || !accessToken) return;
+
+    const amount = Number(paymentAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setPaymentError("Valid amount is required.");
+      return;
+    }
+
+    snackbar.setPageLoading(true);
+    try {
+      const providerCurrency =
+        paymentDraft.country_code.trim() === "+91" ? "INR" : "USD";
+      const response = await paymentApi.generateLink(tenant.id, accessToken, {
+        enq_id: paymentDraft.enq_id,
+        amount,
+        currency: providerCurrency,
+      });
+      const payment = response.data;
+      setGeneratedPayment(payment || null);
+      snackbar.success(
+        payment?.provider === "razorpay"
+          ? "Razorpay payment link generated."
+          : "Stripe payment link generated."
+      );
+    } catch (err) {
+      snackbar.error(
+        err instanceof ApiError
+          ? err.message
+          : "Unable to generate payment link."
+      );
+    } finally {
+      snackbar.setPageLoading(false);
+    }
+  };
+
+  const copyPaymentLink = async () => {
+    if (!generatedPayment?.payment_link) return;
+    await navigator.clipboard.writeText(generatedPayment.payment_link);
+    snackbar.success("Payment link copied.");
   };
 
   const applyFilters = () => {
@@ -372,7 +456,7 @@ export function EnquiryModule() {
                   <th className="px-4 py-2.5 font-semibold">Close Remark</th>
                 )}
                 {activeTab === "open" && (
-                  <th className="w-56 px-4 py-2.5 text-right font-semibold">Actions</th>
+                  <th className="w-72 px-4 py-2.5 text-right font-semibold">Actions</th>
                 )}
               </tr>
             </thead>
@@ -416,6 +500,14 @@ export function EnquiryModule() {
                             <Phone size={14} />
                             Call
                           </a>
+                          <button
+                            type="button"
+                            onClick={() => openPaymentDraft(enquiry)}
+                            className="inline-flex items-center gap-1.5 rounded-md border border-mist bg-white px-2.5 py-1.5 text-xs font-medium text-ink/70 transition hover:border-gold hover:bg-gold/10 hover:text-ink"
+                          >
+                            <CreditCard size={14} />
+                            Payment
+                          </button>
                           <button
                             type="button"
                             onClick={() => {
@@ -625,6 +717,139 @@ export function EnquiryModule() {
               >
                 <Save size={16} />
                 Close Enquiry
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {paymentDraft && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-ink/50 px-4 py-6 backdrop-blur-sm">
+          <div className="w-full max-w-xl overflow-hidden rounded-lg border border-mist bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-mist bg-parchment px-5 py-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.16em] text-gold-dark">
+                  Generate Payment Link
+                </p>
+                <h2 className="mt-1 text-xl font-semibold text-ink">
+                  {paymentDraft.customer_name}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={closePaymentDraft}
+                className="rounded-md border border-mist p-2 text-ink/60 hover:text-ink"
+                aria-label="Close payment modal"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-4 p-5">
+              <div className="grid gap-3 rounded-md border border-mist bg-parchment p-4 text-sm md:grid-cols-2">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-ink/45">Customer Number</p>
+                  <p className="mt-1 font-medium text-ink">{paymentDraft.customer_number}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-ink/45">Gateway</p>
+                  <p className="mt-1 font-medium capitalize text-ink">
+                    {paymentDraft.country_code.trim() === "+91"
+                      ? "Razorpay"
+                      : "Stripe"}
+                  </p>
+                </div>
+              </div>
+
+              <label className="block text-sm font-medium text-ink">
+                Amount{" "}
+                <span className="text-xs text-ink/45">
+                  ({paymentDraft.country_code.trim() === "+91" ? "INR" : "USD"})
+                </span>
+                <input
+                  type="number"
+                  min="1"
+                  step="0.01"
+                  value={paymentAmount}
+                  onChange={(event) => {
+                    setPaymentError("");
+                    setPaymentAmount(event.target.value);
+                  }}
+                  className="mt-2 h-11 w-full rounded-md border border-mist bg-parchment px-3 text-sm outline-none focus:border-gold"
+                  placeholder="Enter amount"
+                />
+                {paymentError && (
+                  <p className="mt-2 text-xs text-red-600">{paymentError}</p>
+                )}
+              </label>
+
+              {generatedPayment && (
+                <div className="rounded-md border border-mist bg-parchment p-4">
+                  <div className="grid gap-4 md:grid-cols-[160px_1fr]">
+                    {generatedPayment.qr_code_url && (
+                      <img
+                        src={generatedPayment.qr_code_url}
+                        alt="Payment QR code"
+                        className="h-40 w-40 rounded-md border border-mist bg-white p-2"
+                      />
+                    )}
+                    <div className="min-w-0 space-y-3 text-sm">
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-ink/45">Payment ID</p>
+                        <p className="mt-1 break-all font-mono text-xs text-ink/70">
+                          {generatedPayment.provider_payment_id}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-ink/45">Payment Link</p>
+                        <p className="mt-1 break-all text-ink/70">
+                          {generatedPayment.payment_link}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {generatedPayment.payment_link && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={copyPaymentLink}
+                              className="inline-flex items-center gap-1.5 rounded-md border border-mist bg-white px-3 py-2 text-xs font-medium text-ink/70 hover:border-gold hover:text-ink"
+                            >
+                              <Copy size={14} />
+                              Copy
+                            </button>
+                            <a
+                              href={generatedPayment.payment_link}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1.5 rounded-md bg-ink px-3 py-2 text-xs font-medium text-white hover:opacity-90"
+                            >
+                              <ExternalLink size={14} />
+                              Open
+                            </a>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 border-t border-mist bg-parchment px-5 py-4">
+              <button
+                type="button"
+                onClick={closePaymentDraft}
+                className="rounded-md border border-mist bg-white px-4 py-2.5 text-sm font-medium text-ink/65 hover:text-ink"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={generatePaymentLink}
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-ink px-4 py-2.5 text-sm font-medium text-white"
+              >
+                <CreditCard size={16} />
+                Generate Link
               </button>
             </div>
           </div>

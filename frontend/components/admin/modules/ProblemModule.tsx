@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Edit3, Eye, Loader2, Power, Save, Trash2, X } from "lucide-react";
 import { ApiError, problemApi, type ProblemDto } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -64,6 +64,7 @@ export function ProblemModule() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formErrors, setFormErrors] = useState<ProblemFormErrors>({});
+  const lastFetchKeyRef = useRef("");
 
   const loadProblems = useCallback(
     async (page: number) => {
@@ -99,8 +100,11 @@ export function ProblemModule() {
   );
 
   useEffect(() => {
+    const fetchKey = `problems:1:${tenant.id}:${accessToken || ""}`;
+    if (lastFetchKeyRef.current === fetchKey) return;
+    lastFetchKeyRef.current = fetchKey;
     loadProblems(1);
-  }, [loadProblems]);
+  }, [accessToken, loadProblems, tenant.id]);
 
   const startCreate = () => {
     setFormErrors({});

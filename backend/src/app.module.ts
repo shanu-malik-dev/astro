@@ -8,7 +8,9 @@ import { AuthModule } from './modules/auth/auth.module';
 import { AstrologerModule } from './modules/astrologer/astrologer.module';
 import { EnquiryModule } from './modules/enquiry/enquiry.module';
 import { FollowUpModule } from './modules/follow-up/follow-up.module';
+import { CustomerModule } from './modules/customer/customer.module';
 import { ProblemModule } from './modules/problem/problem.module';
+import { PaymentModule } from './modules/payment/payment.module';
 import { ServiceModule } from './modules/service/service.module';
 import { SharedModule } from './modules/shared-module/shared.module';
 
@@ -27,6 +29,8 @@ import { SharedModule } from './modules/shared-module/shared.module';
     AstrologerModule,
     EnquiryModule,
     FollowUpModule,
+    CustomerModule,
+    PaymentModule,
   ],
 })
 export class AppModule implements NestModule {

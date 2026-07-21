@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Container } from "@/components/ui/Container";
 import CustomSelect, { SelectOption } from "../ui/CustomSelect";
+import { FullPageLoader } from "@/components/ui/FullPageLoader";
 import { useCountryCodes } from "@/lib/country-code-store";
 import { useLanguage } from "@/lib/language-context";
 import { useAuth } from "@/lib/auth-context";
@@ -23,7 +24,7 @@ type ToastState = {
 } | null;
 
 export function Hero() {
-  const { countryCodes } = useCountryCodes();
+  const { countryCodes, loading: countryCodesLoading } = useCountryCodes();
   const { language, t } = useLanguage();
   const { user } = useAuth();
   const { tenant } = useTenant();
@@ -36,6 +37,7 @@ export function Hero() {
   const [problem, setProblem] = useState<SelectOption | null>(null);
 
   const [loading, setLoading] = useState(false);
+  const [problemsLoading, setProblemsLoading] = useState(true);
   const [errors, setErrors] = useState<FormErrors>({});
   const [toast, setToast] = useState<ToastState>(null);
   const problemOptions: SelectOption[] = problems.map((item) => ({
@@ -57,6 +59,7 @@ export function Hero() {
     let active = true;
 
     async function loadProblems() {
+      setProblemsLoading(true);
       try {
         const response = await problemApi.dropdown(tenant.id);
         if (active) setProblems(response.data || []);
@@ -69,6 +72,8 @@ export function Hero() {
               ? err.message
               : "Unable to load problem list.",
         });
+      } finally {
+        if (active) setProblemsLoading(false);
       }
     }
 
@@ -155,6 +160,12 @@ export function Hero() {
 
   return (
     <section className="relative overflow-hidden bg-ink text-parchment">
+      {(countryCodesLoading || problemsLoading || loading) && (
+        <FullPageLoader
+          message={loading ? t("common.actions.booking") : t("common.actions.pleaseWait")}
+        />
+      )}
+
       <div className="pointer-events-none absolute inset-0 bg-grain" />
 
       <Container className={user ? "relative py-12 sm:py-16 lg:py-20" : "relative grid gap-12 py-12 sm:py-16 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-16 lg:py-20"}>

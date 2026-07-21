@@ -50,6 +50,9 @@ export class UserEntity {
   @Column({ type: 'tinyint', default: 1 })
   status: number;
 
+  @Column({ type: 'varchar', length: 20, default: 'not_called' })
+  call_status: 'called' | 'not_called';
+
   @ManyToOne(() => RoleEntity)
   @JoinColumn({ name: 'role_id' })
   role: RoleEntity;

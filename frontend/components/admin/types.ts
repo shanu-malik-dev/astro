@@ -5,7 +5,9 @@ export type ModuleKey =
   | "services"
   | "astrologers"
   | "enquiry"
-  | "followUp";
+  | "followUp"
+  | "payments"
+  | "customers";
 
 export type Translation = {
   lang: string;
@@ -58,6 +60,8 @@ export type EnquiryRow = {
   enq_id: number;
   customer_name: string;
   customer_number: string;
+  country_code: string;
+  mobile: string;
   problem_name: string;
   status: EnquiryStatus;
   remark?: string;

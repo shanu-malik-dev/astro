@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { Star, ArrowRight } from 'lucide-react';
 import { Section, SectionHeading } from '@/components/ui/Section';
+import { FullPageLoader } from '@/components/ui/FullPageLoader';
 import { useTenant } from '@/lib/tenant-context';
 import { servicesApi, testimonialsApi, blogApi } from '@/lib/api';
 import { useLanguage } from '@/lib/language-context';
@@ -30,7 +31,7 @@ export function ServicesGrid({ limit }: { limit?: number }) {
         description={t("home.dataSections.services.description")}
       />
 
-      {isLoading && <EmptyState message={t("home.dataSections.services.loading")} />}
+      {isLoading && <FullPageLoader message={t("home.dataSections.services.loading")} />}
       {isError && <EmptyState message={t("home.dataSections.services.error")} />}
 
       {services && services.length > 0 && (
@@ -76,7 +77,7 @@ export function TestimonialsCarousel() {
     <Section tone="dark">
       <SectionHeading tone="dark" eyebrow={t("home.dataSections.testimonials.eyebrow")} title={t("home.dataSections.testimonials.title")} align="center" />
 
-      {isLoading && <p className="mt-10 text-center text-sm text-parchment/50">{t("home.dataSections.testimonials.loading")}</p>}
+      {isLoading && <FullPageLoader message={t("home.dataSections.testimonials.loading")} />}
       {isError && <p className="mt-10 text-center text-sm text-parchment/50">{t("home.dataSections.testimonials.error")}</p>}
 
       {data && data.length > 0 && (
@@ -106,7 +107,8 @@ export function BlogTeaser() {
     queryFn: () => blogApi.listPublished(tenant.id),
   });
 
-  if (isLoading || isError || !data || data.length === 0) return null;
+  if (isLoading) return <FullPageLoader message={t("common.actions.pleaseWait")} />;
+  if (isError || !data || data.length === 0) return null;
 
   return (
     <Section tone="dim">

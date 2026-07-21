@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Edit3, Loader2, Power, Save, Trash2, X } from "lucide-react";
 import {
   adminAstrologerApi,
@@ -90,6 +90,7 @@ export function AstrologersModule() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formErrors, setFormErrors] = useState<AstrologerFormErrors>({});
+  const lastFetchKeyRef = useRef("");
 
   const loadAstrologers = useCallback(
     async (page: number) => {
@@ -125,8 +126,11 @@ export function AstrologersModule() {
   );
 
   useEffect(() => {
+    const fetchKey = `astrologers:1:${tenant.id}:${accessToken || ""}`;
+    if (lastFetchKeyRef.current === fetchKey) return;
+    lastFetchKeyRef.current = fetchKey;
     loadAstrologers(1);
-  }, [loadAstrologers]);
+  }, [accessToken, loadAstrologers, tenant.id]);
 
   const startCreate = () => {
     setFormErrors({});

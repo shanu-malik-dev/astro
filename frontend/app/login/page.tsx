@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Section } from "@/components/ui/Section";
 import CustomSelect from "@/components/ui/CustomSelect";
+import { FullPageLoader } from "@/components/ui/FullPageLoader";
 import { useAuth, ApiError } from "@/lib/auth-context";
 import { useCountryCodes } from "@/lib/country-code-store";
 import { useLanguage } from "@/lib/language-context";
@@ -54,7 +55,7 @@ export default function LoginPage() {
 
 function LoginPageContent() {
   const { login, verifyOtp, resendOtp } = useAuth();
-  const { countryCodes } = useCountryCodes();
+  const { countryCodes, loading: countryCodesLoading } = useCountryCodes();
   const { language, t } = useLanguage();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -183,6 +184,16 @@ function LoginPageContent() {
 
   return (
     <Section className="pt-20">
+      {(countryCodesLoading || loading || resending) && (
+        <FullPageLoader
+          message={
+            loading || resending
+              ? t("common.actions.pleaseWait")
+              : t("common.actions.pleaseWait")
+          }
+        />
+      )}
+
       <div className="mx-auto max-w-sm">
 
         <p className="eyebrow">{t("login.eyebrow")}</p>
