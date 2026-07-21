@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Section } from "@/components/ui/Section";
@@ -47,6 +47,14 @@ const messageKeys: Record<MessageKey, string> = {
 };
 
 export default function RegisterPage() {
+  return (
+    <Suspense fallback={null}>
+      <RegisterPageContent />
+    </Suspense>
+  );
+}
+
+function RegisterPageContent() {
   const { register, verifyOtp, resendOtp } = useAuth();
   const { countryCodes } = useCountryCodes();
   const { language, t } = useLanguage();
