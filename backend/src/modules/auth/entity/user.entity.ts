@@ -9,10 +9,12 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { DATABASE_TABLES } from '../../../common/constants/database.constant';
+import { CUSTOMER_CALL_STATUS, CustomerCallStatus } from '../../../common/constants/status.constant';
 import { RoleEntity } from './role.entity';
 
 @Entity({ name: DATABASE_TABLES.USERS })
 @Index('uq_users_country_mobile', ['country_code', 'mobile'], { unique: true })
+@Index('uq_users_email', ['email'], { unique: true })
 @Index('idx_users_role_id', ['role_id'])
 @Index('idx_users_status_delete', ['status', 'is_delete'])
 @Index('idx_users_otp_expiry', ['otp_expiry'])
@@ -32,6 +34,12 @@ export class UserEntity {
   @Column({ type: 'varchar', length: 10 })
   country_code: string;
 
+  @Column({ type: 'varchar', length: 150, nullable: true })
+  email: string | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true, select: false })
+  password_hash: string | null;
+
   @Column({ type: 'tinyint', default: 0 })
   is_delete: number;
 
@@ -50,8 +58,8 @@ export class UserEntity {
   @Column({ type: 'tinyint', default: 1 })
   status: number;
 
-  @Column({ type: 'varchar', length: 20, default: 'not_called' })
-  call_status: 'called' | 'not_called';
+  @Column({ type: 'tinyint', default: CUSTOMER_CALL_STATUS.NOT_CALLED })
+  call_status: CustomerCallStatus;
 
   @ManyToOne(() => RoleEntity)
   @JoinColumn({ name: 'role_id' })

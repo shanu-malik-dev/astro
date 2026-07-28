@@ -1,5 +1,6 @@
 export const DATABASE_TABLES = {
   ROLES: 'roles',
+  ROLE_ADMIN_MODULES: 'role_admin_modules',
   USERS: 'users',
   LOGIN_LOGS: 'login_logs',
   COUNTRIES: 'countries',
@@ -14,6 +15,7 @@ export const DATABASE_TABLES = {
   ENQUIRIES: 'enquiries',
   FOLLOW_UPS: 'follow_ups',
   CUSTOMER_PAYMENTS: 'customer_payment',
+  SUPPORT_REQUESTS: 'support_requests',
 } as const;
 
 export const DATABASE_CONSTANTS = DATABASE_TABLES;

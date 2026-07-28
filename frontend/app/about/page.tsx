@@ -4,9 +4,13 @@ import { Section, SectionHeading } from '@/components/ui/Section';
 import { ConstellationLine } from '@/components/ui/ConstellationLine';
 import Link from 'next/link';
 import { useLanguage } from '@/lib/language-context';
+import { WEBSITE_MODULE_FLAGS } from '@/lib/visibility-flags';
+import { DisabledRouteRedirect } from '@/components/DisabledRouteRedirect';
 
 export default function AboutPage() {
   const { t } = useLanguage();
+
+  if (!WEBSITE_MODULE_FLAGS.about) return <DisabledRouteRedirect />;
 
   return (
     <>
@@ -54,12 +58,14 @@ export default function AboutPage() {
         </div>
       </Section>
 
-      <Section tone="dim" className="text-center">
-        <SectionHeading align="center" eyebrow={t("about.ctaEyebrow")} title={t("about.ctaTitle")} />
-        <Link href="/services" className="btn-primary mt-8 inline-flex">
-          {t("about.ctaButton")}
-        </Link>
-      </Section>
+      {WEBSITE_MODULE_FLAGS.services && (
+        <Section tone="dim" className="text-center">
+          <SectionHeading align="center" eyebrow={t("about.ctaEyebrow")} title={t("about.ctaTitle")} />
+          <Link href="/services" className="btn-primary mt-8 inline-flex">
+            {t("about.ctaButton")}
+          </Link>
+        </Section>
+      )}
     </>
   );
 }

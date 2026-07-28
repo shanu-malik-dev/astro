@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import {
   User,
   Star,
@@ -12,7 +11,10 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { Section } from "@/components/ui/Section";
+import { DisabledRouteRedirect } from "@/components/DisabledRouteRedirect";
+import { openBookEnquiryModal } from "@/lib/book-enquiry-modal";
 import { useLanguage } from "@/lib/language-context";
+import { WEBSITE_MODULE_FLAGS } from "@/lib/visibility-flags";
 
 const astrologer = {
   id: 1,
@@ -38,6 +40,8 @@ const astrologer = {
 
 export default function AstrologerProfilePage() {
   const { t } = useLanguage();
+
+  if (!WEBSITE_MODULE_FLAGS.astrologers) return <DisabledRouteRedirect />;
 
   return (
     <>
@@ -113,12 +117,13 @@ export default function AstrologerProfilePage() {
                   {t("common.actions.whatsApp")}
                 </a>
 
-                <Link
-                  href="/book"
+                <button
+                  type="button"
+                  onClick={openBookEnquiryModal}
                   className="rounded-lg border border-gold px-5 py-3 hover:bg-gold hover:text-black"
                 >
                   {t("astrologerProfile.bookConsultation")}
-                </Link>
+                </button>
               </div>
             </div>
           </div>

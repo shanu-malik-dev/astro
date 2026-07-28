@@ -1,23 +1,36 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Phone, Search, X } from "lucide-react";
 import { ApiError, customerApi, type CustomerDto } from "@/lib/api";
+import {
+  CUSTOMER_CALL_STATUS,
+  CUSTOMER_CALL_STATUS_LABELS,
+} from "@/lib/status-constants";
 import { useAuth } from "@/lib/auth-context";
 import { useTenant } from "@/lib/tenant-context";
 import CustomSelect from "@/components/ui/CustomSelect";
 import { useAdminSnackbar } from "../AdminSnackbar";
 import { PAGE_SIZE } from "../constants";
-import { Pagination } from "../shared";
+import { EmptyListState, Pagination } from "../shared";
 
 type MainTab = "today" | "all";
+type CustomerTabData = Record<
+  MainTab,
+  {
+    rows: CustomerDto[];
+    totalRecords: number;
+    totalPages: number;
+    currentPage: number;
+  }
+>;
 
 const CALL_STATUS_OPTIONS = [
   { value: "", label: "All call status" },
-  { value: "called", label: "Called" },
-  { value: "not_called", label: "Not called" },
+  { value: String(CUSTOMER_CALL_STATUS.CALLED), label: "Called" },
+  { value: String(CUSTOMER_CALL_STATUS.NOT_CALLED), label: "Not called" },
 ];
 
 function statusClass(status: CustomerDto["call_status"]) {
-  return status === "called"
+  return status === CUSTOMER_CALL_STATUS.CALLED
     ? "bg-green-50 text-green-700"
     : "bg-yellow-50 text-yellow-700";
 }
@@ -45,7 +58,43 @@ export function CustomersModule() {
   const [search, setSearch] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
   const [callStatus, setCallStatus] = useState("");
+  const [tabData, setTabData] = useState<CustomerTabData>({
+    today: { rows: [], totalRecords: 0, totalPages: 1, currentPage: 1 },
+    all: { rows: [], totalRecords: 0, totalPages: 1, currentPage: 1 },
+  });
   const lastFetchKeyRef = useRef("");
+  const mainTabRef = useRef(mainTab);
+
+  useEffect(() => {
+    mainTabRef.current = mainTab;
+  }, [mainTab]);
+
+  const fetchCustomers = useCallback(
+    async (page: number, range: MainTab) => {
+      if (!accessToken) return null;
+
+      const response = await customerApi.list(tenant.id, accessToken, {
+        page,
+        limit: PAGE_SIZE,
+        range,
+        search: appliedSearch.trim() || undefined,
+        call_status: callStatus
+          ? Number(callStatus)
+          : undefined,
+      });
+      const records = response.data?.records || [];
+      const pagination = response.data?.pagination;
+
+      return {
+        range,
+        rows: records,
+        totalRecords: pagination?.total || records.length,
+        totalPages: pagination?.total_pages || 1,
+        currentPage: pagination?.page || page,
+      };
+    },
+    [accessToken, appliedSearch, callStatus, tenant.id]
+  );
 
   const loadCustomers = useCallback(
     async (page: number) => {
@@ -53,22 +102,34 @@ export function CustomersModule() {
 
       snackbar.setPageLoading(true);
       try {
-        const response = await customerApi.list(tenant.id, accessToken, {
-          page,
-          limit: PAGE_SIZE,
-          range: mainTab,
-          search: appliedSearch.trim() || undefined,
-          call_status: callStatus
-            ? (callStatus as CustomerDto["call_status"])
-            : undefined,
-        });
-        const records = response.data?.records || [];
-        const pagination = response.data?.pagination;
+        const results = await Promise.all(
+          (["today", "all"] as MainTab[]).map((range) =>
+            fetchCustomers(page, range)
+          )
+        );
+        const nextTabData = results.reduce<CustomerTabData>(
+          (current, result) => {
+            if (!result) return current;
+            current[result.range] = {
+              rows: result.rows,
+              totalRecords: result.totalRecords,
+              totalPages: result.totalPages,
+              currentPage: result.currentPage,
+            };
+            return current;
+          },
+          {
+            today: { rows: [], totalRecords: 0, totalPages: 1, currentPage: page },
+            all: { rows: [], totalRecords: 0, totalPages: 1, currentPage: page },
+          }
+        );
+        const activeData = nextTabData[mainTabRef.current];
 
-        setRows(records);
-        setCurrentPage(pagination?.page || page);
-        setTotalPages(pagination?.total_pages || 1);
-        setTotalRecords(pagination?.total || records.length);
+        setTabData(nextTabData);
+        setRows(activeData.rows);
+        setCurrentPage(activeData.currentPage);
+        setTotalPages(activeData.totalPages);
+        setTotalRecords(activeData.totalRecords);
       } catch (err) {
         snackbar.error(
           err instanceof ApiError ? err.message : "Unable to load customers."
@@ -77,7 +138,7 @@ export function CustomersModule() {
         snackbar.setPageLoading(false);
       }
     },
-    [accessToken, appliedSearch, callStatus, mainTab, snackbar, tenant.id]
+    [accessToken, fetchCustomers, snackbar]
   );
 
   useEffect(() => {
@@ -86,7 +147,6 @@ export function CustomersModule() {
       tenantId: tenant.id,
       accessToken: accessToken || "",
       currentPage,
-      mainTab,
       appliedSearch,
       callStatus,
     });
@@ -99,9 +159,16 @@ export function CustomersModule() {
     callStatus,
     currentPage,
     loadCustomers,
-    mainTab,
     tenant.id,
   ]);
+
+  useEffect(() => {
+    const activeData = tabData[mainTab];
+    setRows(activeData.rows);
+    setCurrentPage(activeData.currentPage);
+    setTotalPages(activeData.totalPages);
+    setTotalRecords(activeData.totalRecords);
+  }, [mainTab, tabData]);
 
   const tabItems = useMemo(
     () => [
@@ -161,9 +228,6 @@ export function CustomersModule() {
     <>
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <p className="text-[12px] uppercase tracking-[0.35em] text-gold-dark">
-            Admin
-          </p>
           <h1 className="mt-2 font-display text-3xl font-semibold text-ink">
             Customer Module
           </h1>
@@ -271,8 +335,8 @@ export function CustomersModule() {
             <tbody className="divide-y divide-mist">
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-5 text-sm text-ink/50">
-                    No customers found.
+                  <td colSpan={6} className="px-4 py-5">
+                    <EmptyListState message="No customers found." />
                   </td>
                 </tr>
               ) : (
@@ -289,7 +353,7 @@ export function CustomersModule() {
                     </td>
                     <td className="px-4 py-2.5">
                       <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusClass(customer.call_status)}`}>
-                        {customer.call_status === "called" ? "Called" : "Not called"}
+                        {CUSTOMER_CALL_STATUS_LABELS[customer.call_status] || customer.call_status}
                       </span>
                     </td>
                     <td className="px-4 py-2.5 text-ink/60">
@@ -309,14 +373,14 @@ export function CustomersModule() {
                           onClick={() =>
                             updateCallStatus(
                               customer,
-                              customer.call_status === "called"
-                                ? "not_called"
-                                : "called"
+                              customer.call_status === CUSTOMER_CALL_STATUS.CALLED
+                                ? CUSTOMER_CALL_STATUS.NOT_CALLED
+                                : CUSTOMER_CALL_STATUS.CALLED
                             )
                           }
                           className="rounded-md bg-ink px-2.5 py-1.5 text-xs font-medium text-white transition hover:opacity-90"
                         >
-                          {customer.call_status === "called"
+                          {customer.call_status === CUSTOMER_CALL_STATUS.CALLED
                             ? "Mark Not Called"
                             : "Mark Called"}
                         </button>

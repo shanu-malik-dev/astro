@@ -14,7 +14,7 @@ import {
   getEnglishTranslation,
   syncAstrologerTranslations,
 } from "../helpers";
-import { ModuleHeader, Pagination, StatusBadge } from "../shared";
+import { EmptyListState, ModuleHeader, Pagination, StatusBadge } from "../shared";
 import type { AstrologerRow, AstrologerTranslation } from "../types";
 
 type AstrologerFormErrors = {
@@ -333,10 +333,11 @@ export function AstrologersModule() {
             <tbody className="divide-y divide-mist">
               {astrologers.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-5 text-sm text-ink/50">
-                    {loading
-                      ? "Loading astrologers..."
-                      : "No astrologers yet. Create the first astrologer."}
+                  <td colSpan={9} className="px-4 py-5">
+                    <EmptyListState
+                      loading={loading}
+                      message="No astrologers yet. Create the first astrologer."
+                    />
                   </td>
                 </tr>
               ) : (

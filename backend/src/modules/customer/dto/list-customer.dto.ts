@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import { IsIn, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
+import { CUSTOMER_CALL_STATUS, CustomerCallStatus } from '../../../common/constants/status.constant';
 
 export class ListCustomerDto {
   @IsOptional()
@@ -24,6 +25,7 @@ export class ListCustomerDto {
   range?: 'today' | 'all';
 
   @IsOptional()
-  @IsIn(['called', 'not_called'])
-  call_status?: 'called' | 'not_called';
+  @Type(() => Number)
+  @IsIn(Object.values(CUSTOMER_CALL_STATUS))
+  call_status?: CustomerCallStatus;
 }

@@ -1,6 +1,10 @@
-import { ClipboardList, CreditCard, HelpCircle, ListChecks, Settings, Sparkles, Users } from "lucide-react";
+import { ClipboardList, CreditCard, Headset, HelpCircle, ListChecks, Settings, ShieldCheck, Sparkles, Users } from "lucide-react";
 import type { SelectOption } from "@/components/ui/CustomSelect";
+import { ADMIN_MODULE_FLAGS } from "@/lib/feature-flags";
+import { FOLLOW_UP_STATUS } from "@/lib/status-constants";
 import type { AdminModule, EnquiryRow, SimpleRow } from "./types";
+
+export { ADMIN_MODULE_FLAGS };
 
 export const PROBLEM_STORAGE_KEY = "astronova_admin_problems";
 export const SERVICES_STORAGE_KEY = "astronova_admin_services";
@@ -17,12 +21,12 @@ export const PROBLEM_STATUS_OPTIONS: SelectOption[] = [
 ];
 
 export const FOLLOW_UP_STATUS_OPTIONS: SelectOption[] = [
-  { value: "hot", label: "Hot" },
-  { value: "warm", label: "Warm" },
-  { value: "cold", label: "Cold" },
+  { value: String(FOLLOW_UP_STATUS.HOT), label: "Hot" },
+  { value: String(FOLLOW_UP_STATUS.WARM), label: "Warm" },
+  { value: String(FOLLOW_UP_STATUS.COLD), label: "Cold" },
 ];
 
-export const MODULES: AdminModule[] = [
+export const ALL_MODULES: AdminModule[] = [
   {
     key: "problem",
     label: "Problem",
@@ -65,7 +69,23 @@ export const MODULES: AdminModule[] = [
     description: "Track generated payment links and payment status.",
     icon: CreditCard,
   },
+  {
+    key: "support",
+    label: "Support",
+    description: "Review contact requests and support status.",
+    icon: Headset,
+  },
+  {
+    key: "roles",
+    label: "Roles",
+    description: "Assign admin modules to each role.",
+    icon: ShieldCheck,
+  },
 ];
+
+export const MODULES: AdminModule[] = ALL_MODULES.filter(
+  (module) => ADMIN_MODULE_FLAGS[module.key]
+);
 
 export const PROFESSIONS: SimpleRow[] = [
   { id: 1, title: "Doctor", status: "active", meta: "Health and medical" },
@@ -81,7 +101,7 @@ export const ENQUIRIES: EnquiryRow[] = [
     country_code: "+91",
     mobile: "9876543210",
     problem_name: "Marriage consultation",
-    status: "open",
+    status: 1,
   },
   {
     enq_id: 102,
@@ -90,7 +110,7 @@ export const ENQUIRIES: EnquiryRow[] = [
     country_code: "+91",
     mobile: "9123456780",
     problem_name: "Career reading",
-    status: "open",
+    status: 1,
     remark: "Customer asked for evening callback.",
   },
   {
@@ -100,7 +120,7 @@ export const ENQUIRIES: EnquiryRow[] = [
     country_code: "+91",
     mobile: "9988776655",
     problem_name: "Payment support",
-    status: "closed",
+    status: 2,
     remark: "Resolved on first call.",
   },
 ];

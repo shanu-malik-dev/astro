@@ -7,6 +7,8 @@ export type ModuleKey =
   | "enquiry"
   | "followUp"
   | "payments"
+  | "support"
+  | "roles"
   | "customers";
 
 export type Translation = {
@@ -54,7 +56,7 @@ export type AstrologerRow = {
   translations: AstrologerTranslation[];
 };
 
-export type EnquiryStatus = "open" | "closed";
+export type EnquiryStatus = number;
 
 export type EnquiryRow = {
   enq_id: number;
@@ -67,7 +69,7 @@ export type EnquiryRow = {
   remark?: string;
 };
 
-export type FollowUpStatus = "hot" | "warm" | "cold";
+export type FollowUpStatus = number;
 
 export type FollowUpRow = {
   followup_id: number;

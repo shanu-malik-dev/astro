@@ -7,20 +7,25 @@ import { LogIn, LogOut, Menu, UserCircle, X } from 'lucide-react';
 import clsx from 'clsx';
 import { Container } from '@/components/ui/Container';
 import CustomSelect, { SelectOption } from '@/components/ui/CustomSelect';
+import { BRAND, getBrandName } from '@/lib/brand';
+import { ADMIN_MODULE_FLAGS } from '@/lib/feature-flags';
 import { useAuth } from '@/lib/auth-context';
+import { openBookEnquiryModal } from '@/lib/book-enquiry-modal';
 import { AppLanguage, LANGUAGE_OPTIONS, useLanguage } from '@/lib/language-context';
+import { WEBSITE_MODULE_FLAGS } from '@/lib/visibility-flags';
 
 const NAV_LINKS = [
-  { href: '/about', labelKey: 'header.nav.about' },
-  { href: '/services', labelKey: 'header.nav.services' },
-  { href: '/astrologers', labelKey: 'header.nav.astrologer' }
-];
+  { href: '/about', labelKey: 'header.nav.about', enabled: WEBSITE_MODULE_FLAGS.about },
+  { href: '/services', labelKey: 'header.nav.services', enabled: WEBSITE_MODULE_FLAGS.services },
+  { href: '/astrologers', labelKey: 'header.nav.astrologer', enabled: WEBSITE_MODULE_FLAGS.astrologers }
+].filter((link) => link.enabled);
 
 export function Header() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const { language, setLanguage, t } = useLanguage();
+  const brandName = getBrandName(language);
   const selectedLanguage =
     LANGUAGE_OPTIONS.find((option) => option.value === language) || LANGUAGE_OPTIONS[0];
   const userName = user?.fullName || user?.name || user?.mobile || t('header.userFallback');
@@ -39,8 +44,20 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-mist bg-parchment/90 backdrop-blur">
       <Container className="flex h-20 items-center justify-between">
-        <Link href="/" className="font-display text-2xl italic text-ink">
-          AstroNova<span className="text-gold not-italic">.</span>
+        <Link href="/" className="flex items-center gap-2.5 text-ink">
+          {BRAND.logoPath && (
+            <img
+              src={BRAND.logoPath}
+              alt={brandName}
+              className="h-10 w-10 rounded-full object-contain"
+              onError={(event) => {
+                event.currentTarget.style.display = 'none';
+              }}
+            />
+          )}
+          <span className="font-display text-xl font-semibold italic leading-tight md:text-2xl">
+            {brandName}
+          </span>
         </Link>
 
         <nav className="hidden items-center gap-8 lg:flex">
@@ -82,15 +99,12 @@ export function Header() {
                 <LogOut size={18} />
               </button>
             </div>
-          ) : (
+          ) : ADMIN_MODULE_FLAGS.login ? (
             <Link href="/login" className="flex items-center gap-2 text-[13px] uppercase tracking-[0.12em] text-ink/70 hover:text-ink">
               <LogIn size={18} className="text-gold" />
               <span>{t('common.actions.login')}</span>
             </Link>
-          )}
-          {/* <Link href="/book" className="btn-primary">
-            Book Consultation
-          </Link> */}
+          ) : null}
         </div>
 
         <button className="lg:hidden" onClick={() => setOpen(!open)} aria-label="Toggle menu">
@@ -126,12 +140,12 @@ export function Header() {
                   <LogOut size={18} />
                 </button>
               </div>
-            ) : (
+            ) : ADMIN_MODULE_FLAGS.login ? (
               <Link href="/login" onClick={() => setOpen(false)} className="flex items-center gap-2 py-2.5 text-sm uppercase tracking-wide text-ink/80 hairline">
                 <LogIn size={18} className="text-gold" />
                 <span>{t('common.actions.login')}</span>
               </Link>
-            )}
+            ) : null}
             <CustomSelect
               instanceId="mobile-language-select"
               options={LANGUAGE_OPTIONS}
@@ -140,9 +154,16 @@ export function Header() {
               variant="light"
               className="mt-2"
             />
-            <Link href="/book" onClick={() => setOpen(false)} className="btn-primary mt-3 w-full">
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                openBookEnquiryModal();
+              }}
+              className="btn-primary mt-3 w-full"
+            >
               {t('header.nav.bookConsultation')}
-            </Link>
+            </button>
           </Container>
         </div>
       )}

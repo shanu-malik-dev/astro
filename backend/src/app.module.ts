@@ -13,6 +13,9 @@ import { ProblemModule } from './modules/problem/problem.module';
 import { PaymentModule } from './modules/payment/payment.module';
 import { ServiceModule } from './modules/service/service.module';
 import { SharedModule } from './modules/shared-module/shared.module';
+import { NotificationModule } from './modules/notification/notification.module';
+import { RoleModule } from './modules/role/role.module';
+import { SupportModule } from './modules/support/support.module';
 
 @Module({
   imports: [
@@ -28,9 +31,12 @@ import { SharedModule } from './modules/shared-module/shared.module';
     ServiceModule,
     AstrologerModule,
     EnquiryModule,
+    NotificationModule,
     FollowUpModule,
     CustomerModule,
     PaymentModule,
+    RoleModule,
+    SupportModule,
   ],
 })
 export class AppModule implements NestModule {

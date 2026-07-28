@@ -2,6 +2,10 @@ import { Body, Controller, Headers, Ip, Post, Req } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { IsPublic } from '../decorators/is-public.decorator';
+import { AdminEmailLoginDto } from '../dto/admin-email-login.dto';
+import { EmailLoginDto } from '../dto/email-login.dto';
+import { ForgotPasswordResetDto } from '../dto/forgot-password-reset.dto';
+import { ForgotPasswordSendOtpDto } from '../dto/forgot-password-send-otp.dto';
 import { LoginDto } from '../dto/login.dto';
 import { ResendOtpDto } from '../dto/resend-otp.dto';
 import { SignupDto } from '../dto/signup.dto';
@@ -28,6 +32,44 @@ export class AuthController {
   @Post('login')
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
+  }
+
+  @IsPublic()
+  @Post('admin/email-login')
+  adminEmailLogin(
+    @Body() dto: AdminEmailLoginDto,
+    @Ip() ipAddress: string,
+    @Headers('user-agent') userAgent?: string,
+  ) {
+    return this.authService.adminEmailLogin(dto, {
+      ipAddress,
+      userAgent,
+    });
+  }
+
+  @IsPublic()
+  @Post('email-login')
+  emailLogin(
+    @Body() dto: EmailLoginDto,
+    @Ip() ipAddress: string,
+    @Headers('user-agent') userAgent?: string,
+  ) {
+    return this.authService.emailLogin(dto, {
+      ipAddress,
+      userAgent,
+    });
+  }
+
+  @IsPublic()
+  @Post('forgot-password/send-otp')
+  sendForgotPasswordOtp(@Body() dto: ForgotPasswordSendOtpDto) {
+    return this.authService.sendForgotPasswordOtp(dto);
+  }
+
+  @IsPublic()
+  @Post('forgot-password/reset')
+  resetForgotPassword(@Body() dto: ForgotPasswordResetDto) {
+    return this.authService.resetForgotPassword(dto);
   }
 
   @IsPublic()

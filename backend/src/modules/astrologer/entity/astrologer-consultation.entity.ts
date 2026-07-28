@@ -9,6 +9,10 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { DATABASE_TABLES } from '../../../common/constants/database.constant';
+import {
+  ASTROLOGER_CONSULTATION_STATUS,
+  AstrologerConsultationStatus,
+} from '../../../common/constants/status.constant';
 import { AstrologerEntity } from './astrologer.entity';
 
 @Entity({ name: DATABASE_TABLES.ASTROLOGER_CONSULTATIONS })
@@ -32,8 +36,8 @@ export class AstrologerConsultationEntity {
   @Column({ type: 'varchar', length: 20 })
   mobile: string;
 
-  @Column({ type: 'varchar', length: 20, default: 'pending' })
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  @Column({ type: 'tinyint', default: ASTROLOGER_CONSULTATION_STATUS.PENDING })
+  status: AstrologerConsultationStatus;
 
   @Column({ type: 'timestamp', nullable: true })
   scheduled_at: Date | null;

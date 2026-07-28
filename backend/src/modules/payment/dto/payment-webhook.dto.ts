@@ -1,5 +1,5 @@
 import { IsIn, IsOptional, IsString } from 'class-validator';
-import type { PaymentProvider, PaymentStatus } from '../entity/customer-payment.entity';
+import type { PaymentProvider } from '../entity/customer-payment.entity';
 
 export class PaymentWebhookDto {
   @IsOptional()
@@ -12,5 +12,5 @@ export class PaymentWebhookDto {
 
   @IsOptional()
   @IsIn(['created', 'pending', 'paid', 'failed', 'cancelled', 'expired'])
-  status?: PaymentStatus;
+  status?: string;
 }

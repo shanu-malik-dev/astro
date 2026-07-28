@@ -1,10 +1,11 @@
 import { LegalPage } from '@/components/legal/LegalPage';
+import { BRAND } from '@/lib/brand';
 
 export default function PrivacyPage() {
   return (
     <LegalPage title="Privacy Policy" updated="July 2026">
       <p>
-        AstroNova collects the information necessary to schedule and deliver your consultation:
+        {BRAND.name} collects the information necessary to schedule and deliver your consultation:
         your name, email, phone number, and the birth details required for an astrological
         reading (date, time, and place of birth).
       </p>
@@ -25,7 +26,7 @@ export default function PrivacyPage() {
         request deletion of your account by contacting us directly.
       </p>
       <h2 className="pt-2 text-lg text-ink">Contact</h2>
-      <p>Questions about this policy can be sent to hello@astronova.com.</p>
+      <p>Questions about this policy can be sent to contact@shreesamriddhiatro.com.</p>
     </LegalPage>
   );
 }

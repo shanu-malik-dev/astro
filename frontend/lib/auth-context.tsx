@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
+import { usePathname } from 'next/navigation';
 import { authApi, AuthUser, ApiError, OtpResponse } from './api';
 import { AUTH_UNAUTHORIZED_EVENT } from './api-service';
 import { useTenant } from './tenant-context';
@@ -14,13 +15,25 @@ interface AuthState {
 interface AuthContextValue extends AuthState {
   loading: boolean;
   login: (data: { countryCode: string; mobile: string }) => Promise<OtpResponse>;
+  adminEmailLogin: (data: { email: string; password: string }) => Promise<AuthUser>;
+  sendForgotPasswordOtp: (data: { email: string }) => Promise<OtpResponse>;
+  resetForgotPassword: (data: {
+    email: string;
+    otp: string;
+    password: string;
+    confirm_password: string;
+  }) => Promise<{ statusCode?: number; message?: string }>;
   register: (data: { fullName: string; countryCode: string; mobile: string }) => Promise<OtpResponse>;
   verifyOtp: (data: { countryCode: string; mobile: string; otp: string }) => Promise<AuthUser>;
   resendOtp: (data: { countryCode: string; mobile: string }) => Promise<OtpResponse>;
   logout: () => Promise<void>;
 }
 
-const STORAGE_KEY = 'astronova_session';
+const STORAGE_KEYS = {
+  admin: 'astronova_admin_session',
+  website: 'astronova_website_session',
+} as const;
+const LEGACY_STORAGE_KEY = 'astronova_session';
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
@@ -60,29 +73,39 @@ function getAuthSession(res: Awaited<ReturnType<typeof authApi.verifyOtp>>): Aut
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { tenant } = useTenant();
+  const pathname = usePathname();
+  const sessionScope = pathname?.startsWith('/admin') ? 'admin' : 'website';
+  const storageKey = STORAGE_KEYS[sessionScope];
   const [state, setState] = useState<AuthState>({ user: null, accessToken: null, refreshToken: null });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const raw = typeof window !== 'undefined' ? window.localStorage.getItem(STORAGE_KEY) : null;
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+    }
+
+    const raw = typeof window !== 'undefined' ? window.localStorage.getItem(storageKey) : null;
     if (raw) {
       try {
         setState(JSON.parse(raw));
       } catch {
-        window.localStorage.removeItem(STORAGE_KEY);
+        window.localStorage.removeItem(storageKey);
+        setState({ user: null, accessToken: null, refreshToken: null });
       }
+    } else {
+      setState({ user: null, accessToken: null, refreshToken: null });
     }
     setLoading(false);
-  }, []);
+  }, [storageKey]);
 
-  const persist = (next: AuthState) => {
+  const persist = useCallback((next: AuthState) => {
     setState(next);
     if (next.user) {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      window.localStorage.setItem(storageKey, JSON.stringify(next));
     } else {
-      window.localStorage.removeItem(STORAGE_KEY);
+      window.localStorage.removeItem(storageKey);
     }
-  };
+  }, [storageKey]);
 
   useEffect(() => {
     const handleUnauthorized = () => {
@@ -94,10 +117,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       window.removeEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized);
     };
-  }, []);
+  }, [persist]);
 
   const login = useCallback(async (data: { countryCode: string; mobile: string }) => {
     return authApi.login(tenant.id, data);
+  }, [tenant.id]);
+
+  const adminEmailLogin = useCallback(async (data: { email: string; password: string }) => {
+    const res = await authApi.adminEmailLogin(tenant.id, data);
+    const session = getAuthSession(res);
+    persist(session);
+    return session.user!;
+  }, [tenant.id]);
+
+  const sendForgotPasswordOtp = useCallback(async (data: { email: string }) => {
+    return authApi.sendForgotPasswordOtp(tenant.id, data);
+  }, [tenant.id]);
+
+  const resetForgotPassword = useCallback(async (data: {
+    email: string;
+    otp: string;
+    password: string;
+    confirm_password: string;
+  }) => {
+    return authApi.resetForgotPassword(tenant.id, data);
   }, [tenant.id]);
 
   const register = useCallback(async (data: { fullName: string; countryCode: string; mobile: string }) => {
@@ -125,7 +168,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [state.accessToken, tenant.id]);
 
   return (
-    <AuthContext.Provider value={{ ...state, loading, login, register, verifyOtp, resendOtp, logout }}>
+    <AuthContext.Provider value={{ ...state, loading, login, adminEmailLogin, sendForgotPasswordOtp, resetForgotPassword, register, verifyOtp, resendOtp, logout }}>
       {children}
     </AuthContext.Provider>
   );

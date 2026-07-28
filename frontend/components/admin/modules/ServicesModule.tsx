@@ -10,7 +10,7 @@ import {
   getEnglishTranslation,
   syncServiceTranslations,
 } from "../helpers";
-import { ModuleHeader, Pagination, StatusBadge } from "../shared";
+import { EmptyListState, ModuleHeader, Pagination, StatusBadge } from "../shared";
 import type { ServiceRow, ServiceTranslation } from "../types";
 
 type ServiceFormErrors = {
@@ -273,8 +273,11 @@ export function ServicesModule() {
             <tbody className="divide-y divide-mist">
               {services.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-5 text-sm text-ink/50">
-                    {loading ? "Loading services..." : "No services yet. Create the first service."}
+                  <td colSpan={5} className="px-4 py-5">
+                    <EmptyListState
+                      loading={loading}
+                      message="No services yet. Create the first service."
+                    />
                   </td>
                 </tr>
               ) : (

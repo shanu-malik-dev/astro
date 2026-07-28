@@ -9,16 +9,10 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { DATABASE_TABLES } from '../../../common/constants/database.constant';
+import { PAYMENT_STATUS, PaymentStatus } from '../../../common/constants/status.constant';
 import { EnquiryEntity } from '../../enquiry/entity/enquiry.entity';
 
 export type PaymentProvider = 'razorpay' | 'stripe';
-export type PaymentStatus =
-  | 'created'
-  | 'pending'
-  | 'paid'
-  | 'failed'
-  | 'cancelled'
-  | 'expired';
 
 @Entity({ name: DATABASE_TABLES.CUSTOMER_PAYMENTS })
 @Index('idx_customer_payment_enquiry', ['enq_id'])
@@ -58,7 +52,7 @@ export class CustomerPaymentEntity {
   @Column({ type: 'varchar', length: 700, nullable: true })
   qr_code_url: string | null;
 
-  @Column({ type: 'varchar', length: 20, default: 'created' })
+  @Column({ type: 'tinyint', default: PAYMENT_STATUS.CREATED })
   payment_status: PaymentStatus;
 
   @Column({ type: 'json', nullable: true })

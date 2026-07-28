@@ -6,7 +6,7 @@ import { useTenant } from "@/lib/tenant-context";
 import { useAdminSnackbar } from "../AdminSnackbar";
 import { PAGE_SIZE } from "../constants";
 import { createEmptyTranslations, syncTranslations } from "../helpers";
-import { ModuleHeader, Pagination, StatusBadge } from "../shared";
+import { EmptyListState, ModuleHeader, Pagination, StatusBadge } from "../shared";
 import type { Problem, Translation } from "../types";
 
 type ProblemFormErrors = {
@@ -275,8 +275,11 @@ export function ProblemModule() {
             <tbody className="divide-y divide-mist">
               {problems.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-5 text-sm text-ink/50">
-                    {loading ? "Loading problems..." : "No problems yet. Create the first problem."}
+                  <td colSpan={4} className="px-4 py-5">
+                    <EmptyListState
+                      loading={loading}
+                      message="No problems yet. Create the first problem."
+                    />
                   </td>
                 </tr>
               ) : (

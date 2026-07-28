@@ -12,6 +12,26 @@ CREATE TABLE IF NOT EXISTS roles (
 DEFAULT CHARSET=utf8mb4
 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS role_admin_modules (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  role_id BIGINT UNSIGNED NOT NULL,
+  module_key VARCHAR(50) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_role_admin_modules_role_module (role_id, module_key),
+  KEY idx_role_admin_modules_role_id (role_id),
+
+  CONSTRAINT fk_role_admin_modules_role
+    FOREIGN KEY (role_id)
+    REFERENCES roles (id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE
+) ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS problems (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   display_order INT UNSIGNED NOT NULL DEFAULT 1,
@@ -176,13 +196,15 @@ CREATE TABLE IF NOT EXISTS users (
   name VARCHAR(100) NOT NULL,
   mobile VARCHAR(20) NOT NULL,
   country_code VARCHAR(10) NOT NULL,
+  email VARCHAR(150) NULL,
+  password_hash VARCHAR(255) NULL,
   is_delete TINYINT NOT NULL DEFAULT 0,
   otp VARCHAR(255) NULL,
   otp_expiry DATETIME NULL,
   token VARCHAR(255) NULL,
   token_expiry DATETIME NULL,
   status TINYINT NOT NULL DEFAULT 1,
-  call_status VARCHAR(20) NOT NULL DEFAULT 'not_called',
+  call_status TINYINT NOT NULL DEFAULT 1 COMMENT '1=Not called, 2=Called',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     ON UPDATE CURRENT_TIMESTAMP,
@@ -192,6 +214,9 @@ CREATE TABLE IF NOT EXISTS users (
   UNIQUE KEY uq_users_country_mobile (
     country_code,
     mobile
+  ),
+  UNIQUE KEY uq_users_email (
+    email
   ),
 
   KEY idx_users_role_id (role_id),
@@ -251,7 +276,7 @@ CREATE TABLE IF NOT EXISTS astrologer_consultations (
   customer_name VARCHAR(100) NOT NULL,
   country_code VARCHAR(10) NOT NULL,
   mobile VARCHAR(20) NOT NULL,
-  status VARCHAR(20) NOT NULL DEFAULT 'pending',
+  status TINYINT NOT NULL DEFAULT 1 COMMENT '1=Pending, 2=Confirmed, 3=Completed, 4=Cancelled',
   scheduled_at TIMESTAMP NULL,
   notes TEXT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -288,7 +313,7 @@ CREATE TABLE IF NOT EXISTS enquiries (
   mobile VARCHAR(20) NOT NULL,
   problem_id BIGINT UNSIGNED NOT NULL,
   problem_name VARCHAR(150) NOT NULL,
-  status VARCHAR(20) NOT NULL DEFAULT 'open',
+  status TINYINT NOT NULL DEFAULT 1 COMMENT '1=Open, 2=Closed',
   close_remark TEXT NULL,
   is_delete TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1=Deleted, 0=Not Deleted',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -336,7 +361,7 @@ CREATE TABLE IF NOT EXISTS follow_ups (
   mobile VARCHAR(20) NOT NULL,
   problem_name VARCHAR(150) NOT NULL,
   remark TEXT NOT NULL,
-  status VARCHAR(20) NOT NULL,
+  status TINYINT NOT NULL COMMENT '1=Hot, 2=Warm, 3=Cold',
   is_delete TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1=Deleted, 0=Not Deleted',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -374,7 +399,7 @@ CREATE TABLE IF NOT EXISTS customer_payment (
   provider_payment_id VARCHAR(150) NULL,
   payment_link VARCHAR(500) NULL,
   qr_code_url VARCHAR(700) NULL,
-  payment_status VARCHAR(20) NOT NULL DEFAULT 'created',
+  payment_status TINYINT NOT NULL DEFAULT 1 COMMENT '1=Created, 2=Pending, 3=Paid, 4=Failed, 5=Cancelled, 6=Expired',
   provider_response JSON NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -391,6 +416,23 @@ CREATE TABLE IF NOT EXISTS customer_payment (
     REFERENCES enquiries (id)
     ON UPDATE CASCADE
     ON DELETE SET NULL
+) ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS support_requests (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  full_name VARCHAR(100) NOT NULL,
+  email VARCHAR(150) NOT NULL,
+  subject VARCHAR(180) NULL,
+  message TEXT NOT NULL,
+  status TINYINT NOT NULL DEFAULT 1 COMMENT '1=Open, 2=Closed',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ON UPDATE CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (id),
+  KEY idx_support_requests_status_created (status, created_at)
 ) ENGINE=InnoDB
 DEFAULT CHARSET=utf8mb4
 COLLATE=utf8mb4_unicode_ci;
@@ -427,6 +469,21 @@ DEFAULT CHARSET=utf8mb4
 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO roles (
+  id,
+  name,
+  status
+)
+SELECT
+  1,
+  'Admin',
+  1
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM roles
+  WHERE id = 1
+);
+
+INSERT INTO roles (
   name,
   status
 )
@@ -438,3 +495,19 @@ WHERE NOT EXISTS (
   FROM roles
   WHERE name = 'Customer'
 );
+
+INSERT IGNORE INTO role_admin_modules (role_id, module_key)
+SELECT id, module_key
+FROM roles
+JOIN (
+  SELECT 'problem' AS module_key
+  UNION ALL SELECT 'services'
+  UNION ALL SELECT 'astrologers'
+  UNION ALL SELECT 'enquiry'
+  UNION ALL SELECT 'customers'
+  UNION ALL SELECT 'followUp'
+  UNION ALL SELECT 'payments'
+  UNION ALL SELECT 'support'
+  UNION ALL SELECT 'roles'
+) modules
+WHERE roles.id = 1;

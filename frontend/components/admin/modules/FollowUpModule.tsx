@@ -2,20 +2,24 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Search, X } from "lucide-react";
 import CustomDatePicker, { type DateRangeValue } from "@/components/ui/CustomDatePicker";
 import { ApiError, followUpApi, type FollowUpDto } from "@/lib/api";
+import { FOLLOW_UP_STATUS, FOLLOW_UP_STATUS_LABELS } from "@/lib/status-constants";
 import { useAuth } from "@/lib/auth-context";
 import { useTenant } from "@/lib/tenant-context";
 import { useAdminSnackbar } from "../AdminSnackbar";
 import { PAGE_SIZE } from "../constants";
-import { Pagination } from "../shared";
+import { EmptyListState, Pagination } from "../shared";
 import type { FollowUpRow, FollowUpStatus } from "../types";
 
-const STATUS_LABELS: Record<FollowUpStatus, string> = {
-  hot: "Hot",
-  warm: "Warm",
-  cold: "Cold",
-};
-
 type MainDateTab = "today" | "all";
+type FollowUpTabData = Record<
+  FollowUpStatus,
+  {
+    rows: FollowUpRow[];
+    totalRecords: number;
+    totalPages: number;
+    currentPage: number;
+  }
+>;
 
 function getTodayRange(): DateRangeValue {
   const start = new Date();
@@ -56,7 +60,7 @@ export function FollowUpModule() {
   const { tenant } = useTenant();
   const snackbar = useAdminSnackbar();
   const [mainTab, setMainTab] = useState<MainDateTab>("today");
-  const [activeStatus, setActiveStatus] = useState<FollowUpStatus>("hot");
+  const [activeStatus, setActiveStatus] = useState<FollowUpStatus>(FOLLOW_UP_STATUS.HOT);
   const [currentPage, setCurrentPage] = useState(1);
   const [rows, setRows] = useState<FollowUpRow[]>([]);
   const [totalPages, setTotalPages] = useState(1);
@@ -70,40 +74,94 @@ export function FollowUpModule() {
   const [appliedDateFilter, setAppliedDateFilter] =
     useState<DateRangeValue>(getTodayRange);
   const [statusCounts, setStatusCounts] = useState<Record<FollowUpStatus, number>>({
-    hot: 0,
-    warm: 0,
-    cold: 0,
+    [FOLLOW_UP_STATUS.HOT]: 0,
+    [FOLLOW_UP_STATUS.WARM]: 0,
+    [FOLLOW_UP_STATUS.COLD]: 0,
+  });
+  const [tabData, setTabData] = useState<FollowUpTabData>({
+    [FOLLOW_UP_STATUS.HOT]: { rows: [], totalRecords: 0, totalPages: 1, currentPage: 1 },
+    [FOLLOW_UP_STATUS.WARM]: { rows: [], totalRecords: 0, totalPages: 1, currentPage: 1 },
+    [FOLLOW_UP_STATUS.COLD]: { rows: [], totalRecords: 0, totalPages: 1, currentPage: 1 },
   });
   const lastFetchKeyRef = useRef("");
+  const activeStatusRef = useRef(activeStatus);
 
-  const loadFollowUps = useCallback(
+  useEffect(() => {
+    activeStatusRef.current = activeStatus;
+  }, [activeStatus]);
+
+  const fetchFollowUps = useCallback(
     async (
       page: number,
       status: FollowUpStatus,
       search: string,
       range: DateRangeValue
     ) => {
+      if (!accessToken) return null;
+
+      const response = await followUpApi.list(tenant.id, accessToken, {
+        page,
+        limit: PAGE_SIZE,
+        status,
+        search: search.trim() || undefined,
+        date_from: range.start || undefined,
+        date_to: range.end || undefined,
+      });
+      const records = response.data?.records || [];
+      const pagination = response.data?.pagination;
+      const total = pagination?.total || records.length;
+
+      return {
+        status,
+        rows: records.map(mapFollowUpDto),
+        totalRecords: total,
+        totalPages: pagination?.total_pages || 1,
+        currentPage: pagination?.page || page,
+      };
+    },
+    [accessToken, tenant.id]
+  );
+
+  const loadFollowUps = useCallback(
+    async (page: number, search: string, range: DateRangeValue) => {
       if (!accessToken) return;
 
       snackbar.setPageLoading(true);
       try {
-        const response = await followUpApi.list(tenant.id, accessToken, {
-          page,
-          limit: PAGE_SIZE,
-          status,
-          search: search.trim() || undefined,
-          date_from: range.start || undefined,
-          date_to: range.end || undefined,
-        });
-        const records = response.data?.records || [];
-        const pagination = response.data?.pagination;
-        const total = pagination?.total || records.length;
+        const results = await Promise.all(
+          ([FOLLOW_UP_STATUS.HOT, FOLLOW_UP_STATUS.WARM, FOLLOW_UP_STATUS.COLD] as FollowUpStatus[]).map((status) =>
+            fetchFollowUps(page, status, search, range)
+          )
+        );
+        const nextTabData = results.reduce<FollowUpTabData>(
+          (current, result) => {
+            if (!result) return current;
+            current[result.status] = {
+              rows: result.rows,
+              totalRecords: result.totalRecords,
+              totalPages: result.totalPages,
+              currentPage: result.currentPage,
+            };
+            return current;
+          },
+          {
+            [FOLLOW_UP_STATUS.HOT]: { rows: [], totalRecords: 0, totalPages: 1, currentPage: page },
+            [FOLLOW_UP_STATUS.WARM]: { rows: [], totalRecords: 0, totalPages: 1, currentPage: page },
+            [FOLLOW_UP_STATUS.COLD]: { rows: [], totalRecords: 0, totalPages: 1, currentPage: page },
+          }
+        );
+        const activeData = nextTabData[activeStatusRef.current];
 
-        setRows(records.map(mapFollowUpDto));
-        setCurrentPage(pagination?.page || page);
-        setTotalPages(pagination?.total_pages || 1);
-        setTotalRecords(total);
-        setStatusCounts((current) => ({ ...current, [status]: total }));
+        setTabData(nextTabData);
+        setRows(activeData.rows);
+        setCurrentPage(activeData.currentPage);
+        setTotalPages(activeData.totalPages);
+        setTotalRecords(activeData.totalRecords);
+        setStatusCounts({
+          [FOLLOW_UP_STATUS.HOT]: nextTabData[FOLLOW_UP_STATUS.HOT].totalRecords,
+          [FOLLOW_UP_STATUS.WARM]: nextTabData[FOLLOW_UP_STATUS.WARM].totalRecords,
+          [FOLLOW_UP_STATUS.COLD]: nextTabData[FOLLOW_UP_STATUS.COLD].totalRecords,
+        });
       } catch (err) {
         snackbar.error(
           err instanceof ApiError
@@ -114,7 +172,7 @@ export function FollowUpModule() {
         snackbar.setPageLoading(false);
       }
     },
-    [accessToken, snackbar, tenant.id]
+    [accessToken, fetchFollowUps, snackbar]
   );
 
   useEffect(() => {
@@ -123,7 +181,6 @@ export function FollowUpModule() {
       tenantId: tenant.id,
       accessToken: accessToken || "",
       currentPage,
-      activeStatus,
       appliedCustomerFilter,
       appliedDateFilter,
     });
@@ -131,12 +188,10 @@ export function FollowUpModule() {
     lastFetchKeyRef.current = fetchKey;
     loadFollowUps(
       currentPage,
-      activeStatus,
       appliedCustomerFilter,
       appliedDateFilter
     );
   }, [
-    activeStatus,
     appliedCustomerFilter,
     appliedDateFilter,
     currentPage,
@@ -144,6 +199,14 @@ export function FollowUpModule() {
     tenant.id,
     accessToken,
   ]);
+
+  useEffect(() => {
+    const activeData = tabData[activeStatus];
+    setRows(activeData.rows);
+    setCurrentPage(activeData.currentPage);
+    setTotalPages(activeData.totalPages);
+    setTotalRecords(activeData.totalRecords);
+  }, [activeStatus, tabData]);
 
   const selectStatus = (status: FollowUpStatus) => {
     setActiveStatus(status);
@@ -176,9 +239,6 @@ export function FollowUpModule() {
     <>
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <p className="text-[12px] uppercase tracking-[0.35em] text-gold-dark">
-            Admin
-          </p>
           <h1 className="mt-2 font-display text-3xl font-semibold text-ink">
             Follow Up Module
           </h1>
@@ -216,7 +276,7 @@ export function FollowUpModule() {
             </div>
 
             <div className="inline-flex h-10 rounded-md border border-mist bg-parchment p-1">
-              {(["hot", "warm", "cold"] as FollowUpStatus[]).map((status) => (
+              {([FOLLOW_UP_STATUS.HOT, FOLLOW_UP_STATUS.WARM, FOLLOW_UP_STATUS.COLD] as FollowUpStatus[]).map((status) => (
                 <button
                   key={status}
                   type="button"
@@ -227,7 +287,7 @@ export function FollowUpModule() {
                       : "inline-flex items-center gap-2 rounded px-3 text-xs font-medium text-ink/55 transition hover:text-ink"
                   }
                 >
-                  {STATUS_LABELS[status]}
+                  {FOLLOW_UP_STATUS_LABELS[status]}
                   <span className="rounded-full bg-gold/10 px-2 py-0.5 text-[10px] text-gold-dark">
                     {statusCounts[status]}
                   </span>
@@ -315,8 +375,8 @@ export function FollowUpModule() {
             <tbody className="divide-y divide-mist">
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-5 text-sm text-ink/50">
-                    No follow-ups found.
+                  <td colSpan={6} className="px-4 py-5">
+                    <EmptyListState message="No follow-ups found." />
                   </td>
                 </tr>
               ) : (

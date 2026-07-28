@@ -1,10 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { Section, SectionHeading } from "@/components/ui/Section";
+import { openBookEnquiryModal } from "@/lib/book-enquiry-modal";
 import { useLanguage } from "@/lib/language-context";
+import { WEBSITE_MODULE_FLAGS } from "@/lib/visibility-flags";
+import { DisabledRouteRedirect } from "@/components/DisabledRouteRedirect";
 
 const PAGE_SIZE = 3;
 
@@ -18,6 +20,8 @@ const services = [
 ];
 
 export default function ServicesPage() {
+  if (!WEBSITE_MODULE_FLAGS.services) return <DisabledRouteRedirect />;
+
   const { t } = useLanguage();
   const [currentPage, setCurrentPage] = useState(1);
   const totalPages = Math.ceil(services.length / PAGE_SIZE);
@@ -62,13 +66,14 @@ export default function ServicesPage() {
               </div>
 
               <div className="mt-8 border-t border-mist pt-6">
-                <Link
-                  href="/book"
+                <button
+                  type="button"
+                  onClick={openBookEnquiryModal}
                   className="inline-flex items-center gap-2 text-wine font-medium hover:underline"
                 >
                   {t("common.actions.bookConsultation")}
                   <ArrowRight size={16} />
-                </Link>
+                </button>
               </div>
             </div>
           ))}
@@ -122,12 +127,13 @@ export default function ServicesPage() {
           description={t("servicesPage.ctaDescription")}
         />
 
-        <Link
-          href="/book"
+        <button
+          type="button"
+          onClick={openBookEnquiryModal}
           className="btn-primary mt-8 inline-flex"
         >
           {t("common.actions.bookConsultation")}
-        </Link>
+        </button>
       </Section>
     </>
   );

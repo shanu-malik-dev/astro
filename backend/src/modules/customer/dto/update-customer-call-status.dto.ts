@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import { IsIn, IsNumber, IsPositive } from 'class-validator';
+import { CUSTOMER_CALL_STATUS, CustomerCallStatus } from '../../../common/constants/status.constant';
 
 export class UpdateCustomerCallStatusDto {
   @Type(() => Number)
@@ -7,6 +8,7 @@ export class UpdateCustomerCallStatusDto {
   @IsPositive()
   id: number;
 
-  @IsIn(['called', 'not_called'])
-  call_status: 'called' | 'not_called';
+  @Type(() => Number)
+  @IsIn(Object.values(CUSTOMER_CALL_STATUS))
+  call_status: CustomerCallStatus;
 }

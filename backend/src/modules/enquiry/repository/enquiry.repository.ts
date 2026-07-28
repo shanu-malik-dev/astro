@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { ENQUIRY_STATUS } from '../../../common/constants/status.constant';
 import { ProblemEntity } from '../../problem/entity/problem.entity';
 import { CreateEnquiryDto } from '../dto/create-enquiry.dto';
 import { EnquiryEntity } from '../entity/enquiry.entity';
@@ -24,7 +25,7 @@ export class EnquiryRepository {
         country_code: dto.country_code,
         mobile: dto.mobile,
         problem_id: dto.problem_id,
-        status: 'open',
+        status: ENQUIRY_STATUS.OPEN,
         is_delete: 0,
       },
     });
@@ -46,7 +47,7 @@ export class EnquiryRepository {
         mobile: dto.mobile,
         problem_id: dto.problem_id,
         problem_name: problemName,
-        status: 'open',
+        status: ENQUIRY_STATUS.OPEN,
         is_delete: 0,
       }),
     );

@@ -1,20 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ExternalLink, Search, X } from "lucide-react";
 import { ApiError, paymentApi, type CustomerPaymentDto } from "@/lib/api";
+import { PAYMENT_STATUS, PAYMENT_STATUS_LABELS } from "@/lib/status-constants";
 import { useAuth } from "@/lib/auth-context";
 import { useTenant } from "@/lib/tenant-context";
 import CustomSelect from "@/components/ui/CustomSelect";
 import { useAdminSnackbar } from "../AdminSnackbar";
 import { PAGE_SIZE } from "../constants";
-import { Pagination } from "../shared";
+import { EmptyListState, Pagination } from "../shared";
 
 const STATUS_OPTIONS = [
   { value: "", label: "All status" },
-  { value: "pending", label: "Pending" },
-  { value: "paid", label: "Paid" },
-  { value: "failed", label: "Failed" },
-  { value: "cancelled", label: "Cancelled" },
-  { value: "expired", label: "Expired" },
+  { value: String(PAYMENT_STATUS.PENDING), label: "Pending" },
+  { value: String(PAYMENT_STATUS.PAID), label: "Paid" },
+  { value: String(PAYMENT_STATUS.FAILED), label: "Failed" },
+  { value: String(PAYMENT_STATUS.CANCELLED), label: "Cancelled" },
+  { value: String(PAYMENT_STATUS.EXPIRED), label: "Expired" },
 ];
 
 const PROVIDER_OPTIONS = [
@@ -24,9 +25,9 @@ const PROVIDER_OPTIONS = [
 ];
 
 function statusClass(status: CustomerPaymentDto["payment_status"]) {
-  if (status === "paid") return "bg-green-50 text-green-700";
-  if (status === "failed" || status === "cancelled") return "bg-red-50 text-red-700";
-  if (status === "expired") return "bg-zinc-100 text-zinc-600";
+  if (status === PAYMENT_STATUS.PAID) return "bg-green-50 text-green-700";
+  if (status === PAYMENT_STATUS.FAILED || status === PAYMENT_STATUS.CANCELLED) return "bg-red-50 text-red-700";
+  if (status === PAYMENT_STATUS.EXPIRED) return "bg-zinc-100 text-zinc-600";
   return "bg-yellow-50 text-yellow-700";
 }
 
@@ -56,7 +57,7 @@ export function PaymentsModule() {
           search: appliedSearch.trim() || undefined,
           provider: provider ? (provider as "razorpay" | "stripe") : undefined,
           payment_status: status
-            ? (status as CustomerPaymentDto["payment_status"])
+            ? Number(status)
             : undefined,
         });
         const records = response.data?.records || [];
@@ -117,9 +118,6 @@ export function PaymentsModule() {
     <>
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <p className="text-[12px] uppercase tracking-[0.35em] text-gold-dark">
-            Admin
-          </p>
           <h1 className="mt-2 font-display text-3xl font-semibold text-ink">
             Payment Module
           </h1>
@@ -221,8 +219,8 @@ export function PaymentsModule() {
             <tbody className="divide-y divide-mist">
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-5 text-sm text-ink/50">
-                    No payment entries found.
+                  <td colSpan={8} className="px-4 py-5">
+                    <EmptyListState message="No payment entries found." />
                   </td>
                 </tr>
               ) : (
@@ -248,7 +246,7 @@ export function PaymentsModule() {
                     </td>
                     <td className="px-4 py-2.5">
                       <span className={`rounded-full px-2.5 py-1 text-xs font-medium capitalize ${statusClass(payment.payment_status)}`}>
-                        {payment.payment_status}
+                        {PAYMENT_STATUS_LABELS[payment.payment_status] || payment.payment_status}
                       </span>
                     </td>
                     <td className="px-4 py-2.5 font-mono text-xs text-ink/55">

@@ -3,6 +3,8 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { OtpService } from '../../common/services/otp/otp.service';
+import { NotificationModule } from '../notification/notification.module';
+import { RoleModule } from '../role/role.module';
 import { AuthController } from './controller/auth.controller';
 import { LoginLogEntity } from './entity/login-log.entity';
 import { RoleEntity } from './entity/role.entity';
@@ -19,6 +21,8 @@ import { IsSupportedMobileConstraint } from './validators/is-supported-mobile.va
     TypeOrmModule.forFeature([RoleEntity, UserEntity, LoginLogEntity]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({}),
+    NotificationModule,
+    RoleModule,
   ],
   controllers: [AuthController],
   providers: [

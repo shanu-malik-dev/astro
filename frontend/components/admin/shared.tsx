@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ListFilter, Plus, Rows3, Search } from "lucide-react";
 
 export function StatusBadge({ status }: { status: string }) {
   const tone =
@@ -10,6 +10,31 @@ export function StatusBadge({ status }: { status: string }) {
     <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium capitalize ring-1 ${tone}`}>
       {status}
     </span>
+  );
+}
+
+export function EmptyListState({
+  message = "No data found.",
+  loading = false,
+}: {
+  message?: string;
+  loading?: boolean;
+}) {
+  return (
+    <div className="admin-empty-state">
+      <svg
+        viewBox="0 0 180 120"
+        role="img"
+        aria-label="No data"
+        className="admin-empty-image"
+      >
+        <rect x="36" y="22" width="108" height="76" rx="8" fill="#f8fafc" stroke="#cbd5e1" />
+        <path d="M54 44h72M54 60h52M54 76h64" stroke="#94a3b8" strokeWidth="5" strokeLinecap="round" />
+        <circle cx="132" cy="82" r="18" fill="#ede9fe" stroke="#7c3aed" strokeWidth="4" />
+        <path d="M123 82h18" stroke="#7c3aed" strokeWidth="5" strokeLinecap="round" />
+      </svg>
+      <p>{loading ? "Loading..." : message}</p>
+    </div>
   );
 }
 
@@ -25,23 +50,34 @@ export function ModuleHeader({
   onCreate: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <div className="admin-module-heading">
       <div>
-        <p className="text-[12px] uppercase tracking-[0.35em] text-gold-dark">
-          {eyebrow}
-        </p>
-        <h1 className="mt-2 font-display text-3xl font-semibold text-ink">
+        <h1 className="admin-title">
           {title}
         </h1>
       </div>
-      <button
-        type="button"
-        onClick={onCreate}
-        className="inline-flex items-center justify-center gap-2 rounded-md border border-mist bg-white px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-gold hover:bg-gold/10"
-      >
-        <Plus size={17} />
-        {createLabel}
-      </button>
+      <div className="admin-toolbar">
+        <button type="button" className="admin-toolbar-button">
+          <Rows3 size={15} />
+          List
+        </button>
+        <button type="button" className="admin-toolbar-button">
+          <ListFilter size={15} />
+          Sort
+        </button>
+        <button type="button" className="admin-toolbar-button admin-toolbar-search">
+          <Search size={15} />
+          Find in this list
+        </button>
+        <button
+          type="button"
+          onClick={onCreate}
+          className="admin-create-button"
+        >
+          <Plus size={16} />
+          {createLabel}
+        </button>
+      </div>
     </div>
   );
 }
@@ -55,26 +91,82 @@ export function Pagination({
   totalPages: number;
   onPageChange: (page: number) => void;
 }) {
-  return (
-    <div className="mt-4 flex items-center justify-center gap-2">
-      {Array.from({ length: totalPages }).map((_, index) => {
-        const page = index + 1;
+  const normalizedTotal = Math.max(1, totalPages);
+  const page = Math.min(Math.max(1, currentPage), normalizedTotal);
+  const startPage = Math.max(1, Math.min(page - 2, normalizedTotal - 4));
+  const endPage = Math.min(normalizedTotal, startPage + 4);
+  const pages = Array.from(
+    { length: endPage - startPage + 1 },
+    (_, index) => startPage + index
+  );
 
-        return (
-          <button
-            key={page}
-            type="button"
-            onClick={() => onPageChange(page)}
-            className={
-              page === currentPage
-                ? "rounded-md border border-gold bg-gold px-3 py-1.5 text-sm font-medium text-black"
-                : "rounded-md border border-mist bg-white px-3 py-1.5 text-sm font-medium text-ink/70 transition hover:border-gold hover:text-ink"
-            }
-          >
-            {page}
-          </button>
-        );
-      })}
+  const goToPage = (nextPage: number) => {
+    const clampedPage = Math.min(Math.max(1, nextPage), normalizedTotal);
+    if (clampedPage !== page) onPageChange(clampedPage);
+  };
+
+  return (
+    <div className="admin-pagination mt-5 flex flex-wrap items-center justify-center gap-2">
+      <button
+        type="button"
+        onClick={() => goToPage(1)}
+        disabled={page === 1}
+        className="admin-page-button"
+        aria-label="First page"
+      >
+        <ChevronsLeft size={15} />
+      </button>
+      <button
+        type="button"
+        onClick={() => goToPage(page - 1)}
+        disabled={page === 1}
+        className="admin-page-button admin-page-nav"
+      >
+        <ChevronLeft size={15} />
+        Prev
+      </button>
+
+      {startPage > 1 && (
+        <span className="px-1 text-sm text-ink/40">...</span>
+      )}
+
+      {pages.map((item) => (
+        <button
+          key={item}
+          type="button"
+          onClick={() => goToPage(item)}
+          className={
+            item === page
+              ? "admin-page-button admin-page-button-active"
+              : "admin-page-button"
+          }
+        >
+          {item}
+        </button>
+      ))}
+
+      {endPage < normalizedTotal && (
+        <span className="px-1 text-sm text-ink/40">...</span>
+      )}
+
+      <button
+        type="button"
+        onClick={() => goToPage(page + 1)}
+        disabled={page === normalizedTotal}
+        className="admin-page-button admin-page-nav"
+      >
+        Next
+        <ChevronRight size={15} />
+      </button>
+      <button
+        type="button"
+        onClick={() => goToPage(normalizedTotal)}
+        disabled={page === normalizedTotal}
+        className="admin-page-button"
+        aria-label="Last page"
+      >
+        <ChevronsRight size={15} />
+      </button>
     </div>
   );
 }

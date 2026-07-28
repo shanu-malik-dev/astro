@@ -129,4 +129,356 @@
   .admin-theme :focus-visible {
     outline-color: var(--admin-accent);
   }
+
+  .admin-theme {
+    background:
+      radial-gradient(circle at 0 0, rgb(255 255 255 / 0.94), transparent 34rem),
+      linear-gradient(135deg, #f8fafc 0%, #eef6ff 45%, #f6f8fb 100%);
+  }
+
+  .admin-theme .admin-sidebar {
+    border-color: #d8e1ea !important;
+    box-shadow: 14px 0 36px rgb(15 23 42 / 0.04);
+  }
+
+  .admin-theme .admin-topbar {
+    border-color: #d8e1ea !important;
+    box-shadow: 0 10px 30px rgb(15 23 42 / 0.04);
+  }
+
+  .admin-theme .admin-workspace {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding-inline: clamp(1rem, 2vw, 2rem);
+  }
+
+  .admin-theme .admin-module-heading {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    border: 1px solid #cfd9e6;
+    background: rgb(255 255 255 / 0.92);
+    padding: 1.35rem 1.45rem;
+    box-shadow: 0 18px 44px rgb(15 23 42 / 0.05);
+  }
+
+  .admin-theme .admin-kicker {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--admin-accent-dark);
+  }
+
+  .admin-theme .admin-title {
+    margin-top: 0.35rem;
+    font-family: var(--font-inter);
+    font-size: 1.86rem;
+    font-weight: 650;
+    line-height: 1.2;
+    letter-spacing: 0;
+    color: #172033;
+  }
+
+  .admin-theme .admin-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
+  }
+
+  .admin-theme .admin-toolbar-button,
+  .admin-theme .admin-create-button {
+    display: inline-flex;
+    min-height: 2.1rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    border: 1px solid transparent;
+    background: transparent;
+    padding: 0.35rem 0.55rem;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: #334155;
+    transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease;
+  }
+
+  .admin-theme .admin-toolbar-button:hover {
+    border-color: #cfd9e6;
+    background: #f8fafc;
+  }
+
+  .admin-theme .admin-create-button {
+    border-color: #7c3aed;
+    background: #7c3aed;
+    padding-inline: 0.85rem;
+    color: #fff;
+    box-shadow: 0 10px 22px rgb(124 58 237 / 0.2);
+  }
+
+  .admin-theme .admin-create-button:hover {
+    background: #6d28d9;
+  }
+
+  .admin-theme div[class*="mt-5"][class*="border-mist"][class*="bg-white"] {
+    border-color: #cfd9e6 !important;
+    border-radius: 0 !important;
+    background: #fff !important;
+    box-shadow: 0 18px 44px rgb(15 23 42 / 0.05) !important;
+  }
+
+  .admin-theme div[class*="mt-5"][class*="border-mist"][class*="bg-white"] > div:first-child {
+    border-color: #e2e8f0 !important;
+    background: #fff !important;
+    padding: 1.35rem 1.45rem !important;
+  }
+
+  .admin-theme div[class*="mt-5"][class*="border-mist"][class*="bg-white"] > div:first-child h2 {
+    font-family: var(--font-inter);
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #172033;
+  }
+
+  .admin-theme table {
+    border-collapse: separate !important;
+    border-spacing: 0;
+    background: #fff;
+  }
+
+  .admin-theme thead {
+    background: #fff !important;
+  }
+
+  .admin-theme thead tr {
+    border-color: #e2e8f0 !important;
+    color: #475569 !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+  }
+
+  .admin-theme th {
+    border-top: 1px solid #e2e8f0;
+    border-right: 0;
+    padding: 1rem 1.1rem !important;
+    font-size: 0.84rem !important;
+    font-weight: 700 !important;
+    color: #172033 !important;
+  }
+
+  .admin-theme th:last-child {
+    border-right: 0;
+  }
+
+  .admin-theme .admin-page-button {
+    display: inline-flex;
+    min-height: 2.25rem;
+    min-width: 2.25rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    border: 1px solid #d8e1ea;
+    border-radius: 0.45rem;
+    background: #fff;
+    padding: 0.45rem 0.7rem;
+    font-size: 0.86rem;
+    font-weight: 650;
+    color: #334155;
+    box-shadow: 0 10px 24px rgb(15 23 42 / 0.04);
+    transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
+  }
+
+  .admin-theme .admin-page-button:hover:not(:disabled) {
+    border-color: #7c3aed;
+    color: #4c1d95;
+    transform: translateY(-1px);
+  }
+
+  .admin-theme .admin-page-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+
+  .admin-theme .admin-page-button-active {
+    border-color: #7c3aed;
+    background: #7c3aed;
+    color: #fff;
+    box-shadow: 0 14px 28px rgb(124 58 237 / 0.24);
+  }
+
+  .admin-theme .admin-page-nav {
+    min-width: 5rem;
+  }
+
+  .admin-theme .admin-empty-state {
+    display: flex;
+    min-height: 10rem;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    color: #64748b;
+    text-align: center;
+  }
+
+  .admin-theme .admin-empty-image {
+    width: 9rem;
+    max-width: 46vw;
+    filter: drop-shadow(0 12px 22px rgb(15 23 42 / 0.08));
+  }
+
+  .admin-theme .admin-empty-state p {
+    font-size: 0.92rem;
+    font-weight: 550;
+    color: #64748b;
+  }
+
+  .admin-theme tbody {
+    divide-color: transparent;
+  }
+
+  .admin-theme tbody tr {
+    color: #273449;
+    background: #fff;
+  }
+
+  .admin-theme tbody tr:hover {
+    background: #f8fbff !important;
+  }
+
+  .admin-theme td {
+    border-top: 1px dashed #dfe7f0;
+    padding: 1rem 1.1rem !important;
+    vertical-align: middle;
+    color: #64748b;
+  }
+
+  .admin-theme td a:not(.btn-primary),
+  .admin-theme td p.font-medium,
+  .admin-theme td .font-medium {
+    color: #08152b;
+  }
+
+  .admin-theme td button {
+    border-radius: 0.35rem !important;
+  }
+
+  .admin-theme td > p,
+  .admin-theme td span,
+  .admin-theme td div {
+    min-width: 0;
+  }
+
+  .admin-theme td p {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .admin-theme tbody td:first-child {
+    color: #8a94a6;
+  }
+
+  .admin-theme td:last-child,
+  .admin-theme th:last-child {
+    text-align: right;
+  }
+
+  .admin-theme tbody td:last-child > div {
+    justify-content: flex-end;
+  }
+
+  .admin-theme tbody td:last-child button {
+    min-height: 2rem;
+    min-width: 2rem;
+    border-color: #d8e1ea !important;
+    background: #fff !important;
+  }
+
+  .admin-theme tbody td:last-child button:hover {
+    border-color: #94a3b8 !important;
+    background: #f8fafc !important;
+  }
+
+  .admin-theme tbody td:last-child button[aria-label*="Delete"] {
+    border-color: #fecaca !important;
+    color: #ef4444 !important;
+  }
+
+  .admin-theme tbody td:last-child button[aria-label*="Delete"]:hover {
+    background: #fff1f2 !important;
+  }
+
+  .admin-theme .fixed.inset-0 {
+    background:
+      radial-gradient(circle at 15% 10%, rgb(56 189 248 / 0.16), transparent 21rem),
+      radial-gradient(circle at 80% 100%, rgb(79 70 229 / 0.12), transparent 24rem),
+      rgb(15 23 42 / 0.38) !important;
+  }
+
+  .admin-theme .fixed.inset-0 > div[class*="bg-white"] {
+    border-color: #d8e1ea !important;
+    border-radius: 0.28rem !important;
+    box-shadow: 0 24px 80px rgb(15 23 42 / 0.18) !important;
+  }
+
+  .admin-theme .fixed.inset-0 > div[class*="bg-white"] > div:first-child {
+    border-color: #e2e8f0 !important;
+    background: #fff !important;
+    padding: 1.25rem 1.4rem !important;
+  }
+
+  .admin-theme .fixed.inset-0 h2 {
+    font-family: var(--font-inter);
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+  }
+
+  .admin-theme .fixed.inset-0 label,
+  .admin-theme .fixed.inset-0 div[class*="rounded-lg"][class*="border-mist"],
+  .admin-theme .fixed.inset-0 div[class*="rounded-md"][class*="border-mist"][class*="bg-parchment"] {
+    border-color: #d8e1ea !important;
+    border-radius: 0.35rem !important;
+    background: #f8fafc !important;
+  }
+
+  .admin-theme .fixed.inset-0 input,
+  .admin-theme .fixed.inset-0 textarea {
+    border-color: #d8e1ea !important;
+    border-radius: 0.35rem !important;
+    background: #fff !important;
+  }
+
+  .admin-theme .fixed.inset-0 input:focus,
+  .admin-theme .fixed.inset-0 textarea:focus {
+    border-color: #0f70bd !important;
+    box-shadow: 0 0 0 3px rgb(15 112 189 / 0.12);
+  }
+
+  .admin-theme .fixed.inset-0 div[class*="border-t"][class*="bg-parchment"] {
+    border-color: #e2e8f0 !important;
+    background: #fff !important;
+  }
+
+  @media (min-width: 768px) {
+    .admin-theme .admin-module-heading {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .admin-theme table {
+      table-layout: auto;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .admin-theme .admin-toolbar-search {
+      display: none;
+    }
+
+    .admin-theme .admin-title {
+      font-size: 1.35rem;
+    }
+  }
 }

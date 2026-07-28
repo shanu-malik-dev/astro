@@ -103,7 +103,7 @@ export function AdminHeader({
   };
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-mist bg-white px-5 text-ink">
+    <header className="admin-topbar flex h-16 items-center justify-between border-b border-mist bg-white px-5 text-ink">
       <button
         type="button"
         onClick={onToggleSidebar}
@@ -113,7 +113,7 @@ export function AdminHeader({
         <Menu size={18} />
       </button>
 
-      <div className="hidden w-full max-w-sm items-center gap-2 rounded-md border border-mist bg-parchment px-3 py-2 text-sm text-ink/45 md:flex">
+      <div className="hidden w-full max-w-sm items-center gap-2 rounded-md border border-[#d8e1ea] bg-[#f8fafc] px-3 py-2 text-sm text-ink/45 md:flex">
         <Search size={16} />
         <span>Search here</span>
       </div>

@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { ENQUIRY_STATUS } from '../../../common/constants/status.constant';
 import { successResponse } from '../../../common/helpers/response.helper';
 import { CloseEnquiryDto } from '../dto/close-enquiry.dto';
 import { CreateEnquiryDto } from '../dto/create-enquiry.dto';
@@ -87,12 +88,12 @@ export class EnquiryService {
   async close(dto: CloseEnquiryDto) {
     const enquiry = await this.findById(dto.id);
     if (!enquiry) throw new NotFoundException('Enquiry not found.');
-    if (enquiry.status === 'closed') {
+    if (enquiry.status === ENQUIRY_STATUS.CLOSED) {
       throw new BadRequestException('Enquiry is already closed.');
     }
 
     await this.enquiryRepository.getRepository().update(dto.id, {
-      status: 'closed',
+      status: ENQUIRY_STATUS.CLOSED,
       close_remark: dto.remark.trim(),
     });
 

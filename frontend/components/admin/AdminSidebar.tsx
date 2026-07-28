@@ -1,32 +1,34 @@
-import { ChevronLeft, ChevronRight, LayoutDashboard } from "lucide-react";
-import { MODULES } from "./constants";
-import type { ModuleKey } from "./types";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { BRAND } from "@/lib/brand";
+import type { AdminModule, ModuleKey } from "./types";
 
 export function AdminSidebar({
   activeModule,
+  modules,
   sidebarOpen,
   onModuleChange,
   onToggle,
 }: {
   activeModule: ModuleKey;
+  modules: AdminModule[];
   sidebarOpen: boolean;
   onModuleChange: (module: ModuleKey) => void;
   onToggle: () => void;
 }) {
   return (
     <aside
-      className={`border-r border-mist bg-white transition-all duration-300 ${
+      className={`admin-sidebar border-r border-mist bg-white transition-all duration-300 ${
         sidebarOpen ? "w-64" : "w-20"
       }`}
     >
       <div className="flex h-16 items-center justify-between border-b border-mist px-4">
         <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gold text-sm font-bold text-black">
+          {/* <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gold text-sm font-bold text-black">
             A
-          </div>
+          </div> */}
           {sidebarOpen && (
-            <span className="font-display text-xl italic">
-              Astro<span className="text-gold not-italic">Admin</span>
+            <span className="font-display text-lg font-semibold italic leading-tight">
+              {BRAND.name}
             </span>
           )}
         </div>
@@ -44,7 +46,7 @@ export function AdminSidebar({
         <p className={`px-3 pb-2 text-[11px] uppercase tracking-[0.16em] text-ink/40 ${sidebarOpen ? "" : "sr-only"}`}>
           Manage
         </p>
-        {MODULES.map((module) => {
+        {modules.map((module) => {
           const Icon = module.icon;
           const active = activeModule === module.key;
 

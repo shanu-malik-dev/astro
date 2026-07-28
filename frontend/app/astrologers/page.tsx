@@ -12,11 +12,13 @@ import {
   BriefcaseBusiness,
 } from "lucide-react";
 import { Section } from "@/components/ui/Section";
+import { DisabledRouteRedirect } from "@/components/DisabledRouteRedirect";
 import { FullPageLoader } from "@/components/ui/FullPageLoader";
 import { ApiError, astrologerApi, type PublicAstrologerDto } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useLanguage } from "@/lib/language-context";
 import { useTenant } from "@/lib/tenant-context";
+import { WEBSITE_MODULE_FLAGS } from "@/lib/visibility-flags";
 
 const PAGE_SIZE = 8;
 const SUPPORT_PHONE = "+919876543210";
@@ -64,6 +66,8 @@ export default function AstrologersPage() {
   );
 
   useEffect(() => {
+    if (!WEBSITE_MODULE_FLAGS.astrologers) return;
+
     loadAstrologers(1);
   }, [loadAstrologers]);
 
@@ -73,6 +77,8 @@ export default function AstrologersPage() {
     event.preventDefault();
     setAuthModalOpen(true);
   };
+
+  if (!WEBSITE_MODULE_FLAGS.astrologers) return <DisabledRouteRedirect />;
 
   return (
     <>
@@ -197,7 +203,7 @@ export default function AstrologersPage() {
                 </div>
               </div>
 
-              <div className="mt-auto grid gap-2 pt-5">
+              {/* <div className="mt-auto grid gap-2 pt-5">
                 <a
                   href={user ? `tel:${SUPPORT_PHONE}` : loginHref}
                   onClick={requireAuth}
@@ -221,7 +227,7 @@ export default function AstrologersPage() {
                   <MessageCircle size={16} />
                   {t("common.actions.whatsApp")}
                 </a>
-              </div>
+              </div> */}
             </div>
               );
             })}

@@ -82,6 +82,7 @@ export interface AuthUser {
   country_code?: string;
   role: string;
   isActive: boolean;
+  admin_modules?: string[];
 }
 
 export interface AuthResponse {
@@ -114,6 +115,38 @@ export interface OtpResponse {
     otp_expires_at?: string;
     otp_expires_in?: string | number;
   };
+}
+
+export interface PaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+  total_pages: number;
+}
+
+export interface RoleDto {
+  id: number;
+  name: string;
+  status: number;
+  modules: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RoleListResponse {
+  statusCode?: number;
+  message?: string;
+  data?: {
+    records: RoleDto[];
+    available_modules: string[];
+    pagination: PaginationMeta;
+  };
+}
+
+export interface RoleResponse {
+  statusCode?: number;
+  message?: string;
+  data?: RoleDto;
 }
 
 export interface ProblemNameDto {
@@ -275,7 +308,7 @@ export interface EnquiryDto {
   customer_mobile: string;
   problem_id: number;
   problem_name: string;
-  status: "open" | "closed";
+  status: number;
   close_remark?: string | null;
   created_at?: string;
 }
@@ -314,7 +347,7 @@ export interface CustomerPaymentDto {
   provider_payment_id?: string | null;
   payment_link?: string | null;
   qr_code_url?: string | null;
-  payment_status: "created" | "pending" | "paid" | "failed" | "cancelled" | "expired";
+  payment_status: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -348,7 +381,7 @@ export interface CustomerDto {
   mobile: string;
   customer_mobile: string;
   status: number;
-  call_status: "called" | "not_called";
+  call_status: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -384,7 +417,7 @@ export interface FollowUpDto {
   customer_mobile: string;
   problem_name: string;
   remark: string;
-  status: "hot" | "warm" | "cold";
+  status: number;
   created_at?: string;
 }
 
@@ -408,6 +441,42 @@ export interface FollowUpResponse {
   statusCode?: number;
   message?: string;
   data?: FollowUpDto | null;
+}
+
+export type SupportRequestStatus = number;
+
+export interface SupportRequestDto {
+  id: string;
+  full_name: string;
+  email: string;
+  subject?: string | null;
+  message: string;
+  status: SupportRequestStatus;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface SupportRequestResponse {
+  success?: boolean;
+  statusCode?: number;
+  message?: string;
+  data?: SupportRequestDto | null;
+}
+
+export interface SupportRequestListResponse {
+  success?: boolean;
+  statusCode?: number;
+  message?: string;
+  data?: {
+    records: SupportRequestDto[];
+    counts?: Record<number | "total", number>;
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      total_pages: number;
+    };
+  };
 }
 
 // ---- Auth ----
@@ -441,6 +510,38 @@ export const authApi = {
         mobile: data.mobile,
       }),
     }),
+  adminEmailLogin: (tenantId: TenantId, data: { email: string; password: string }) =>
+    request<AuthResponse>('/auth/admin/email-login', {
+      tenantId,
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  emailLogin: (tenantId: TenantId, data: { email: string; password: string }) =>
+    request<AuthResponse>('/auth/email-login', {
+      tenantId,
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  sendForgotPasswordOtp: (tenantId: TenantId, data: { email: string }) =>
+    request<OtpResponse>('/auth/forgot-password/send-otp', {
+      tenantId,
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  resetForgotPassword: (
+    tenantId: TenantId,
+    data: {
+      email: string;
+      otp: string;
+      password: string;
+      confirm_password: string;
+    }
+  ) =>
+    request<{ statusCode?: number; message?: string }>('/auth/forgot-password/reset', {
+      tenantId,
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
   verifyOtp: (tenantId: TenantId, data: { countryCode: string; mobile: string; otp: string }) =>
     request<AuthResponse>('/auth/verify-otp', {
       tenantId,
@@ -466,6 +567,78 @@ export const authApi = {
     request<{ success: boolean }>('/auth/logout', { tenantId, accessToken, method: 'POST' }),
   me: (tenantId: TenantId, accessToken: string) =>
     request<AuthUser>('/auth/me', { tenantId, accessToken, method: 'GET' }),
+};
+
+// ---- Roles ----
+export const roleApi = {
+  list: (
+    tenantId: TenantId,
+    accessToken: string,
+    data: { page?: number; limit?: number; search?: string }
+  ) =>
+    request<RoleListResponse>('/roles/list', {
+      tenantId,
+      accessToken,
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  save: (
+    tenantId: TenantId,
+    accessToken: string,
+    data: { id?: number; name: string; status?: number; modules: string[] }
+  ) =>
+    request<RoleResponse>('/roles/save', {
+      tenantId,
+      accessToken,
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+};
+
+// ---- Support ----
+export const supportApi = {
+  create: (
+    tenantId: TenantId,
+    data: {
+      full_name: string;
+      email: string;
+      subject?: string;
+      message: string;
+    }
+  ) =>
+    request<SupportRequestResponse>('/support', {
+      tenantId,
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  list: (
+    tenantId: TenantId,
+    accessToken: string,
+    data: {
+      page?: number;
+      limit?: number;
+      status?: SupportRequestStatus;
+      range?: "today" | "all";
+      search?: string;
+    }
+  ) =>
+    request<SupportRequestListResponse>('/support/list', {
+      tenantId,
+      accessToken,
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateStatus: (
+    tenantId: TenantId,
+    accessToken: string,
+    data: { id: number; status: SupportRequestStatus }
+  ) =>
+    request<SupportRequestResponse>('/support/status', {
+      tenantId,
+      accessToken,
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 };
 
 // ---- Problem ----
@@ -559,7 +732,7 @@ export const enquiryApi = {
     data: {
       page?: number;
       limit?: number;
-      status?: "open" | "closed";
+      status?: number;
       search?: string;
       date_from?: string;
       date_to?: string;
@@ -588,7 +761,7 @@ export const followUpApi = {
   create: (
     tenantId: TenantId,
     accessToken: string,
-    data: { enq_id: number; status: "hot" | "warm" | "cold"; remark: string }
+    data: { enq_id: number; status: number; remark: string }
   ) =>
     request<FollowUpResponse>('/follow-up', {
       tenantId,
@@ -602,7 +775,7 @@ export const followUpApi = {
     data: {
       page?: number;
       limit?: number;
-      status?: "hot" | "warm" | "cold";
+      status?: number;
       search?: string;
       date_from?: string;
       date_to?: string;

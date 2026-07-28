@@ -1,6 +1,7 @@
 export const en = {
   OTP_SENT: 'OTP sent successfully.',
   LOGIN_SUCCESSFUL: 'Login successful.',
+  PASSWORD_RESET_SUCCESSFUL: 'Password reset successfully.',
   USER_ALREADY_EXISTS: 'User already exists.',
   DEFAULT_ROLE_NOT_FOUND: 'Default role not found.',
   INVALID_OR_EXPIRED_OTP: 'Invalid or expired OTP.',
@@ -29,4 +30,10 @@ export const en = {
   ENQUIRY_CLOSED: 'Enquiry closed successfully.',
   FOLLOW_UP_CREATED: 'Follow up created successfully.',
   FOLLOW_UP_LIST_FETCHED: 'Follow up list fetched successfully.',
+  SUPPORT_REQUEST_CREATED: 'Support request submitted successfully.',
+  SUPPORT_REQUEST_LIST_FETCHED: 'Support request list fetched successfully.',
+  SUPPORT_REQUEST_STATUS_UPDATED: 'Support request status updated successfully.',
+  NOTIFICATION_EMAIL_SENT: 'Notification email sent successfully.',
+  ROLE_LIST_FETCHED: 'Role list fetched successfully.',
+  ROLE_SAVED: 'Role saved successfully.',
 } as const;

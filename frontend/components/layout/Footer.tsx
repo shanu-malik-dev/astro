@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Container } from '@/components/ui/Container';
+import { BRAND, getBrandName } from '@/lib/brand';
 import { useLanguage } from '@/lib/language-context';
 
 const COLUMNS = [
@@ -15,9 +16,9 @@ const COLUMNS = [
   {
     titleKey: 'footer.columns.support',
     links: [
-      { href: '/faq', labelKey: 'footer.links.faq' },
+      // { href: '/faq', labelKey: 'footer.links.faq' },
       { href: '/contact', labelKey: 'footer.links.contact' },
-      { href: '/account', labelKey: 'footer.links.myBookings' },
+      // { href: '/account', labelKey: 'footer.links.myBookings' },
     ],
   },
   {
@@ -25,20 +26,31 @@ const COLUMNS = [
     links: [
       { href: '/privacy', labelKey: 'footer.links.privacy' },
       { href: '/terms', labelKey: 'footer.links.terms' },
-      { href: '/refund-policy', labelKey: 'footer.links.refund' },
+      // { href: '/refund-policy', labelKey: 'footer.links.refund' },
     ],
   },
 ];
 
 export function Footer() {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
+  const brandName = getBrandName(language);
 
   return (
     <footer className="bg-ink text-parchment">
       <Container className="grid grid-cols-2 gap-6 py-8 md:grid-cols-5 md:py-10">
         <div className="col-span-2">
-          <p className="font-display text-2xl italic">
-            AstroNova<span className="text-gold not-italic">.</span>
+          <p className="flex items-center gap-2.5 font-display text-2xl font-semibold italic">
+            {BRAND.logoPath && (
+              <img
+                src={BRAND.logoPath}
+                alt={brandName}
+                className="h-10 w-10 rounded-full object-contain"
+                onError={(event) => {
+                  event.currentTarget.style.display = 'none';
+                }}
+              />
+            )}
+            <span>{brandName}</span>
           </p>
           <p className="mt-3 max-w-xs text-sm leading-relaxed text-parchment/60">
             {t("footer.description")}
@@ -63,7 +75,7 @@ export function Footer() {
 
       <div className="hairline-dark">
         <Container className="flex flex-col items-center justify-between gap-2 py-3 text-xs text-parchment/40 md:flex-row">
-          <p>© {new Date().getFullYear()} AstroNova. {t("footer.rights")}</p>
+          <p>© {new Date().getFullYear()} {brandName}. {t("footer.rights")}</p>
           <p>{t("footer.meta")}</p>
         </Container>
       </div>

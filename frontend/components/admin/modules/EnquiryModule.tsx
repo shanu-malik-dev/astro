@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Copy, CreditCard, ExternalLink, Phone, Save, Search, X } from "lucide-react";
+import { Copy, CreditCard, ExternalLink, Phone, Save, Search, Share2, X } from "lucide-react";
 import CustomDatePicker, { type DateRangeValue } from "@/components/ui/CustomDatePicker";
 import CustomSelect from "@/components/ui/CustomSelect";
 import {
@@ -11,13 +11,27 @@ import {
   type EnquiryDto,
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import {
+  ENQUIRY_STATUS,
+  ENQUIRY_STATUS_LABELS,
+  FOLLOW_UP_STATUS,
+} from "@/lib/status-constants";
 import { useTenant } from "@/lib/tenant-context";
 import { useAdminSnackbar } from "../AdminSnackbar";
 import { FOLLOW_UP_STATUS_OPTIONS, PAGE_SIZE } from "../constants";
-import { Pagination } from "../shared";
+import { EmptyListState, Pagination } from "../shared";
 import type { EnquiryRow, EnquiryStatus, FollowUpStatus } from "../types";
 
 type MainDateTab = "today" | "all";
+type EnquiryTabData = Record<
+  EnquiryStatus,
+  {
+    rows: EnquiryRow[];
+    totalRecords: number;
+    totalPages: number;
+    currentPage: number;
+  }
+>;
 
 function getTodayRange(): DateRangeValue {
   const start = new Date();
@@ -63,7 +77,7 @@ export function EnquiryModule() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
   const [mainTab, setMainTab] = useState<MainDateTab>("today");
-  const [activeTab, setActiveTab] = useState<EnquiryStatus>("open");
+  const [activeTab, setActiveTab] = useState<EnquiryStatus>(ENQUIRY_STATUS.OPEN);
   const [customerFilter, setCustomerFilter] = useState("");
   const [appliedCustomerFilter, setAppliedCustomerFilter] = useState("");
   const [dateFilter, setDateFilter] = useState<DateRangeValue>({
@@ -73,11 +87,15 @@ export function EnquiryModule() {
   const [appliedDateFilter, setAppliedDateFilter] =
     useState<DateRangeValue>(getTodayRange);
   const [counts, setCounts] = useState<Record<EnquiryStatus, number>>({
-    open: 0,
-    closed: 0,
+    [ENQUIRY_STATUS.OPEN]: 0,
+    [ENQUIRY_STATUS.CLOSED]: 0,
+  });
+  const [tabData, setTabData] = useState<EnquiryTabData>({
+    [ENQUIRY_STATUS.OPEN]: { rows: [], totalRecords: 0, totalPages: 1, currentPage: 1 },
+    [ENQUIRY_STATUS.CLOSED]: { rows: [], totalRecords: 0, totalPages: 1, currentPage: 1 },
   });
   const [followDraft, setFollowDraft] = useState<EnquiryRow | null>(null);
-  const [followStatus, setFollowStatus] = useState<FollowUpStatus>("warm");
+  const [followStatus, setFollowStatus] = useState<FollowUpStatus>(FOLLOW_UP_STATUS.WARM);
   const [closeDraft, setCloseDraft] = useState<EnquiryRow | null>(null);
   const [closeRemarkError, setCloseRemarkError] = useState("");
   const [followError, setFollowError] = useState("");
@@ -87,37 +105,84 @@ export function EnquiryModule() {
   const [generatedPayment, setGeneratedPayment] =
     useState<CustomerPaymentDto | null>(null);
   const lastFetchKeyRef = useRef("");
+  const activeTabRef = useRef(activeTab);
 
-  const loadEnquiries = useCallback(
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
+
+  const fetchEnquiries = useCallback(
     async (
       page: number,
       status: EnquiryStatus,
       search: string,
       range: DateRangeValue
     ) => {
+      if (!accessToken) return null;
+
+      const response = await enquiryApi.list(tenant.id, accessToken, {
+        page,
+        limit: PAGE_SIZE,
+        status,
+        search: search.trim() || undefined,
+        date_from: range.start
+          ? new Date(range.start).toISOString()
+          : undefined,
+        date_to: range.end ? new Date(range.end).toISOString() : undefined,
+      });
+      const records = response.data?.records || [];
+      const pagination = response.data?.pagination;
+      const total = pagination?.total || records.length;
+
+      return {
+        status,
+        rows: records.map(mapEnquiryDto),
+        totalRecords: total,
+        totalPages: pagination?.total_pages || 1,
+        currentPage: pagination?.page || page,
+      };
+    },
+    [accessToken, tenant.id]
+  );
+
+  const loadEnquiries = useCallback(
+    async (page: number, search: string, range: DateRangeValue) => {
       if (!accessToken) return;
 
       snackbar.setPageLoading(true);
       try {
-        const response = await enquiryApi.list(tenant.id, accessToken, {
-          page,
-          limit: PAGE_SIZE,
-          status,
-          search: search.trim() || undefined,
-          date_from: range.start
-            ? new Date(range.start).toISOString()
-            : undefined,
-          date_to: range.end ? new Date(range.end).toISOString() : undefined,
-        });
-        const records = response.data?.records || [];
-        const pagination = response.data?.pagination;
-        const total = pagination?.total || records.length;
+        const results = await Promise.all(
+          ([ENQUIRY_STATUS.OPEN, ENQUIRY_STATUS.CLOSED] as EnquiryStatus[]).map((status) =>
+            fetchEnquiries(page, status, search, range)
+          )
+        );
+        const nextTabData = results.reduce<EnquiryTabData>(
+          (current, result) => {
+            if (!result) return current;
+            current[result.status] = {
+              rows: result.rows,
+              totalRecords: result.totalRecords,
+              totalPages: result.totalPages,
+              currentPage: result.currentPage,
+            };
+            return current;
+          },
+          {
+            [ENQUIRY_STATUS.OPEN]: { rows: [], totalRecords: 0, totalPages: 1, currentPage: page },
+            [ENQUIRY_STATUS.CLOSED]: { rows: [], totalRecords: 0, totalPages: 1, currentPage: page },
+          }
+        );
+        const activeData = nextTabData[activeTabRef.current];
 
-        setRows(records.map(mapEnquiryDto));
-        setCurrentPage(pagination?.page || page);
-        setTotalPages(pagination?.total_pages || 1);
-        setTotalRecords(total);
-        setCounts((current) => ({ ...current, [status]: total }));
+        setTabData(nextTabData);
+        setRows(activeData.rows);
+        setCurrentPage(activeData.currentPage);
+        setTotalPages(activeData.totalPages);
+        setTotalRecords(activeData.totalRecords);
+        setCounts({
+          [ENQUIRY_STATUS.OPEN]: nextTabData[ENQUIRY_STATUS.OPEN].totalRecords,
+          [ENQUIRY_STATUS.CLOSED]: nextTabData[ENQUIRY_STATUS.CLOSED].totalRecords,
+        });
       } catch (err) {
         snackbar.error(
           err instanceof ApiError
@@ -128,7 +193,7 @@ export function EnquiryModule() {
         snackbar.setPageLoading(false);
       }
     },
-    [accessToken, snackbar, tenant.id]
+    [accessToken, fetchEnquiries, snackbar]
   );
 
   useEffect(() => {
@@ -137,7 +202,6 @@ export function EnquiryModule() {
       tenantId: tenant.id,
       accessToken: accessToken || "",
       currentPage,
-      activeTab,
       appliedCustomerFilter,
       appliedDateFilter,
     });
@@ -145,12 +209,10 @@ export function EnquiryModule() {
     lastFetchKeyRef.current = fetchKey;
     loadEnquiries(
       currentPage,
-      activeTab,
       appliedCustomerFilter,
       appliedDateFilter
     );
   }, [
-    activeTab,
     appliedCustomerFilter,
     appliedDateFilter,
     mainTab,
@@ -164,12 +226,20 @@ export function EnquiryModule() {
     setCurrentPage(1);
   }, [activeTab, mainTab]);
 
+  useEffect(() => {
+    const activeData = tabData[activeTab];
+    setRows(activeData.rows);
+    setCurrentPage(activeData.currentPage);
+    setTotalPages(activeData.totalPages);
+    setTotalRecords(activeData.totalRecords);
+  }, [activeTab, tabData]);
+
   const tabItems = useMemo(
     () => [
-      { value: "open" as const, label: "Open", count: counts.open },
-      { value: "closed" as const, label: "Closed", count: counts.closed },
+      { value: ENQUIRY_STATUS.OPEN, label: ENQUIRY_STATUS_LABELS[ENQUIRY_STATUS.OPEN], count: counts[ENQUIRY_STATUS.OPEN] },
+      { value: ENQUIRY_STATUS.CLOSED, label: ENQUIRY_STATUS_LABELS[ENQUIRY_STATUS.CLOSED], count: counts[ENQUIRY_STATUS.CLOSED] },
     ],
-    [counts.closed, counts.open]
+    [counts]
   );
 
   const saveFollowUp = async () => {
@@ -189,7 +259,7 @@ export function EnquiryModule() {
       });
       setFollowDraft(null);
       setFollowError("");
-      setFollowStatus("warm");
+      setFollowStatus(FOLLOW_UP_STATUS.WARM);
       snackbar.success("Follow up created successfully.");
     } catch (err) {
       snackbar.error(
@@ -221,7 +291,6 @@ export function EnquiryModule() {
       setCloseRemarkError("");
       await loadEnquiries(
         currentPage,
-        activeTab,
         appliedCustomerFilter,
         appliedDateFilter
       );
@@ -292,6 +361,24 @@ export function EnquiryModule() {
     snackbar.success("Payment link copied.");
   };
 
+  const sharePaymentLink = async () => {
+    if (!generatedPayment?.payment_link) return;
+
+    const shareText = `Payment link for ${paymentDraft?.customer_name || "customer"}: ${generatedPayment.payment_link}`;
+
+    if (navigator.share) {
+      await navigator.share({
+        title: "Payment Link",
+        text: shareText,
+        url: generatedPayment.payment_link,
+      });
+      return;
+    }
+
+    await navigator.clipboard.writeText(shareText);
+    snackbar.success("Payment link copied for sharing.");
+  };
+
   const applyFilters = () => {
     setAppliedCustomerFilter(customerFilter);
     setAppliedDateFilter(toApiRange(dateFilter, mainTab));
@@ -318,15 +405,12 @@ export function EnquiryModule() {
     <>
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <p className="text-[12px] uppercase tracking-[0.35em] text-gold-dark">
-            Admin
-          </p>
           <h1 className="mt-2 font-display text-3xl font-semibold text-ink">
             Enquiry Module
           </h1>
         </div>
         <div className="rounded-md border border-mist bg-white px-4 py-2 text-sm text-ink/60">
-          {totalRecords} {activeTab} enquiries
+          {totalRecords} {ENQUIRY_STATUS_LABELS[activeTab] || activeTab} enquiries
         </div>
       </div>
 
@@ -452,10 +536,10 @@ export function EnquiryModule() {
                 <th className="w-48 px-4 py-2.5 font-semibold">Customer</th>
                 <th className="w-44 px-4 py-2.5 font-semibold">Number</th>
                 <th className="px-4 py-2.5 font-semibold">Problem</th>
-                {activeTab === "closed" && (
+                {activeTab === ENQUIRY_STATUS.CLOSED && (
                   <th className="px-4 py-2.5 font-semibold">Close Remark</th>
                 )}
-                {activeTab === "open" && (
+                {activeTab === ENQUIRY_STATUS.OPEN && (
                   <th className="w-72 px-4 py-2.5 text-right font-semibold">Actions</th>
                 )}
               </tr>
@@ -464,10 +548,10 @@ export function EnquiryModule() {
               {rows.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={activeTab === "open" ? 5 : 5}
-                    className="px-4 py-5 text-sm text-ink/50"
+                    colSpan={5}
+                    className="px-4 py-5"
                   >
-                    No enquiries found.
+                    <EmptyListState message="No enquiries found." />
                   </td>
                 </tr>
               ) : (
@@ -485,12 +569,12 @@ export function EnquiryModule() {
                     <td className="px-4 py-2.5 text-ink/70">
                       {enquiry.problem_name}
                     </td>
-                    {activeTab === "closed" && (
+                    {activeTab === ENQUIRY_STATUS.CLOSED && (
                       <td className="px-4 py-2.5 text-ink/60">
                         {enquiry.remark || "-"}
                       </td>
                     )}
-                    {activeTab === "open" && (
+                    {activeTab === ENQUIRY_STATUS.OPEN && (
                       <td className="px-4 py-2.5">
                         <div className="flex justify-end gap-2">
                           <a
@@ -503,16 +587,16 @@ export function EnquiryModule() {
                           <button
                             type="button"
                             onClick={() => openPaymentDraft(enquiry)}
-                            className="inline-flex items-center gap-1.5 rounded-md border border-mist bg-white px-2.5 py-1.5 text-xs font-medium text-ink/70 transition hover:border-gold hover:bg-gold/10 hover:text-ink"
+                            className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-mist bg-white px-2.5 py-1.5 text-xs font-medium text-ink/70 transition hover:border-gold hover:bg-gold/10 hover:text-ink"
                           >
                             <CreditCard size={14} />
-                            Payment
+                            Generate Payment Link
                           </button>
                           <button
                             type="button"
                             onClick={() => {
                               setFollowError("");
-                              setFollowStatus("warm");
+                              setFollowStatus(FOLLOW_UP_STATUS.WARM);
                               setFollowDraft({ ...enquiry, remark: "" });
                             }}
                             className="rounded-md bg-ink px-2.5 py-1.5 text-xs font-medium text-white transition hover:opacity-90"
@@ -587,13 +671,13 @@ export function EnquiryModule() {
                   options={FOLLOW_UP_STATUS_OPTIONS}
                   value={
                     FOLLOW_UP_STATUS_OPTIONS.find(
-                      (option) => option.value === followStatus
+                      (option) => Number(option.value) === followStatus
                     ) || null
                   }
                   variant="light"
                   onChange={(option) => {
                     if (!option) return;
-                    setFollowStatus(option.value as FollowUpStatus);
+                    setFollowStatus(Number(option.value));
                   }}
                   className="mt-2"
                 />
@@ -785,12 +869,12 @@ export function EnquiryModule() {
 
               {generatedPayment && (
                 <div className="rounded-md border border-mist bg-parchment p-4">
-                  <div className="grid gap-4 md:grid-cols-[160px_1fr]">
+                  <div className="grid gap-4 md:grid-cols-[224px_1fr]">
                     {generatedPayment.qr_code_url && (
                       <img
                         src={generatedPayment.qr_code_url}
                         alt="Payment QR code"
-                        className="h-40 w-40 rounded-md border border-mist bg-white p-2"
+                        className="h-56 w-56 rounded-md border border-mist bg-white p-3"
                       />
                     )}
                     <div className="min-w-0 space-y-3 text-sm">
@@ -816,6 +900,14 @@ export function EnquiryModule() {
                             >
                               <Copy size={14} />
                               Copy
+                            </button>
+                            <button
+                              type="button"
+                              onClick={sharePaymentLink}
+                              className="inline-flex items-center gap-1.5 rounded-md border border-mist bg-white px-3 py-2 text-xs font-medium text-ink/70 hover:border-gold hover:text-ink"
+                            >
+                              <Share2 size={14} />
+                              Share
                             </button>
                             <a
                               href={generatedPayment.payment_link}
@@ -846,10 +938,11 @@ export function EnquiryModule() {
               <button
                 type="button"
                 onClick={generatePaymentLink}
-                className="inline-flex items-center justify-center gap-2 rounded-md bg-ink px-4 py-2.5 text-sm font-medium text-white"
+                disabled={Boolean(generatedPayment)}
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-ink px-4 py-2.5 text-sm font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-45"
               >
                 <CreditCard size={16} />
-                Generate Link
+                {generatedPayment ? "Link Generated" : "Generate Link"}
               </button>
             </div>
           </div>

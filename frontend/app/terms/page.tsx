@@ -1,10 +1,11 @@
 import { LegalPage } from '@/components/legal/LegalPage';
+import { BRAND } from '@/lib/brand';
 
 export default function TermsPage() {
   return (
     <LegalPage title="Terms of Service" updated="July 2026">
       <p>
-        By booking a consultation through AstroNova, you agree to the terms below. Please read
+        By booking a consultation through {BRAND.name}, you agree to the terms below. Please read
         them before completing payment.
       </p>
       <h2 className="pt-2 text-lg text-ink">Nature of consultations</h2>
@@ -21,7 +22,7 @@ export default function TermsPage() {
       </p>
       <h2 className="pt-2 text-lg text-ink">Conduct</h2>
       <p>
-        Sessions are conducted respectfully on both sides. AstroNova reserves the right to end a
+        Sessions are conducted respectfully on both sides. {BRAND.name} reserves the right to end a
         session early in the event of abusive conduct, without refund.
       </p>
       <h2 className="pt-2 text-lg text-ink">Changes to these terms</h2>

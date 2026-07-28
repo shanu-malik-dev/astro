@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -12,7 +13,13 @@ import { successResponse } from '../../../common/helpers/response.helper';
 import { LanguageContext } from '../../../common/i18n/language-context';
 import { OtpService } from '../../../common/services/otp/otp.service';
 import { getMessage } from '../../../lang';
+import { NotificationService } from '../../notification/notification.service';
+import { RoleService } from '../../role/service/role.service';
 import { AUTH_CONSTANTS } from '../constants/auth.constant';
+import { AdminEmailLoginDto } from '../dto/admin-email-login.dto';
+import { EmailLoginDto } from '../dto/email-login.dto';
+import { ForgotPasswordResetDto } from '../dto/forgot-password-reset.dto';
+import { ForgotPasswordSendOtpDto } from '../dto/forgot-password-send-otp.dto';
 import { LoginDto } from '../dto/login.dto';
 import { ResendOtpDto } from '../dto/resend-otp.dto';
 import { SignupDto } from '../dto/signup.dto';
@@ -32,6 +39,8 @@ export class AuthService {
     private readonly otpService: OtpService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly roleService: RoleService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async signup(dto: SignupDto): Promise<unknown> {
@@ -111,6 +120,124 @@ export class AuthService {
     );
   }
 
+  async adminEmailLogin(
+    dto: AdminEmailLoginDto,
+    requestMeta?: RequestMeta,
+  ): Promise<unknown> {
+    return this.loginWithEmail(dto, requestMeta, true);
+  }
+
+  async emailLogin(
+    dto: EmailLoginDto,
+    requestMeta?: RequestMeta,
+  ): Promise<unknown> {
+    return this.loginWithEmail(dto, requestMeta, false);
+  }
+
+  async sendForgotPasswordOtp(dto: ForgotPasswordSendOtpDto) {
+    const user = await this.authRepository.findUserByEmail(dto.email, true);
+
+    if (!user || user.is_delete !== 0 || user.status !== 1 || !user.email) {
+      throw new UnauthorizedException(this.message('USER_NOT_FOUND_OR_INACTIVE'));
+    }
+
+    const otpMeta = await this.createAndSendEmailOtp(user.id, user.email, user.name);
+
+    return successResponse('OTP_SENT', {
+      email: user.email,
+      ...otpMeta,
+    });
+  }
+
+  async resetForgotPassword(dto: ForgotPasswordResetDto) {
+    if (dto.password !== dto.confirm_password) {
+      throw new BadRequestException('Password and confirm password must match.');
+    }
+
+    const user = await this.authRepository.findUserByEmail(dto.email, true);
+    if (!user || user.is_delete !== 0 || user.status !== 1) {
+      throw new UnauthorizedException(this.message('USER_NOT_FOUND_OR_INACTIVE'));
+    }
+
+    if (!user.otp || !user.otp_expiry || user.otp_expiry <= new Date()) {
+      throw new UnauthorizedException(this.message('INVALID_OR_EXPIRED_OTP'));
+    }
+
+    const isValidOtp = await this.otpService.compareOtp(dto.otp, user.otp);
+    if (!isValidOtp) {
+      throw new UnauthorizedException(this.message('INVALID_OR_EXPIRED_OTP'));
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, 12);
+    await this.authRepository.updateUserPassword(user.id, passwordHash);
+
+    return successResponse('PASSWORD_RESET_SUCCESSFUL');
+  }
+
+  private async loginWithEmail(
+    dto: EmailLoginDto,
+    requestMeta: RequestMeta | undefined,
+    requireAdminModules: boolean,
+  ) {
+    const user = await this.authRepository.findUserByEmail(dto.email, true);
+
+    if (
+      !user ||
+      user.is_delete !== 0 ||
+      user.status !== 1 ||
+      !user.password_hash
+    ) {
+      throw new UnauthorizedException(this.message('USER_NOT_FOUND_OR_INACTIVE'));
+    }
+
+    const adminModules = await this.roleService.getModulesForRole(Number(user.role_id));
+    if (requireAdminModules && adminModules.length === 0) {
+      throw new UnauthorizedException(this.message('USER_NOT_FOUND_OR_INACTIVE'));
+    }
+
+    const passwordValid = await bcrypt.compare(dto.password, user.password_hash);
+    if (!passwordValid) {
+      await this.createFailedLoginLog(user, {
+        country_code: user.country_code,
+        mobile: user.mobile,
+        otp: '',
+      }, requestMeta, 'PASSWORD_INVALID');
+      throw new UnauthorizedException(this.message('USER_NOT_FOUND_OR_INACTIVE'));
+    }
+
+    const tokens = await this.signTokens(user);
+    const hashedRefreshToken = await bcrypt.hash(tokens.refresh_token, 12);
+
+    await this.authRepository.updateUserToken(
+      user.id,
+      hashedRefreshToken,
+      this.getRefreshTokenExpiry(),
+      1,
+    );
+    await this.authRepository.createLoginLog({
+      user_id: user.id,
+      country_code: user.country_code,
+      mobile: user.mobile,
+      login_type: requireAdminModules ? 'admin_email_password' : 'email_password',
+      ip_address: requestMeta?.ipAddress,
+      user_agent: requestMeta?.userAgent,
+      is_success: 1,
+    });
+
+    return successResponse(
+      'LOGIN_SUCCESSFUL',
+      {
+        ...tokens,
+        token_type: AUTH_CONSTANTS.TOKEN_TYPE,
+        expires_in: this.getAccessTokenSeconds(),
+        user: this.toSafeUser(
+          user,
+          adminModules.length > 0 ? adminModules : undefined,
+        ),
+      },
+    );
+  }
+
   async verifyOtp(dto: VerifyOtpDto, requestMeta?: RequestMeta): Promise<unknown> {
     const user = await this.findActiveUser(dto.country_code, dto.mobile, true,true);
 
@@ -149,6 +276,7 @@ export class AuthService {
       user_agent: requestMeta?.userAgent,
       is_success: 1,
     });
+    const adminModules = await this.roleService.getModulesForRole(Number(user.role_id));
 
     return successResponse(
       'LOGIN_SUCCESSFUL',
@@ -156,7 +284,10 @@ export class AuthService {
         ...tokens,
         token_type: AUTH_CONSTANTS.TOKEN_TYPE,
         expires_in: this.getAccessTokenSeconds(),
-        user: this.toSafeUser(user),
+        user: this.toSafeUser(
+          user,
+          adminModules.length > 0 ? adminModules : undefined,
+        ),
       }
     );
   }
@@ -199,6 +330,41 @@ export class AuthService {
 
     await this.authRepository.updateUserOtp(userId, hashedOtp, otpExpiry);
     await this.otpService.sendOtp(countryCode, mobile, otp);
+
+    return {
+      otp_expires_at: otpExpiry.toISOString(),
+      otp_expires_in: otpExpiresIn,
+    };
+  }
+
+  private async createAndSendEmailOtp(
+    userId: number,
+    email: string,
+    name: string,
+  ) {
+    const otp = this.otpService.generateOtp();
+    const hashedOtp = await this.otpService.hashOtp(otp);
+    const otpExpiresIn = Number(
+      this.configService.get<string>('OTP_EXPIRY_SECONDS', '300'),
+    );
+    const otpExpiry = new Date(Date.now() + otpExpiresIn * 1000);
+
+    await this.authRepository.updateUserOtp(userId, hashedOtp, otpExpiry);
+    await this.notificationService.sendEmailNotification({
+      to: email,
+      subject: 'Password reset OTP',
+      text: `Hi ${name}, your password reset OTP is ${otp}.`,
+      html: `
+        <div style="font-family:Arial,sans-serif;line-height:1.6;color:#172033">
+          <h2>Password reset OTP</h2>
+          <p>Hi ${this.escapeHtml(name)},</p>
+          <p>Your OTP is:</p>
+          <p style="font-size:24px;font-weight:700;letter-spacing:4px">${otp}</p>
+          <p>This OTP will expire in ${Math.floor(otpExpiresIn / 60)} minutes.</p>
+          <p>Shree Samriddhi Atro</p>
+        </div>
+      `,
+    });
 
     return {
       otp_expires_at: otpExpiry.toISOString(),
@@ -252,13 +418,14 @@ export class AuthService {
     return { access_token, refresh_token };
   }
 
-  private toSafeUser(user: UserEntity) {
+  private toSafeUser(user: UserEntity, adminModules?: string[]) {
     return {
       id: user.id,
       role_id: user.role_id,
       name: user.name,
       country_code: user.country_code,
       mobile: user.mobile,
+      admin_modules: adminModules,
     };
   }
 
@@ -321,5 +488,14 @@ export class AuthService {
     }).driverError;
 
     return driverError.code === 'ER_DUP_ENTRY' || driverError.errno === 1062;
+  }
+
+  private escapeHtml(value: string) {
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   }
 }

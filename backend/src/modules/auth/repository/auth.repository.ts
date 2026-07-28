@@ -45,6 +45,23 @@ export class AuthRepository {
     return query.getOne();
   }
 
+  findUserByEmail(email: string, includeSensitive = false) {
+    const query = this.userRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.role', 'role')
+      .where('user.email = :email', { email });
+
+    if (includeSensitive) {
+      query.addSelect([
+        'user.password_hash',
+        'user.otp',
+        'user.token',
+      ]);
+    }
+
+    return query.getOne();
+  }
+
   createUser(input: Pick<UserEntity, 'role_id' | 'name' | 'country_code' | 'mobile'>) {
     return this.userRepository.save(this.userRepository.create(input));
   }
@@ -60,6 +77,17 @@ export class AuthRepository {
     return this.userRepository.update(
       { id: userId },
       { otp: null, otp_expiry: null },
+    );
+  }
+
+  updateUserPassword(userId: number, passwordHash: string) {
+    return this.userRepository.update(
+      { id: userId },
+      {
+        password_hash: passwordHash,
+        otp: null,
+        otp_expiry: null,
+      },
     );
   }
 

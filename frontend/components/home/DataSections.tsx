@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Star, ArrowRight } from 'lucide-react';
 import { Section, SectionHeading } from '@/components/ui/Section';
 import { FullPageLoader } from '@/components/ui/FullPageLoader';
+import { openBookEnquiryModal } from '@/lib/book-enquiry-modal';
 import { useTenant } from '@/lib/tenant-context';
 import { servicesApi, testimonialsApi, blogApi } from '@/lib/api';
 import { useLanguage } from '@/lib/language-context';
@@ -48,12 +49,13 @@ export function ServicesGrid({ limit }: { limit?: number }) {
                   <p className="font-display text-2xl text-ink">{formatMoney(service.price)}</p>
                   <p className="text-xs uppercase tracking-wide text-ink/40">{service.durationMinutes} {t("home.dataSections.services.minutes")}</p>
                 </div>
-                <Link
-                  href={`/book?service=${service.id}`}
+                <button
+                  type="button"
+                  onClick={openBookEnquiryModal}
                   className="flex items-center gap-1 text-sm text-wine opacity-0 transition-opacity group-hover:opacity-100"
                 >
                   {t("common.actions.book")} <ArrowRight size={14} />
-                </Link>
+                </button>
               </div>
             </div>
           ))}

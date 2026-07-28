@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import { IsDateString, IsIn, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { ENQUIRY_STATUS, EnquiryStatus } from '../../../common/constants/status.constant';
 
 export class ListEnquiryDto {
   @IsOptional()
@@ -15,8 +16,9 @@ export class ListEnquiryDto {
   limit?: number;
 
   @IsOptional()
-  @IsIn(['open', 'closed'])
-  status?: 'open' | 'closed';
+  @Type(() => Number)
+  @IsIn(Object.values(ENQUIRY_STATUS))
+  status?: EnquiryStatus;
 
   @IsOptional()
   @IsString()

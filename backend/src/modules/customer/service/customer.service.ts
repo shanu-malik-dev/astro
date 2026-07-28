@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { CUSTOMER_CALL_STATUS } from '../../../common/constants/status.constant';
 import { successResponse } from '../../../common/helpers/response.helper';
 import { UserEntity } from '../../auth/entity/user.entity';
 import { ListCustomerDto } from '../dto/list-customer.dto';
@@ -95,7 +96,7 @@ export class CustomerService {
       mobile: customer.mobile,
       customer_mobile: `${customer.country_code} ${customer.mobile}`,
       status: customer.status,
-      call_status: customer.call_status || 'not_called',
+      call_status: customer.call_status || CUSTOMER_CALL_STATUS.NOT_CALLED,
       created_at: customer.created_at,
       updated_at: customer.updated_at,
     };

@@ -1,28 +1,26 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'crypto';
+import { PAYMENT_STATUS, PaymentStatus } from '../../../common/constants/status.constant';
 import { successResponse } from '../../../common/helpers/response.helper';
+import { RazorpayService } from '../../third-party/razorpay/razorpay.service';
+import { StripeService } from '../../third-party/stripe/stripe.service';
 import { CreatePaymentLinkDto } from '../dto/create-payment-link.dto';
 import { ListPaymentDto } from '../dto/list-payment.dto';
 import { PaymentWebhookDto } from '../dto/payment-webhook.dto';
 import {
   CustomerPaymentEntity,
   PaymentProvider,
-  PaymentStatus,
 } from '../entity/customer-payment.entity';
 import { PaymentRepository } from '../repository/payment.repository';
-
-type ProviderLinkResult = {
-  providerPaymentId: string;
-  paymentLink: string;
-  raw: Record<string, unknown>;
-};
 
 @Injectable()
 export class PaymentService {
   constructor(
     private readonly paymentRepository: PaymentRepository,
     private readonly configService: ConfigService,
+    private readonly razorpayService: RazorpayService,
+    private readonly stripeService: StripeService,
   ) {}
 
   async createPaymentLink(dto: CreatePaymentLinkDto) {
@@ -33,11 +31,14 @@ export class PaymentService {
     const currency = (dto.currency || (provider === 'razorpay' ? 'INR' : 'USD')).toUpperCase();
     const amount = Number(dto.amount.toFixed(2));
     if (amount <= 0) throw new BadRequestException('Amount must be greater than zero.');
+    const paymentLinkOptions = {
+      expireBy: this.getPaymentLinkExpireBy(),
+    };
 
     const providerResult =
       provider === 'razorpay'
-        ? await this.createRazorpayLink(enquiry, amount, currency)
-        : await this.createStripeCheckoutLink(enquiry, amount, currency);
+        ? await this.razorpayService.createPaymentLink(enquiry, amount, currency, paymentLinkOptions)
+        : await this.stripeService.createCheckoutLink(enquiry, amount, currency);
 
     const payment = await this.paymentRepository.getRepository().save(
       this.paymentRepository.getRepository().create({
@@ -51,7 +52,7 @@ export class PaymentService {
         provider_payment_id: providerResult.providerPaymentId,
         payment_link: providerResult.paymentLink,
         qr_code_url: this.createQrCodeUrl(providerResult.paymentLink),
-        payment_status: 'pending',
+        payment_status: PAYMENT_STATUS.PENDING,
         provider_response: providerResult.raw,
       }),
     );
@@ -134,94 +135,6 @@ export class PaymentService {
     return countryCode.trim() === '+91' ? 'razorpay' : 'stripe';
   }
 
-  private async createRazorpayLink(
-    enquiry: { id: number; customer_name: string; country_code: string; mobile: string },
-    amount: number,
-    currency: string,
-  ): Promise<ProviderLinkResult> {
-    const keyId = this.configService.get<string>('RAZORPAY_KEY_ID');
-    const keySecret = this.configService.get<string>('RAZORPAY_KEY_SECRET');
-    if (!keyId || !keySecret) {
-      throw new BadRequestException('Razorpay keys are not configured.');
-    }
-
-    const response = await fetch('https://api.razorpay.com/v1/payment_links', {
-      method: 'POST',
-      headers: {
-        Authorization: `Basic ${Buffer.from(`${keyId}:${keySecret}`).toString('base64')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        amount: Math.round(amount * 100),
-        currency,
-        accept_partial: false,
-        description: `Astro consultation enquiry #${enquiry.id}`,
-        customer: {
-          name: enquiry.customer_name,
-          contact: `${enquiry.country_code}${enquiry.mobile}`,
-        },
-        notify: { sms: true, email: false },
-        notes: { enq_id: String(enquiry.id) },
-      }),
-    });
-
-    const data = (await response.json().catch(() => ({}))) as Record<string, unknown>;
-    if (!response.ok) {
-      throw new BadRequestException(
-        this.getProviderError(data, 'Unable to create Razorpay payment link.'),
-      );
-    }
-
-    return {
-      providerPaymentId: String(data.id || ''),
-      paymentLink: String(data.short_url || ''),
-      raw: data,
-    };
-  }
-
-  private async createStripeCheckoutLink(
-    enquiry: { id: number; customer_name: string; country_code: string; mobile: string },
-    amount: number,
-    currency: string,
-  ): Promise<ProviderLinkResult> {
-    const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
-    if (!secretKey) throw new BadRequestException('Stripe secret key is not configured.');
-
-    const frontendUrl = this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000');
-    const params = new URLSearchParams();
-    params.set('mode', 'payment');
-    params.set('success_url', `${frontendUrl}/admin?payment=success`);
-    params.set('cancel_url', `${frontendUrl}/admin?payment=cancelled`);
-    params.set('line_items[0][quantity]', '1');
-    params.set('line_items[0][price_data][currency]', currency.toLowerCase());
-    params.set('line_items[0][price_data][unit_amount]', String(Math.round(amount * 100)));
-    params.set('line_items[0][price_data][product_data][name]', `Astro consultation enquiry #${enquiry.id}`);
-    params.set('metadata[enq_id]', String(enquiry.id));
-    params.set('metadata[customer_mobile]', `${enquiry.country_code}${enquiry.mobile}`);
-
-    const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${secretKey}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: params,
-    });
-
-    const data = (await response.json().catch(() => ({}))) as Record<string, unknown>;
-    if (!response.ok) {
-      throw new BadRequestException(
-        this.getProviderError(data, 'Unable to create Stripe payment link.'),
-      );
-    }
-
-    return {
-      providerPaymentId: String(data.id || ''),
-      paymentLink: String(data.url || ''),
-      raw: data,
-    };
-  }
-
   private parseWebhookPayload(dto: PaymentWebhookDto, rawBody?: Buffer) {
     const body: Record<string, any> =
       rawBody && rawBody.length
@@ -255,12 +168,12 @@ export class PaymentService {
   }
 
   private normalizePaymentStatus(status: string): PaymentStatus {
-    if (['paid', 'captured', 'complete'].includes(status)) return 'paid';
-    if (['failed'].includes(status)) return 'failed';
-    if (['cancelled', 'canceled'].includes(status)) return 'cancelled';
-    if (['expired'].includes(status)) return 'expired';
-    if (['created'].includes(status)) return 'created';
-    return 'pending';
+    if (['paid', 'captured', 'complete'].includes(status)) return PAYMENT_STATUS.PAID;
+    if (['failed'].includes(status)) return PAYMENT_STATUS.FAILED;
+    if (['cancelled', 'canceled'].includes(status)) return PAYMENT_STATUS.CANCELLED;
+    if (['expired'].includes(status)) return PAYMENT_STATUS.EXPIRED;
+    if (['created'].includes(status)) return PAYMENT_STATUS.CREATED;
+    return PAYMENT_STATUS.PENDING;
   }
 
   private encryptAmount(amount: number) {
@@ -293,13 +206,22 @@ export class PaymentService {
     return createHash('sha256').update(secret).digest();
   }
 
-  private createQrCodeUrl(paymentLink: string) {
-    return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(paymentLink)}`;
+  private getPaymentLinkExpireBy() {
+    const enabled =
+      this.configService.get<string>('PAYMENT_LINK_EXPIRY_ENABLED', 'false') === 'true';
+    if (!enabled) return undefined;
+
+    const minutes = Number(
+      this.configService.get<string>('PAYMENT_LINK_EXPIRY_MINUTES', '60'),
+    );
+    if (!Number.isFinite(minutes) || minutes <= 0) return undefined;
+
+    const cappedMinutes = Math.min(minutes, 60 * 24 * 180);
+    return Math.floor(Date.now() / 1000) + Math.floor(cappedMinutes * 60);
   }
 
-  private getProviderError(data: Record<string, unknown>, fallback: string) {
-    const error = data.error as { description?: string; message?: string } | undefined;
-    return error?.description || error?.message || fallback;
+  private createQrCodeUrl(paymentLink: string) {
+    return `https://api.qrserver.com/v1/create-qr-code/?size=360x360&ecc=H&qzone=4&data=${encodeURIComponent(paymentLink)}`;
   }
 
   private formatPayment(payment?: CustomerPaymentEntity | null) {

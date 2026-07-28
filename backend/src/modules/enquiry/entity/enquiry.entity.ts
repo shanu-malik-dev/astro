@@ -9,6 +9,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { DATABASE_TABLES } from '../../../common/constants/database.constant';
+import { ENQUIRY_STATUS, EnquiryStatus } from '../../../common/constants/status.constant';
 import { UserEntity } from '../../auth/entity/user.entity';
 import { ProblemEntity } from '../../problem/entity/problem.entity';
 
@@ -38,8 +39,8 @@ export class EnquiryEntity {
   @Column({ type: 'varchar', length: 150 })
   problem_name: string;
 
-  @Column({ type: 'varchar', length: 20, default: 'open' })
-  status: 'open' | 'closed';
+  @Column({ type: 'tinyint', default: ENQUIRY_STATUS.OPEN })
+  status: EnquiryStatus;
 
   @Column({ type: 'text', nullable: true })
   close_remark: string | null;

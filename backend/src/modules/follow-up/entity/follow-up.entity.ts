@@ -9,6 +9,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { DATABASE_TABLES } from '../../../common/constants/database.constant';
+import { FollowUpStatus } from '../../../common/constants/status.constant';
 import { EnquiryEntity } from '../../enquiry/entity/enquiry.entity';
 
 @Entity({ name: DATABASE_TABLES.FOLLOW_UPS })
@@ -36,8 +37,8 @@ export class FollowUpEntity {
   @Column({ type: 'text' })
   remark: string;
 
-  @Column({ type: 'varchar', length: 20 })
-  status: 'hot' | 'warm' | 'cold';
+  @Column({ type: 'tinyint' })
+  status: FollowUpStatus;
 
   @Column({
     type: 'tinyint',

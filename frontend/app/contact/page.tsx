@@ -1,11 +1,43 @@
 'use client';
 
 import { useState } from 'react';
-import { Mail, MessageCircle, Phone } from 'lucide-react';
+import { Mail, Phone } from 'lucide-react';
 import { Section, SectionHeading } from '@/components/ui/Section';
+import { ApiError, supportApi } from '@/lib/api';
+import { openBookEnquiryModal } from '@/lib/book-enquiry-modal';
+import { useTenant } from '@/lib/tenant-context';
 
 export default function ContactPage() {
+  const { tenant } = useTenant();
   const [sent, setSent] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [form, setForm] = useState({
+    full_name: "",
+    email: "",
+    subject: "",
+    message: "",
+  });
+
+  const submitSupportRequest = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      await supportApi.create(tenant.id, form);
+      setSent(true);
+      setForm({ full_name: "", email: "", subject: "", message: "" });
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Unable to send support request."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <>
@@ -21,7 +53,7 @@ export default function ContactPage() {
               <Mail className="mt-1 text-gold" size={18} />
               <div>
                 <p className="font-medium text-ink">Email</p>
-                <p className="mt-1 text-sm text-ink/60">hello@astronova.com</p>
+                <p className="mt-1 text-sm text-ink/60">contact@shreesamriddhiatro.com</p>
               </div>
             </div>
             <div className="flex gap-4">
@@ -29,13 +61,6 @@ export default function ContactPage() {
               <div>
                 <p className="font-medium text-ink">Call</p>
                 <p className="mt-1 text-sm text-ink/60">Available for confirmed bookings only</p>
-              </div>
-            </div>
-            <div className="flex gap-4">
-              <MessageCircle className="mt-1 text-gold" size={18} />
-              <div>
-                <p className="font-medium text-ink">Response time</p>
-                <p className="mt-1 text-sm text-ink/60">Within one business day</p>
               </div>
             </div>
           </div>
@@ -48,18 +73,63 @@ export default function ContactPage() {
             ) : (
               <form
                 className="space-y-4"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  setSent(true);
-                }}
+                onSubmit={submitSupportRequest}
               >
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <input required placeholder="Full name" className="border border-mist bg-parchment px-4 py-3 text-sm outline-none focus:border-gold" />
-                  <input required type="email" placeholder="Email address" className="border border-mist bg-parchment px-4 py-3 text-sm outline-none focus:border-gold" />
+                  <input
+                    required
+                    value={form.full_name}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        full_name: event.target.value,
+                      }))
+                    }
+                    placeholder="Full name"
+                    className="border border-mist bg-parchment px-4 py-3 text-sm outline-none focus:border-gold"
+                  />
+                  <input
+                    required
+                    type="email"
+                    value={form.email}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        email: event.target.value,
+                      }))
+                    }
+                    placeholder="Email address"
+                    className="border border-mist bg-parchment px-4 py-3 text-sm outline-none focus:border-gold"
+                  />
                 </div>
-                <input placeholder="Subject" className="w-full border border-mist bg-parchment px-4 py-3 text-sm outline-none focus:border-gold" />
-                <textarea required rows={5} placeholder="How can we help?" className="w-full border border-mist bg-parchment px-4 py-3 text-sm outline-none focus:border-gold" />
-                <button type="submit" className="btn-primary w-full">Send Message</button>
+                <input
+                  value={form.subject}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      subject: event.target.value,
+                    }))
+                  }
+                  placeholder="Subject"
+                  className="w-full border border-mist bg-parchment px-4 py-3 text-sm outline-none focus:border-gold"
+                />
+                <textarea
+                  required
+                  rows={5}
+                  value={form.message}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      message: event.target.value,
+                    }))
+                  }
+                  placeholder="How can we help?"
+                  className="w-full border border-mist bg-parchment px-4 py-3 text-sm outline-none focus:border-gold"
+                />
+                {error && <p className="text-sm text-red-600">{error}</p>}
+                <button type="submit" disabled={loading} className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-60">
+                  {loading ? "Sending..." : "Send Message"}
+                </button>
               </form>
             )}
           </div>
@@ -68,7 +138,7 @@ export default function ContactPage() {
 
       <Section tone="dim" className="text-center">
         <SectionHeading align="center" eyebrow="Prefer to just book?" title="Skip the message and pick a slot directly" />
-        <a href="/book" className="btn-primary mt-8 inline-flex">Book a Consultation</a>
+        <button type="button" onClick={openBookEnquiryModal} className="btn-primary mt-8 inline-flex">Book a Consultation</button>
       </Section>
     </>
   );

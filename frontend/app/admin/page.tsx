@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { AdminHeader } from "@/components/admin/AdminHeader";
+import { AdminLogin } from "@/components/admin/AdminLogin";
 import { AdminSnackbarProvider } from "@/components/admin/AdminSnackbar";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { AstrologersModule } from "@/components/admin/modules/AstrologersModule";
@@ -11,21 +11,39 @@ import { EnquiryModule } from "@/components/admin/modules/EnquiryModule";
 import { FollowUpModule } from "@/components/admin/modules/FollowUpModule";
 import { PaymentsModule } from "@/components/admin/modules/PaymentsModule";
 import { ProblemModule } from "@/components/admin/modules/ProblemModule";
+import { RoleModule } from "@/components/admin/modules/RoleModule";
 import { ServicesModule } from "@/components/admin/modules/ServicesModule";
+import { SupportModule } from "@/components/admin/modules/SupportModule";
+import { MODULES } from "@/components/admin/constants";
 import type { ModuleKey } from "@/components/admin/types";
 import { useAuth } from "@/lib/auth-context";
+import { FullPageLoader } from "@/components/ui/FullPageLoader";
 
 export default function AdminPage() {
-  const router = useRouter();
   const { user, loading, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [activeModule, setActiveModule] = useState<ModuleKey>("problem");
-  const isAdmin = Number(user?.role_id) === 1;
+  const [activeModule, setActiveModule] = useState<ModuleKey>(
+    MODULES[0]?.key || "problem"
+  );
+  const permittedModules = useMemo(() => {
+    const allowedModuleKeys =
+      Number(user?.role_id) === 1
+        ? MODULES.map((module) => module.key)
+        : user?.admin_modules || [];
+
+    return MODULES.filter((module) => allowedModuleKeys.includes(module.key));
+  }, [user?.admin_modules, user?.role_id]);
+  const isAdmin = permittedModules.length > 0;
   const userName = user?.fullName || user?.name || user?.mobile || "Admin";
+  const activeModuleEnabled = permittedModules.some(
+    (module) => module.key === activeModule
+  );
 
   useEffect(() => {
-    if (!loading && !isAdmin) router.replace("/login?redirect=/admin");
-  }, [isAdmin, loading, router]);
+    if (!activeModuleEnabled && permittedModules[0]) {
+      setActiveModule(permittedModules[0].key);
+    }
+  }, [activeModuleEnabled, permittedModules]);
 
   const handleModuleChange = (module: ModuleKey) => {
     setActiveModule(module);
@@ -33,23 +51,25 @@ export default function AdminPage() {
 
   const handleLogout = async () => {
     await logout();
-    router.replace("/login");
   };
 
-  if (loading || !isAdmin) {
+  if (loading) {
     return (
-      <main className="min-h-screen bg-[#f5f0e8] p-8">
-        <p className="text-sm text-ink/60">Checking admin access...</p>
-      </main>
+      <FullPageLoader message="Checking admin access..." />
     );
+  }
+
+  if (!isAdmin) {
+    return <AdminLogin />;
   }
 
   return (
     <AdminSnackbarProvider>
-      <main className="admin-theme min-h-screen bg-[#f5f0e8] text-ink">
+      <main className="admin-theme min-h-screen bg-[#eef4f8] text-ink">
         <div className="flex min-h-screen">
           <AdminSidebar
             activeModule={activeModule}
+            modules={permittedModules}
             sidebarOpen={sidebarOpen}
             onModuleChange={handleModuleChange}
             onToggle={() => setSidebarOpen((open) => !open)}
@@ -62,33 +82,41 @@ export default function AdminPage() {
               onToggleSidebar={() => setSidebarOpen((open) => !open)}
             />
 
-            <div className="p-4 md:p-6">
-              {activeModule === "problem" && (
+            <div className="admin-workspace p-4 md:p-6">
+              {activeModuleEnabled && activeModule === "problem" && (
                 <ProblemModule />
               )}
 
-              {activeModule === "services" && (
+              {activeModuleEnabled && activeModule === "services" && (
                 <ServicesModule />
               )}
 
-              {activeModule === "astrologers" && (
+              {activeModuleEnabled && activeModule === "astrologers" && (
                 <AstrologersModule />
               )}
 
-              {activeModule === "enquiry" && (
+              {activeModuleEnabled && activeModule === "enquiry" && (
                 <EnquiryModule />
               )}
 
-              {activeModule === "customers" && (
+              {activeModuleEnabled && activeModule === "customers" && (
                 <CustomersModule />
               )}
 
-              {activeModule === "followUp" && (
+              {activeModuleEnabled && activeModule === "followUp" && (
                 <FollowUpModule />
               )}
 
-              {activeModule === "payments" && (
+              {activeModuleEnabled && activeModule === "payments" && (
                 <PaymentsModule />
+              )}
+
+              {activeModuleEnabled && activeModule === "support" && (
+                <SupportModule />
+              )}
+
+              {activeModuleEnabled && activeModule === "roles" && (
+                <RoleModule />
               )}
             </div>
           </section>

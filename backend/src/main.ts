@@ -4,6 +4,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
 import * as express from 'express';
 import { AppModule } from './app.module';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 
 async function bootstrap() {
@@ -27,6 +28,7 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
+  app.useGlobalFilters(new HttpExceptionFilter());
   app.useGlobalGuards(app.get(JwtAuthGuard));
   app.setGlobalPrefix('api');
 

@@ -3,9 +3,11 @@
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { DisabledRouteRedirect } from "@/components/DisabledRouteRedirect";
 import { Section } from "@/components/ui/Section";
 import CustomSelect from "@/components/ui/CustomSelect";
 import { FullPageLoader } from "@/components/ui/FullPageLoader";
+import { ADMIN_MODULE_FLAGS } from "@/lib/feature-flags";
 import { useAuth, ApiError } from "@/lib/auth-context";
 import { useCountryCodes } from "@/lib/country-code-store";
 import { useLanguage } from "@/lib/language-context";
@@ -19,6 +21,7 @@ import {
   getOtpSecondsLeft,
   isOtpSentResponse,
 } from "@/lib/otp-expiry";
+import { WEBSITE_MODULE_FLAGS } from "@/lib/visibility-flags";
 
 type MessageKey =
   | "nameRequired"
@@ -48,6 +51,8 @@ const messageKeys: Record<MessageKey, string> = {
 };
 
 export default function RegisterPage() {
+  if (!ADMIN_MODULE_FLAGS.login) return <DisabledRouteRedirect />;
+
   return (
     <Suspense fallback={null}>
       <RegisterPageContent />
@@ -62,7 +67,9 @@ function RegisterPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const redirectTo = searchParams.get("redirect") || "/astrologers";
+  const redirectTo =
+    searchParams.get("redirect") ||
+    (WEBSITE_MODULE_FLAGS.astrologers ? "/astrologers" : "/");
 
   const [form, setForm] = useState({
     fullName: "",

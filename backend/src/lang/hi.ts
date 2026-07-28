@@ -1,6 +1,7 @@
 export const hi = {
   OTP_SENT: 'OTP सफलता से भेज दिया गया है।',
   LOGIN_SUCCESSFUL: 'लॉगिन सफल रहा।',
+  PASSWORD_RESET_SUCCESSFUL: 'Password reset successfully.',
   USER_ALREADY_EXISTS: 'यूज़र पहले से मौजूद है।',
   DEFAULT_ROLE_NOT_FOUND: 'डिफ़ॉल्ट रोल नहीं मिला।',
   INVALID_OR_EXPIRED_OTP: 'OTP गलत है या समाप्त हो चुका है।',
@@ -29,4 +30,10 @@ export const hi = {
   ENQUIRY_CLOSED: 'Enquiry closed successfully.',
   FOLLOW_UP_CREATED: 'Follow up created successfully.',
   FOLLOW_UP_LIST_FETCHED: 'Follow up list fetched successfully.',
+  SUPPORT_REQUEST_CREATED: 'Support request submitted successfully.',
+  SUPPORT_REQUEST_LIST_FETCHED: 'Support request list fetched successfully.',
+  SUPPORT_REQUEST_STATUS_UPDATED: 'Support request status updated successfully.',
+  NOTIFICATION_EMAIL_SENT: 'Notification email sent successfully.',
+  ROLE_LIST_FETCHED: 'Role list fetched successfully.',
+  ROLE_SAVED: 'Role saved successfully.',
 } as const;

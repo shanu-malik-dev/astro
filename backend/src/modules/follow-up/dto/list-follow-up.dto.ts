@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import { IsDateString, IsIn, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { FOLLOW_UP_STATUS, FollowUpStatus } from '../../../common/constants/status.constant';
 
 export class ListFollowUpDto {
   @IsOptional()
@@ -15,8 +16,9 @@ export class ListFollowUpDto {
   limit?: number;
 
   @IsOptional()
-  @IsIn(['hot', 'warm', 'cold'])
-  status?: 'hot' | 'warm' | 'cold';
+  @Type(() => Number)
+  @IsIn(Object.values(FOLLOW_UP_STATUS))
+  status?: FollowUpStatus;
 
   @IsOptional()
   @IsString()

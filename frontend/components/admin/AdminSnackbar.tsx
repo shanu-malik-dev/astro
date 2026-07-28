@@ -152,7 +152,7 @@ export function AdminSnackbarProvider({ children }: { children: ReactNode }) {
       )}
 
       {snackbar && (
-        <div className="fixed right-4 top-20 z-[120] w-[calc(100%-2rem)] max-w-sm">
+        <div className="fixed bottom-5 left-1/2 z-[120] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 md:bottom-auto md:left-auto md:right-4 md:top-20 md:translate-x-0">
           <div
             className={`flex items-start gap-3 rounded-lg border bg-white px-4 py-3 text-sm shadow-2xl ${
               snackbar.type === "success"

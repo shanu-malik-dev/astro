@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import { IsIn, IsInt, IsNotEmpty, IsString, Min } from 'class-validator';
+import { FOLLOW_UP_STATUS, FollowUpStatus } from '../../../common/constants/status.constant';
 
 export class CreateFollowUpDto {
   @Type(() => Number)
@@ -7,8 +8,9 @@ export class CreateFollowUpDto {
   @Min(1)
   enq_id: number;
 
-  @IsIn(['hot', 'warm', 'cold'])
-  status: 'hot' | 'warm' | 'cold';
+  @Type(() => Number)
+  @IsIn(Object.values(FOLLOW_UP_STATUS))
+  status: FollowUpStatus;
 
   @IsString()
   @IsNotEmpty()

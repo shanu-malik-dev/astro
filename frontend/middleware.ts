@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { DISABLED_WEBSITE_ROUTES } from './lib/visibility-flags';
 
 const TENANTS: Record<string, { country: string; currency: string; locale: string }> = {
   us: { country: 'United States', currency: 'USD', locale: 'en-US' },
@@ -15,6 +16,20 @@ function resolveTenantId(host: string): string {
 }
 
 export function middleware(req: NextRequest) {
+  const disabledRoute = DISABLED_WEBSITE_ROUTES.find(
+    (route) =>
+      !route.enabled &&
+      route.paths.some(
+        (path) =>
+          req.nextUrl.pathname === path ||
+          req.nextUrl.pathname.startsWith(`${path}/`)
+      )
+  );
+
+  if (disabledRoute) {
+    return NextResponse.redirect(new URL('/', req.url));
+  }
+
   const host = req.headers.get('host') || '';
   const cookieTenant = req.cookies.get('tenant')?.value;
   const tenantId = cookieTenant && TENANTS[cookieTenant] ? cookieTenant : resolveTenantId(host);
