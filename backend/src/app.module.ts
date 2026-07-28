@@ -2,6 +2,7 @@ import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ApiLoggingModule } from './common/api-logging/api-logging.module';
 import { LanguageMiddleware } from './common/middleware/language.middleware';
 import { getDatabaseConfig } from './config/database.config';
 import { AuthModule } from './modules/auth/auth.module';
@@ -25,6 +26,7 @@ import { SupportModule } from './modules/support/support.module';
       inject: [ConfigService],
       useFactory: getDatabaseConfig,
     }),
+    ApiLoggingModule,
     AuthModule,
     SharedModule,
     ProblemModule,
