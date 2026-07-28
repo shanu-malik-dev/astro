@@ -12,5 +12,5 @@ export const getDatabaseConfig = (
   database: configService.getOrThrow<string>('DB_NAME'),
   autoLoadEntities: true,
   synchronize: false,
-  logging: configService.get<string>('NODE_ENV') !== 'production',
+  logging: false,
 });
