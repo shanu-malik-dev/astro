@@ -5,7 +5,17 @@ import { useAuth } from "@/lib/auth-context";
 import { useTenant } from "@/lib/tenant-context";
 import { useAdminSnackbar } from "../AdminSnackbar";
 import { ALL_MODULES, PAGE_SIZE } from "../constants";
-import { EmptyListState, ModuleHeader, Pagination, StatusBadge } from "../shared";
+import {
+  DateRangeFilter,
+  EmptyListState,
+  formatAdminDate,
+  ListPanelHeader,
+  ModuleHeader,
+  Pagination,
+  StatusBadge,
+  toAdminDateRange,
+} from "../shared";
+import type { DateRangeValue } from "@/components/ui/CustomDatePicker";
 
 type RoleForm = {
   id?: number;
@@ -39,15 +49,28 @@ export function RoleModule() {
   const [totalRecords, setTotalRecords] = useState(0);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [dateFilter, setDateFilter] = useState<DateRangeValue>({
+    start: "",
+    end: "",
+  });
+  const [appliedDateFilter, setAppliedDateFilter] = useState<DateRangeValue>({
+    start: "",
+    end: "",
+  });
   const lastFetchKeyRef = useRef("");
 
   const enabledModules = useMemo(
     () => ALL_MODULES.filter((module) => availableModules.includes(module.key)),
     [availableModules]
   );
-
   const loadRoles = useCallback(
-    async (page: number, query = search) => {
+    async (
+      page: number,
+      query = search,
+      sortOrder = sortDirection,
+      range = appliedDateFilter
+    ) => {
       if (!accessToken) return;
 
       setLoading(true);
@@ -57,6 +80,9 @@ export function RoleModule() {
           page,
           limit: PAGE_SIZE,
           search: query.trim() || undefined,
+          sort_order: sortOrder,
+          date_from: range.start || undefined,
+          date_to: range.end || undefined,
         });
         setRoles(response.data?.records || []);
         setAvailableModules(response.data?.available_modules || availableModules);
@@ -72,18 +98,43 @@ export function RoleModule() {
         snackbar.setPageLoading(false);
       }
     },
-    [accessToken, availableModules, search, snackbar, tenant.id]
+    [
+      accessToken,
+      appliedDateFilter,
+      availableModules,
+      search,
+      snackbar,
+      sortDirection,
+      tenant.id,
+    ]
   );
 
   useEffect(() => {
     if (!accessToken) return;
 
-    const fetchKey = `roles:${tenant.id}:${accessToken}`;
+    const fetchKey = JSON.stringify({
+      module: "roles",
+      tenantId: tenant.id,
+      accessToken,
+      date: appliedDateFilter,
+    });
     if (lastFetchKeyRef.current === fetchKey) return;
 
     lastFetchKeyRef.current = fetchKey;
     loadRoles(1, "");
-  }, [accessToken, loadRoles, tenant.id]);
+  }, [accessToken, appliedDateFilter, loadRoles, tenant.id]);
+
+  const applyDateFilter = (range = dateFilter) => {
+    setAppliedDateFilter(toAdminDateRange(range));
+    setCurrentPage(1);
+  };
+
+  const clearDateFilter = () => {
+    const emptyRange = { start: "", end: "" };
+    setDateFilter(emptyRange);
+    setAppliedDateFilter(emptyRange);
+    setCurrentPage(1);
+  };
 
   const openCreate = () => {
     setDraft({
@@ -94,7 +145,7 @@ export function RoleModule() {
 
   const openEdit = (role: RoleDto) => {
     setDraft({
-      id: role.id,
+      id: Number(role.id),
       name: role.name,
       status: role.status,
       modules: role.modules || [],
@@ -124,11 +175,13 @@ export function RoleModule() {
 
     setSaving(true);
     snackbar.setPageLoading(true);
+    const roleId = draft.id == null ? undefined : Number(draft.id);
+
     try {
       await roleApi.save(tenant.id, accessToken, {
-        id: draft.id,
+        ...(roleId !== undefined ? { id: roleId } : {}),
         name: draft.name.trim(),
-        status: draft.status,
+        status: Number(draft.status),
         modules: draft.modules,
       });
       snackbar.success("Role saved successfully.");
@@ -151,6 +204,13 @@ export function RoleModule() {
         title="Roles Module"
         createLabel="Create Role"
         onCreate={openCreate}
+        onList={() => loadRoles(currentPage)}
+        onSort={() => {
+          const nextDirection = sortDirection === "asc" ? "desc" : "asc";
+          setSortDirection(nextDirection);
+          loadRoles(1, search, nextDirection);
+        }}
+        sortDirection={sortDirection}
       />
 
       {draft && (
@@ -247,37 +307,57 @@ export function RoleModule() {
         </section>
       )}
 
-      <section className="admin-list-panel">
-        <div className="flex flex-col gap-4 border-b border-mist p-5 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-ink">Role Listing</h2>
-            <p className="text-sm text-ink/50">{totalRecords} total records</p>
-          </div>
-          <form
-            className="flex w-full gap-2 md:max-w-md"
-            onSubmit={(event) => {
-              event.preventDefault();
-              loadRoles(1);
-            }}
-          >
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              className="h-11 flex-1 rounded-md border border-mist bg-white px-3 text-sm outline-none focus:border-gold"
-              placeholder="Search role"
-            />
-            <button type="submit" className="admin-create-button">
-              <Search size={16} />
-              Search
-            </button>
-          </form>
-        </div>
+      <div className="admin-filter-panel mt-3">
+        <form
+          className="flex flex-wrap items-center gap-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const range = toAdminDateRange(dateFilter);
+            setAppliedDateFilter(range);
+            loadRoles(1, search, sortDirection, range);
+          }}
+        >
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            className="h-10 w-full rounded-md border border-mist bg-white px-3 text-sm outline-none focus:border-gold sm:w-64"
+            placeholder="Search role"
+          />
+          <DateRangeFilter
+            value={dateFilter}
+            onChange={setDateFilter}
+            onApply={applyDateFilter}
+            onClear={clearDateFilter}
+            hasValue={Boolean(appliedDateFilter.start || appliedDateFilter.end)}
+          />
+          <button type="submit" className="admin-create-button" title="Search" aria-label="Search">
+            <Search size={16} />
+          </button>
+        </form>
+      </div>
+
+      <section data-admin-list className="admin-list-panel mt-4">
+        <ListPanelHeader
+          title="Role Listing"
+          totalRecords={totalRecords}
+          createLabel="Create Role"
+          onCreate={openCreate}
+          onList={() => loadRoles(currentPage)}
+          onSort={() => {
+            const nextDirection = sortDirection === "asc" ? "desc" : "asc";
+            setSortDirection(nextDirection);
+            loadRoles(1, search, nextDirection);
+          }}
+          sortDirection={sortDirection}
+          loading={loading}
+        />
 
         <div className="overflow-x-auto">
           <table className="w-full min-w-[900px] text-left">
             <thead>
               <tr>
                 <th className="admin-th w-24">ID</th>
+                <th className="admin-th w-44">Created Date</th>
                 <th className="admin-th">Role</th>
                 <th className="admin-th">Modules</th>
                 <th className="admin-th w-32">Status</th>
@@ -287,7 +367,7 @@ export function RoleModule() {
             <tbody>
               {roles.length === 0 ? (
                 <tr>
-                  <td colSpan={5}>
+                  <td colSpan={6}>
                     <EmptyListState
                       loading={loading}
                       message="No roles found."
@@ -297,9 +377,12 @@ export function RoleModule() {
               ) : (
                 roles.map((role) => (
                   <tr key={role.id} className="admin-row">
-                    <td className="admin-td">#{String(role.id).padStart(3, "0")}</td>
-                    <td className="admin-td font-semibold text-ink">{role.name}</td>
-                    <td className="admin-td">
+                    <td data-label="ID" className="admin-td">#{String(role.id).padStart(3, "0")}</td>
+                    <td data-label="Created Date" className="admin-td text-ink/60">
+                      {formatAdminDate(role.created_at)}
+                    </td>
+                    <td data-label="Role" className="admin-td font-semibold text-ink">{role.name}</td>
+                    <td data-label="Modules" className="admin-td">
                       <div className="flex flex-wrap gap-1.5">
                         {(role.modules || []).map((module) => (
                           <span
@@ -311,10 +394,10 @@ export function RoleModule() {
                         ))}
                       </div>
                     </td>
-                    <td className="admin-td">
+                    <td data-label="Status" className="admin-td">
                       <StatusBadge status={role.status === 1 ? "active" : "inactive"} />
                     </td>
-                    <td className="admin-td text-right">
+                    <td data-label="Actions" className="admin-td text-right">
                       <button
                         type="button"
                         onClick={() => openEdit(role)}

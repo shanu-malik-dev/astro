@@ -44,6 +44,7 @@ export class ServiceService {
     const page = query.page || 1;
     const limit = Math.min(query.limit || 10, 100);
     const skip = (page - 1) * limit;
+    const sortOrder = query.sort_order === 'desc' ? 'DESC' : 'ASC';
 
     const queryBuilder = this.serviceRepository
       .getServiceRepository()
@@ -64,9 +65,21 @@ export class ServiceService {
       );
     }
 
+    if (query.date_from) {
+      queryBuilder.andWhere('service.created_at >= :dateFrom', {
+        dateFrom: new Date(query.date_from),
+      });
+    }
+
+    if (query.date_to) {
+      queryBuilder.andWhere('service.created_at <= :dateTo', {
+        dateTo: new Date(query.date_to),
+      });
+    }
+
     const [services, total] = await queryBuilder
-      .orderBy('service.display_order', 'ASC')
-      .addOrderBy('service.id', 'ASC')
+      .orderBy('service.display_order', sortOrder)
+      .addOrderBy('service.id', sortOrder)
       .skip(skip)
       .take(limit)
       .getManyAndCount();
@@ -218,6 +231,7 @@ export class ServiceService {
       description: english?.description || '',
       status: service.status,
       display_order: service.display_order,
+      created_at: service.created_at,
       all_names: translations.map((translation) => ({
         label: translation.lang_code.toUpperCase(),
         value: translation.name,

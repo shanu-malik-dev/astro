@@ -27,6 +27,11 @@ export const metadata: Metadata = {
   title: `${BRAND.name} — Premium Astrology Consultations`,
   description:
     'Book a private online astrology consultation on love, career, business, and family. Trusted guidance, delivered over a personal Google Meet session.',
+  icons: {
+    icon: '/images/logo.png',
+    shortcut: '/images/logo.png',
+    apple: '/images/logo.png',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

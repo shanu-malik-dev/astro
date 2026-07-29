@@ -7,8 +7,8 @@ import { useAuth } from "@/lib/auth-context";
 import { useTenant } from "@/lib/tenant-context";
 import { useAdminSnackbar } from "../AdminSnackbar";
 import { PAGE_SIZE } from "../constants";
-import { EmptyListState, Pagination } from "../shared";
-import type { FollowUpRow, FollowUpStatus } from "../types";
+import { EmptyListState, formatAdminDate, ListPanelHeader, Pagination } from "../shared";
+import type { AdminDateFilter, FollowUpRow, FollowUpStatus } from "../types";
 
 type MainDateTab = "today" | "all";
 type FollowUpTabData = Record<
@@ -45,6 +45,7 @@ function toApiRange(range: DateRangeValue, mainTab: MainDateTab) {
 function mapFollowUpDto(followUp: FollowUpDto): FollowUpRow {
   return {
     followup_id: Number(followUp.id),
+    created_at: followUp.created_at,
     enq_id: Number(followUp.enq_id),
     customer_name: followUp.customer_name,
     customer_number:
@@ -52,10 +53,28 @@ function mapFollowUpDto(followUp: FollowUpDto): FollowUpRow {
     problem_name: followUp.problem_name,
     remark: followUp.remark,
     status: followUp.status,
+    follow_up_at: followUp.follow_up_at,
   };
 }
 
-export function FollowUpModule() {
+function formatFollowDate(value?: string) {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+export function FollowUpModule({
+  initialDateFilter,
+  filterToken,
+}: {
+  initialDateFilter?: AdminDateFilter | null;
+  filterToken?: number;
+} = {}) {
   const { accessToken } = useAuth();
   const { tenant } = useTenant();
   const snackbar = useAdminSnackbar();
@@ -89,6 +108,21 @@ export function FollowUpModule() {
   useEffect(() => {
     activeStatusRef.current = activeStatus;
   }, [activeStatus]);
+
+  useEffect(() => {
+    if (!filterToken || !initialDateFilter) return;
+
+    setMainTab(initialDateFilter.preset === "today" ? "today" : "all");
+    setDateFilter({
+      start: initialDateFilter.start,
+      end: initialDateFilter.end,
+    });
+    setAppliedDateFilter({
+      start: initialDateFilter.start,
+      end: initialDateFilter.end,
+    });
+    setCurrentPage(1);
+  }, [filterToken, initialDateFilter]);
 
   const fetchFollowUps = useCallback(
     async (
@@ -237,28 +271,10 @@ export function FollowUpModule() {
 
   return (
     <>
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="mt-2 font-display text-3xl font-semibold text-ink">
-            Follow Up Module
-          </h1>
-        </div>
-        <div className="rounded-md border border-mist bg-white px-4 py-2 text-sm text-ink/60">
-          {totalRecords} {activeStatus} follow-ups
-        </div>
-      </div>
-
-      <div className="mt-5 overflow-visible rounded-lg border border-mist bg-white shadow-sm">
-        <div className="space-y-3 border-b border-mist bg-white px-4 py-3">
-          <div>
-            <h2 className="text-sm font-semibold text-ink">Follow Up Listing</h2>
-            <p className="text-[11px] text-ink/50">
-              Track follow-ups by Hot, Warm, and Cold status.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="inline-flex h-10 rounded-md border border-mist bg-parchment p-1">
+      <div className="admin-filter-panel">
+        <div className="w-full space-y-3">
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <div className="admin-filter-segment">
               {(["today", "all"] as MainDateTab[]).map((tab) => (
                 <button
                   key={tab}
@@ -275,7 +291,7 @@ export function FollowUpModule() {
               ))}
             </div>
 
-            <div className="inline-flex h-10 rounded-md border border-mist bg-parchment p-1">
+            <div className="admin-filter-segment">
               {([FOLLOW_UP_STATUS.HOT, FOLLOW_UP_STATUS.WARM, FOLLOW_UP_STATUS.COLD] as FollowUpStatus[]).map((status) => (
                 <button
                   key={status}
@@ -295,11 +311,7 @@ export function FollowUpModule() {
               ))}
             </div>
 
-            <div className="relative h-10 min-w-[240px] flex-1">
-              <Search
-                size={15}
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink/35"
-              />
+            <div className="relative h-10 w-full sm:w-72">
               <input
                 type="search"
                 value={customerFilter}
@@ -308,7 +320,7 @@ export function FollowUpModule() {
                   if (event.key === "Enter") applyFilters();
                 }}
                 placeholder="Search customer name or number"
-                className="h-full w-full rounded-md border border-mist bg-white pl-9 pr-9 text-sm text-ink outline-none transition placeholder:text-ink/35 focus:border-gold"
+                className="h-full w-full rounded-md border border-mist bg-white pl-3 pr-9 text-sm text-ink outline-none transition placeholder:text-ink/35 focus:border-gold"
               />
               {customerFilter && (
                 <button
@@ -330,18 +342,10 @@ export function FollowUpModule() {
                 onRangeChange={setDateFilter}
                 placeholder="Follow up date"
                 variant="light"
-                className="w-full sm:w-52"
+                className="w-full sm:w-44"
               />
             )}
 
-            <button
-              type="button"
-              onClick={applyFilters}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-ink px-3 text-xs font-semibold text-white transition hover:opacity-90"
-            >
-              <Search size={14} />
-              Search
-            </button>
             {(customerFilter ||
               appliedCustomerFilter ||
               (mainTab === "all" &&
@@ -352,30 +356,52 @@ export function FollowUpModule() {
               <button
                 type="button"
                 onClick={clearFilters}
-                className="h-10 rounded-md border border-mist bg-white px-3 text-xs font-medium text-ink/60 transition hover:border-gold hover:text-ink"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-mist bg-white text-ink/60 transition hover:border-gold hover:text-ink"
+                title="Clear filters"
+                aria-label="Clear filters"
               >
-                Clear
+                <X size={15} />
               </button>
             )}
+            <button
+              type="button"
+              onClick={applyFilters}
+              className="admin-create-button"
+              title="Search"
+              aria-label="Search"
+            >
+              <Search size={14} />
+            </button>
           </div>
         </div>
+      </div>
 
+      <div data-admin-list className="mt-4 overflow-hidden rounded-lg border border-mist bg-white shadow-sm">
+        <ListPanelHeader
+          title="Follow Up Listing"
+          totalRecords={totalRecords}
+          onList={() =>
+            loadFollowUps(currentPage, appliedCustomerFilter, appliedDateFilter)
+          }
+        />
         <div className="overflow-x-auto">
           <table className="w-full min-w-[920px] border-collapse text-left">
             <thead className="bg-parchment">
               <tr className="border-b border-mist text-[11px] uppercase tracking-wide text-ink/55">
                 <th className="w-28 px-4 py-2.5 font-semibold">Follow ID</th>
+                <th className="w-44 px-4 py-2.5 font-semibold">Created Date</th>
                 <th className="w-24 px-4 py-2.5 font-semibold">Enq ID</th>
                 <th className="w-48 px-4 py-2.5 font-semibold">Customer</th>
                 <th className="w-44 px-4 py-2.5 font-semibold">Mobile</th>
                 <th className="px-4 py-2.5 font-semibold">Problem</th>
+                <th className="w-44 px-4 py-2.5 font-semibold">Follow Date</th>
                 <th className="px-4 py-2.5 font-semibold">Remark</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-mist">
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-5">
+                  <td colSpan={8} className="px-4 py-5">
                     <EmptyListState message="No follow-ups found." />
                   </td>
                 </tr>
@@ -385,22 +411,28 @@ export function FollowUpModule() {
                     key={followUp.followup_id}
                     className="text-sm transition hover:bg-parchment/55"
                   >
-                    <td className="px-4 py-2.5 font-mono text-[11px] text-ink/45">
+                    <td data-label="Follow ID" className="px-4 py-2.5 font-mono text-[11px] text-ink/45">
                       #{followUp.followup_id.toString().padStart(4, "0")}
                     </td>
-                    <td className="px-4 py-2.5 font-mono text-[11px] text-ink/45">
+                    <td data-label="Created Date" className="px-4 py-2.5 text-ink/60">
+                      {formatAdminDate(followUp.created_at)}
+                    </td>
+                    <td data-label="Enq ID" className="px-4 py-2.5 font-mono text-[11px] text-ink/45">
                       #{followUp.enq_id.toString().padStart(4, "0")}
                     </td>
-                    <td className="px-4 py-2.5 font-medium text-ink">
+                    <td data-label="Customer" className="px-4 py-2.5 font-medium text-ink">
                       {followUp.customer_name}
                     </td>
-                    <td className="px-4 py-2.5 text-ink/65">
+                    <td data-label="Mobile" className="px-4 py-2.5 text-ink/65">
                       {followUp.customer_number}
                     </td>
-                    <td className="px-4 py-2.5 text-ink/70">
+                    <td data-label="Problem" className="px-4 py-2.5 text-ink/70">
                       {followUp.problem_name}
                     </td>
-                    <td className="px-4 py-2.5 text-ink/65">
+                    <td data-label="Follow Date" className="px-4 py-2.5 text-ink/60">
+                      {formatFollowDate(followUp.follow_up_at)}
+                    </td>
+                    <td data-label="Remark" className="px-4 py-2.5 text-ink/65">
                       {followUp.remark}
                     </td>
                   </tr>

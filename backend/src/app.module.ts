@@ -7,9 +7,9 @@ import { LanguageMiddleware } from './common/middleware/language.middleware';
 import { getDatabaseConfig } from './config/database.config';
 import { AuthModule } from './modules/auth/auth.module';
 import { AstrologerModule } from './modules/astrologer/astrologer.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { EnquiryModule } from './modules/enquiry/enquiry.module';
 import { FollowUpModule } from './modules/follow-up/follow-up.module';
-import { CustomerModule } from './modules/customer/customer.module';
 import { ProblemModule } from './modules/problem/problem.module';
 import { PaymentModule } from './modules/payment/payment.module';
 import { ServiceModule } from './modules/service/service.module';
@@ -17,6 +17,7 @@ import { SharedModule } from './modules/shared-module/shared.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { RoleModule } from './modules/role/role.module';
 import { SupportModule } from './modules/support/support.module';
+import { UserModule } from './modules/user/user.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { SupportModule } from './modules/support/support.module';
     }),
     ApiLoggingModule,
     AuthModule,
+    DashboardModule,
     SharedModule,
     ProblemModule,
     ServiceModule,
@@ -35,10 +37,10 @@ import { SupportModule } from './modules/support/support.module';
     EnquiryModule,
     NotificationModule,
     FollowUpModule,
-    CustomerModule,
     PaymentModule,
     RoleModule,
     SupportModule,
+    UserModule,
   ],
 })
 export class AppModule implements NestModule {

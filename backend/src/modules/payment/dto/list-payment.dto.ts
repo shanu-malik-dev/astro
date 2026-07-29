@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsIn, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsDateString, IsIn, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
 import { PAYMENT_STATUS, PaymentStatus } from '../../../common/constants/status.constant';
 import type { PaymentProvider } from '../entity/customer-payment.entity';
 
@@ -29,4 +29,12 @@ export class ListPaymentDto {
   @Type(() => Number)
   @IsIn(Object.values(PAYMENT_STATUS))
   payment_status?: PaymentStatus;
+
+  @IsOptional()
+  @IsDateString()
+  date_from?: string;
+
+  @IsOptional()
+  @IsDateString()
+  date_to?: string;
 }

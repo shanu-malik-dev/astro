@@ -1,24 +1,34 @@
 import { Type } from 'class-transformer';
-import { IsIn, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsDateString, IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 import { CUSTOMER_CALL_STATUS, CustomerCallStatus } from '../../../common/constants/status.constant';
 
-export class ListCustomerDto {
+export class ListUserDto {
   @IsOptional()
   @Type(() => Number)
-  @IsNumber()
+  @IsInt()
   @Min(1)
   page?: number;
 
   @IsOptional()
   @Type(() => Number)
-  @IsNumber()
+  @IsInt()
   @Min(1)
   @Max(100)
   limit?: number;
 
   @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(2)
+  role_id?: number;
+
+  @IsOptional()
   @IsString()
   search?: string;
+
+  @IsOptional()
+  @IsIn(['asc', 'desc'])
+  sort_order?: 'asc' | 'desc';
 
   @IsOptional()
   @IsIn(['today', 'all'])
@@ -28,4 +38,12 @@ export class ListCustomerDto {
   @Type(() => Number)
   @IsIn(Object.values(CUSTOMER_CALL_STATUS))
   call_status?: CustomerCallStatus;
+
+  @IsOptional()
+  @IsDateString()
+  date_from?: string;
+
+  @IsOptional()
+  @IsDateString()
+  date_to?: string;
 }

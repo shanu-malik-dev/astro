@@ -104,17 +104,23 @@ const lightStyles: StylesConfig<SelectOption, false> = {
   control: (base, state) => ({
     ...base,
     minHeight: 40,
-    backgroundColor: "rgba(247,242,234,0.75)",
-    border: `1px solid ${state.isFocused ? "#c59d5f" : "#d8d2c4"}`,
+    backgroundColor: "var(--admin-accent-soft, rgba(247,242,234,0.75))",
+    border: `1px solid ${
+      state.isFocused
+        ? "var(--admin-accent, #c59d5f)"
+        : "color-mix(in srgb, var(--admin-accent, #c59d5f) 28%, #d8d2c4)"
+    }`,
     borderRadius: 6,
-    boxShadow: "none",
+    boxShadow: state.isFocused
+      ? "0 0 0 3px var(--admin-accent-soft, rgba(197,157,95,.14))"
+      : "none",
     cursor: "pointer",
     fontSize: 13,
     textTransform: "uppercase",
     letterSpacing: "0.12em",
 
     "&:hover": {
-      borderColor: "#c59d5f",
+      borderColor: "var(--admin-accent, #c59d5f)",
     },
   }),
 
@@ -141,8 +147,8 @@ const lightStyles: StylesConfig<SelectOption, false> = {
   menu: (base) => ({
     ...base,
     zIndex: 60,
-    backgroundColor: "#f7f2ea",
-    border: "1px solid #d8d2c4",
+    backgroundColor: "#fff",
+    border: "1px solid color-mix(in srgb, var(--admin-accent, #c59d5f) 28%, #d8d2c4)",
     borderRadius: 6,
     overflow: "hidden",
     marginTop: 6,
@@ -158,23 +164,27 @@ const lightStyles: StylesConfig<SelectOption, false> = {
     ...base,
     borderRadius: 4,
     cursor: "pointer",
-    backgroundColor: state.isFocused ? "rgba(197,157,95,.14)" : "transparent",
-    color: "#2f261f",
+    backgroundColor: state.isSelected
+      ? "var(--admin-accent, #c59d5f)"
+      : state.isFocused
+        ? "var(--admin-accent-soft, rgba(197,157,95,.14))"
+        : "transparent",
+    color: state.isSelected ? "#fff" : "#2f261f",
     fontSize: 13,
 
     ":active": {
-      backgroundColor: "rgba(197,157,95,.22)",
+      backgroundColor: "var(--admin-accent-softer, rgba(197,157,95,.22))",
     },
   }),
 
   dropdownIndicator: (base) => ({
     ...base,
-    color: "#8a6a3b",
+    color: "var(--admin-accent-dark, #8a6a3b)",
     paddingLeft: 4,
     paddingRight: 8,
 
     ":hover": {
-      color: "#8a6a3b",
+      color: "var(--admin-accent-dark, #8a6a3b)",
     },
   }),
 
@@ -198,6 +208,7 @@ export default function CustomSelect({
   return (
     <div className={className}>
       <Select<SelectOption, false>
+        classNamePrefix="admin-select"
         instanceId={instanceId}
         options={options}
         value={value}

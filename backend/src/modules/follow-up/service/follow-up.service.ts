@@ -41,19 +41,20 @@ export class FollowUpService {
     }
 
     if (query.date_from) {
-      queryBuilder.andWhere('followUp.created_at >= :dateFrom', {
+      queryBuilder.andWhere('COALESCE(followUp.follow_up_at, followUp.created_at) >= :dateFrom', {
         dateFrom: new Date(query.date_from),
       });
     }
 
     if (query.date_to) {
-      queryBuilder.andWhere('followUp.created_at <= :dateTo', {
+      queryBuilder.andWhere('COALESCE(followUp.follow_up_at, followUp.created_at) <= :dateTo', {
         dateTo: new Date(query.date_to),
       });
     }
 
     const [followUps, total] = await queryBuilder
-      .orderBy('followUp.id', 'DESC')
+      .orderBy('COALESCE(followUp.follow_up_at, followUp.created_at)', 'ASC')
+      .addOrderBy('followUp.id', 'DESC')
       .skip(skip)
       .take(limit)
       .getManyAndCount();
@@ -80,6 +81,7 @@ export class FollowUpService {
       problem_name: followUp.problem_name,
       remark: followUp.remark,
       status: followUp.status,
+      follow_up_at: followUp.follow_up_at || followUp.created_at,
       created_at: followUp.created_at,
     };
   }

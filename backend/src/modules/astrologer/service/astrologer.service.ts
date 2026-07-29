@@ -42,6 +42,7 @@ export class AstrologerService {
     const page = query.page || 1;
     const limit = Math.min(query.limit || 10, 100);
     const skip = (page - 1) * limit;
+    const sortOrder = query.sort_order === 'asc' ? 'ASC' : 'DESC';
 
     const queryBuilder = this.astrologerRepository
       .getAstrologerRepository()
@@ -68,8 +69,20 @@ export class AstrologerService {
       );
     }
 
+    if (query.date_from) {
+      queryBuilder.andWhere('astrologer.created_at >= :dateFrom', {
+        dateFrom: new Date(query.date_from),
+      });
+    }
+
+    if (query.date_to) {
+      queryBuilder.andWhere('astrologer.created_at <= :dateTo', {
+        dateTo: new Date(query.date_to),
+      });
+    }
+
     const [astrologers, total] = await queryBuilder
-      .orderBy('astrologer.id', 'DESC')
+      .orderBy('astrologer.id', sortOrder)
       .skip(skip)
       .take(limit)
       .getManyAndCount();
@@ -307,6 +320,7 @@ export class AstrologerService {
       rating: astrologer.rating,
       consultations: astrologer.consultations,
       status: astrologer.status,
+      created_at: astrologer.created_at,
       all_names: translations.map((translation) => ({
         label: translation.lang_code.toUpperCase(),
         value: translation.name,

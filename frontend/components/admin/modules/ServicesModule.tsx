@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Edit3, Loader2, Power, Save, Trash2, X } from "lucide-react";
+import { Edit3, Loader2, Power, Save, Search, Trash2, X } from "lucide-react";
 import { adminServiceApi, ApiError, type AdminServiceDto } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useTenant } from "@/lib/tenant-context";
@@ -10,7 +10,17 @@ import {
   getEnglishTranslation,
   syncServiceTranslations,
 } from "../helpers";
-import { EmptyListState, ModuleHeader, Pagination, StatusBadge } from "../shared";
+import {
+  DateRangeFilter,
+  EmptyListState,
+  formatAdminDate,
+  ListPanelHeader,
+  ModuleHeader,
+  Pagination,
+  StatusBadge,
+  toAdminDateRange,
+} from "../shared";
+import type { DateRangeValue } from "@/components/ui/CustomDatePicker";
 import type { ServiceRow, ServiceTranslation } from "../types";
 
 type ServiceFormErrors = {
@@ -41,6 +51,7 @@ function mapServiceDto(service: AdminServiceDto): ServiceRow {
 
   return syncServiceTranslations({
     id: Number(service.id),
+    createdAt: service.created_at,
     displayOrder: Number(service.display_order || 1),
     status: Number(service.status) === 1 ? "active" : "inactive",
     translations,
@@ -69,10 +80,19 @@ export function ServicesModule() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formErrors, setFormErrors] = useState<ServiceFormErrors>({});
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [dateFilter, setDateFilter] = useState<DateRangeValue>({
+    start: "",
+    end: "",
+  });
+  const [appliedDateFilter, setAppliedDateFilter] = useState<DateRangeValue>({
+    start: "",
+    end: "",
+  });
   const lastFetchKeyRef = useRef("");
 
   const loadServices = useCallback(
-    async (page: number) => {
+    async (page: number, sortOrder = sortDirection) => {
       if (!accessToken) return;
 
       setLoading(true);
@@ -82,6 +102,9 @@ export function ServicesModule() {
         const response = await adminServiceApi.list(tenant.id, accessToken, {
           page,
           limit: PAGE_SIZE,
+          sort_order: sortOrder,
+          date_from: appliedDateFilter.start || undefined,
+          date_to: appliedDateFilter.end || undefined,
         });
         const records = response.data?.records || [];
         const pagination = response.data?.pagination;
@@ -101,15 +124,32 @@ export function ServicesModule() {
         snackbar.setPageLoading(false);
       }
     },
-    [accessToken, snackbar, tenant.id]
+    [accessToken, appliedDateFilter, snackbar, sortDirection, tenant.id]
   );
 
   useEffect(() => {
-    const fetchKey = `services:1:${tenant.id}:${accessToken || ""}`;
+    const fetchKey = JSON.stringify({
+      module: "services",
+      tenantId: tenant.id,
+      accessToken: accessToken || "",
+      date: appliedDateFilter,
+    });
     if (lastFetchKeyRef.current === fetchKey) return;
     lastFetchKeyRef.current = fetchKey;
     loadServices(1);
-  }, [accessToken, loadServices, tenant.id]);
+  }, [accessToken, appliedDateFilter, loadServices, tenant.id]);
+
+  const applyDateFilter = (range = dateFilter) => {
+    setAppliedDateFilter(toAdminDateRange(range));
+    setCurrentPage(1);
+  };
+
+  const clearDateFilter = () => {
+    const emptyRange = { start: "", end: "" };
+    setDateFilter(emptyRange);
+    setAppliedDateFilter(emptyRange);
+    setCurrentPage(1);
+  };
 
   const startCreate = () => {
     setFormErrors({});
@@ -243,27 +283,55 @@ export function ServicesModule() {
         title="Services Module"
         createLabel="Create Service"
         onCreate={startCreate}
+        onList={() => loadServices(currentPage)}
+        onSort={() => {
+          const nextDirection = sortDirection === "asc" ? "desc" : "asc";
+          setSortDirection(nextDirection);
+          loadServices(1, nextDirection);
+        }}
+        sortDirection={sortDirection}
       />
 
-      <div className="mt-5 overflow-hidden rounded-lg border border-mist bg-white shadow-sm">
-        <div className="flex items-center justify-between border-b border-mist bg-white px-4 py-3">
-          <div>
-            <h2 className="text-sm font-semibold text-ink">Service Listing</h2>
-            <p className="text-[11px] text-ink/50">{totalRecords} total records</p>
-          </div>
-          {loading && (
-            <div className="flex items-center gap-2 text-xs text-ink/50">
-              <Loader2 size={14} className="animate-spin" />
-              Loading
-            </div>
-          )}
-        </div>
+      <div className="admin-filter-panel mt-3">
+        <DateRangeFilter
+          value={dateFilter}
+          onChange={setDateFilter}
+          onApply={applyDateFilter}
+          onClear={clearDateFilter}
+          hasValue={Boolean(appliedDateFilter.start || appliedDateFilter.end)}
+        />
+        <button
+          type="button"
+          onClick={() => applyDateFilter()}
+          className="admin-create-button"
+          title="Search"
+          aria-label="Search"
+        >
+          <Search size={14} />
+        </button>
+      </div>
 
+      <div data-admin-list className="mt-4 overflow-hidden rounded-lg border border-mist bg-white shadow-sm">
+        <ListPanelHeader
+          title="Service Listing"
+          totalRecords={totalRecords}
+          createLabel="Create Service"
+          onCreate={startCreate}
+          onList={() => loadServices(currentPage)}
+          onSort={() => {
+            const nextDirection = sortDirection === "asc" ? "desc" : "asc";
+            setSortDirection(nextDirection);
+            loadServices(1, nextDirection);
+          }}
+          sortDirection={sortDirection}
+          loading={loading}
+        />
         <div className="overflow-x-auto">
           <table className="w-full min-w-[860px] border-collapse text-left">
             <thead className="bg-parchment">
               <tr className="border-b border-mist text-[11px] uppercase tracking-wide text-ink/55">
                 <th className="w-20 px-4 py-2.5 font-semibold">ID</th>
+                <th className="w-44 px-4 py-2.5 font-semibold">Created Date</th>
                 <th className="w-56 px-4 py-2.5 font-semibold">Name</th>
                 <th className="px-4 py-2.5 font-semibold">Description</th>
                 <th className="w-32 px-4 py-2.5 font-semibold">Status</th>
@@ -273,7 +341,7 @@ export function ServicesModule() {
             <tbody className="divide-y divide-mist">
               {services.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-5">
+                  <td colSpan={6} className="px-4 py-5">
                     <EmptyListState
                       loading={loading}
                       message="No services yet. Create the first service."
@@ -288,21 +356,24 @@ export function ServicesModule() {
 
                   return (
                     <tr key={service.id} className="text-sm transition hover:bg-parchment/55">
-                      <td className="px-4 py-2.5 font-mono text-[11px] text-ink/45">
+                      <td data-label="ID" className="px-4 py-2.5 font-mono text-[11px] text-ink/45">
                         #{service.id.toString().padStart(3, "0")}
                       </td>
-                      <td className="px-4 py-2.5 font-medium text-ink">
+                      <td data-label="Created Date" className="px-4 py-2.5 text-ink/60">
+                        {formatAdminDate(service.createdAt)}
+                      </td>
+                      <td data-label="Name" className="px-4 py-2.5 font-medium text-ink">
                         {english?.name || "Untitled service"}
                       </td>
-                      <td className="px-4 py-2.5 text-ink/60">
+                      <td data-label="Description" className="px-4 py-2.5 text-ink/60">
                         <span className="line-clamp-1">
                           {english?.description || "No description"}
                         </span>
                       </td>
-                      <td className="px-4 py-2.5">
+                      <td data-label="Status" className="px-4 py-2.5">
                         <StatusBadge status={service.status} />
                       </td>
-                      <td className="px-4 py-2.5">
+                      <td data-label="Actions" className="px-4 py-2.5">
                         <div className="flex justify-end gap-2">
                           <button
                             type="button"

@@ -43,7 +43,19 @@ export class SupportService {
       queryBuilder.andWhere('support.status = :status', { status: query.status });
     }
 
-    if ((query.range || 'today') === 'today') {
+    if (query.date_from || query.date_to) {
+      if (query.date_from) {
+        queryBuilder.andWhere('support.created_at >= :dateFrom', {
+          dateFrom: new Date(query.date_from),
+        });
+      }
+
+      if (query.date_to) {
+        queryBuilder.andWhere('support.created_at <= :dateTo', {
+          dateTo: new Date(query.date_to),
+        });
+      }
+    } else if ((query.range || 'today') === 'today') {
       const start = new Date();
       start.setHours(0, 0, 0, 0);
       const end = new Date();
@@ -90,7 +102,19 @@ export class SupportService {
         queryBuilder.andWhere('support.status = :status', { status });
       }
 
-      if ((query.range || 'today') === 'today') {
+      if (query.date_from || query.date_to) {
+        if (query.date_from) {
+          queryBuilder.andWhere('support.created_at >= :dateFrom', {
+            dateFrom: new Date(query.date_from),
+          });
+        }
+
+        if (query.date_to) {
+          queryBuilder.andWhere('support.created_at <= :dateTo', {
+            dateTo: new Date(query.date_to),
+          });
+        }
+      } else if ((query.range || 'today') === 'today') {
         const start = new Date();
         start.setHours(0, 0, 0, 0);
         const end = new Date();

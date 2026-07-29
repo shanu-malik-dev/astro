@@ -44,6 +44,7 @@ export class ProblemService {
     const page = query.page || 1;
     const limit = Math.min(query.limit || 10, 100);
     const skip = (page - 1) * limit;
+    const sortOrder = query.sort_order === 'desc' ? 'DESC' : 'ASC';
 
     const queryBuilder = this.problemRepository
       .getProblemRepository()
@@ -63,9 +64,21 @@ export class ProblemService {
       });
     }
 
+    if (query.date_from) {
+      queryBuilder.andWhere('problem.created_at >= :dateFrom', {
+        dateFrom: new Date(query.date_from),
+      });
+    }
+
+    if (query.date_to) {
+      queryBuilder.andWhere('problem.created_at <= :dateTo', {
+        dateTo: new Date(query.date_to),
+      });
+    }
+
     const [problems, total] = await queryBuilder
-      .orderBy('problem.display_order', 'ASC')
-      .addOrderBy('problem.id', 'ASC')
+      .orderBy('problem.display_order', sortOrder)
+      .addOrderBy('problem.id', sortOrder)
       .skip(skip)
       .take(limit)
       .getManyAndCount();
@@ -250,6 +263,7 @@ export class ProblemService {
       name: englishName,
       status: problem.status,
       display_order: problem.display_order,
+      created_at: problem.created_at,
       all_names: translations.map((translation) => ({
         label: translation.lang_code.toUpperCase(),
         value: translation.name,

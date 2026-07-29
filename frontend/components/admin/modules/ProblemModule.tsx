@@ -1,12 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Edit3, Eye, Loader2, Power, Save, Trash2, X } from "lucide-react";
+import { Edit3, Eye, Loader2, Power, Save, Search, Trash2, X } from "lucide-react";
 import { ApiError, problemApi, type ProblemDto } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useTenant } from "@/lib/tenant-context";
 import { useAdminSnackbar } from "../AdminSnackbar";
 import { PAGE_SIZE } from "../constants";
 import { createEmptyTranslations, syncTranslations } from "../helpers";
-import { EmptyListState, ModuleHeader, Pagination, StatusBadge } from "../shared";
+import {
+  DateRangeFilter,
+  EmptyListState,
+  formatAdminDate,
+  ListPanelHeader,
+  ModuleHeader,
+  Pagination,
+  StatusBadge,
+  toAdminDateRange,
+} from "../shared";
+import type { DateRangeValue } from "@/components/ui/CustomDatePicker";
 import type { Problem, Translation } from "../types";
 
 type ProblemFormErrors = {
@@ -36,6 +46,7 @@ function mapProblemDto(problem: ProblemDto): Problem {
 
   return syncTranslations({
     id: Number(problem.id),
+    createdAt: problem.created_at,
     displayOrder: Number(problem.display_order || 1),
     status: Number(problem.status) === 1 ? "active" : "inactive",
     translations,
@@ -64,10 +75,19 @@ export function ProblemModule() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formErrors, setFormErrors] = useState<ProblemFormErrors>({});
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [dateFilter, setDateFilter] = useState<DateRangeValue>({
+    start: "",
+    end: "",
+  });
+  const [appliedDateFilter, setAppliedDateFilter] = useState<DateRangeValue>({
+    start: "",
+    end: "",
+  });
   const lastFetchKeyRef = useRef("");
 
   const loadProblems = useCallback(
-    async (page: number) => {
+    async (page: number, sortOrder = sortDirection) => {
       if (!accessToken) return;
 
       setLoading(true);
@@ -77,6 +97,9 @@ export function ProblemModule() {
         const response = await problemApi.list(tenant.id, accessToken, {
           page,
           limit: PAGE_SIZE,
+          sort_order: sortOrder,
+          date_from: appliedDateFilter.start || undefined,
+          date_to: appliedDateFilter.end || undefined,
         });
         const records = response.data?.records || [];
         const pagination = response.data?.pagination;
@@ -96,15 +119,20 @@ export function ProblemModule() {
         snackbar.setPageLoading(false);
       }
     },
-    [accessToken, snackbar, tenant.id]
+    [accessToken, appliedDateFilter, snackbar, sortDirection, tenant.id]
   );
 
   useEffect(() => {
-    const fetchKey = `problems:1:${tenant.id}:${accessToken || ""}`;
+    const fetchKey = JSON.stringify({
+      module: "problems",
+      tenantId: tenant.id,
+      accessToken: accessToken || "",
+      date: appliedDateFilter,
+    });
     if (lastFetchKeyRef.current === fetchKey) return;
     lastFetchKeyRef.current = fetchKey;
     loadProblems(1);
-  }, [accessToken, loadProblems, tenant.id]);
+  }, [accessToken, appliedDateFilter, loadProblems, tenant.id]);
 
   const startCreate = () => {
     setFormErrors({});
@@ -114,6 +142,18 @@ export function ProblemModule() {
       status: "active",
       translations: createEmptyTranslations(),
     });
+  };
+
+  const applyDateFilter = (range = dateFilter) => {
+    setAppliedDateFilter(toAdminDateRange(range));
+    setCurrentPage(1);
+  };
+
+  const clearDateFilter = () => {
+    const emptyRange = { start: "", end: "" };
+    setDateFilter(emptyRange);
+    setAppliedDateFilter(emptyRange);
+    setCurrentPage(1);
   };
 
   const startEdit = (problem: Problem) => {
@@ -243,29 +283,55 @@ export function ProblemModule() {
         title="Problem Module"
         onCreate={startCreate}
         createLabel="Create Problem"
+        onList={() => loadProblems(currentPage)}
+        onSort={() => {
+          const nextDirection = sortDirection === "asc" ? "desc" : "asc";
+          setSortDirection(nextDirection);
+          loadProblems(1, nextDirection);
+        }}
+        sortDirection={sortDirection}
       />
 
-      <div className="mt-5 overflow-hidden rounded-lg border border-mist bg-white shadow-sm">
-        <div className="flex items-center justify-between border-b border-mist bg-white px-4 py-3">
-          <div>
-            <h2 className="text-sm font-semibold text-ink">Problem Listing</h2>
-            <p className="text-[11px] text-ink/50">
-              {totalRecords} total records
-            </p>
-          </div>
-          {loading && (
-            <div className="flex items-center gap-2 text-xs text-ink/50">
-              <Loader2 size={14} className="animate-spin" />
-              Loading
-            </div>
-          )}
-        </div>
+      <div className="admin-filter-panel mt-3">
+        <DateRangeFilter
+          value={dateFilter}
+          onChange={setDateFilter}
+          onApply={applyDateFilter}
+          onClear={clearDateFilter}
+          hasValue={Boolean(appliedDateFilter.start || appliedDateFilter.end)}
+        />
+        <button
+          type="button"
+          onClick={() => applyDateFilter()}
+          className="admin-create-button"
+          title="Search"
+          aria-label="Search"
+        >
+          <Search size={14} />
+        </button>
+      </div>
 
+      <div data-admin-list className="mt-4 overflow-hidden rounded-lg border border-mist bg-white shadow-sm">
+        <ListPanelHeader
+          title="Problem Listing"
+          totalRecords={totalRecords}
+          createLabel="Create Problem"
+          onCreate={startCreate}
+          onList={() => loadProblems(currentPage)}
+          onSort={() => {
+            const nextDirection = sortDirection === "asc" ? "desc" : "asc";
+            setSortDirection(nextDirection);
+            loadProblems(1, nextDirection);
+          }}
+          sortDirection={sortDirection}
+          loading={loading}
+        />
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] border-collapse text-left">
             <thead className="bg-parchment">
               <tr className="border-b border-mist text-[11px] uppercase tracking-wide text-ink/55">
                 <th className="w-20 px-4 py-2.5 font-semibold">ID</th>
+                <th className="w-44 px-4 py-2.5 font-semibold">Created Date</th>
                 <th className="px-4 py-2.5 font-semibold">Name</th>
                 <th className="w-32 px-4 py-2.5 font-semibold">Status</th>
                 <th className="w-44 px-4 py-2.5 text-right font-semibold">Actions</th>
@@ -275,7 +341,7 @@ export function ProblemModule() {
             <tbody className="divide-y divide-mist">
               {problems.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-5">
+                  <td colSpan={5} className="px-4 py-5">
                     <EmptyListState
                       loading={loading}
                       message="No problems yet. Create the first problem."
@@ -288,10 +354,13 @@ export function ProblemModule() {
                     key={problem.id}
                     className="text-sm transition hover:bg-parchment/55"
                   >
-                    <td className="px-4 py-2.5 font-mono text-[11px] text-ink/45">
+                    <td data-label="ID" className="px-4 py-2.5 font-mono text-[11px] text-ink/45">
                       #{problem.id.toString().padStart(3, "0")}
                     </td>
-                    <td className="px-4 py-2.5">
+                    <td data-label="Created Date" className="px-4 py-2.5 text-ink/60">
+                      {formatAdminDate(problem.createdAt)}
+                    </td>
+                    <td data-label="Name" className="px-4 py-2.5">
                       <p className="text-sm font-medium text-ink">
                         {problem.translations.find((item) => item.lang === "en")?.name ||
                           "Untitled problem"}
@@ -300,10 +369,10 @@ export function ProblemModule() {
                         Order {problem.displayOrder}
                       </p>
                     </td>
-                    <td className="px-4 py-2.5">
+                    <td data-label="Status" className="px-4 py-2.5">
                       <StatusBadge status={problem.status} />
                     </td>
-                    <td className="px-4 py-2.5">
+                    <td data-label="Actions" className="px-4 py-2.5">
                       <div className="flex justify-end gap-2">
                         <button
                           type="button"

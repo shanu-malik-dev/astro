@@ -7,6 +7,7 @@ import { EmailLoginDto } from '../dto/email-login.dto';
 import { ForgotPasswordResetDto } from '../dto/forgot-password-reset.dto';
 import { ForgotPasswordSendOtpDto } from '../dto/forgot-password-send-otp.dto';
 import { LoginDto } from '../dto/login.dto';
+import { RefreshTokenDto } from '../dto/refresh-token.dto';
 import { ResendOtpDto } from '../dto/resend-otp.dto';
 import { SignupDto } from '../dto/signup.dto';
 import { VerifyOtpDto } from '../dto/verify-otp.dto';
@@ -70,6 +71,12 @@ export class AuthController {
   @Post('forgot-password/reset')
   resetForgotPassword(@Body() dto: ForgotPasswordResetDto) {
     return this.authService.resetForgotPassword(dto);
+  }
+
+  @IsPublic()
+  @Post('refresh')
+  refresh(@Body() dto: RefreshTokenDto) {
+    return this.authService.refresh(dto);
   }
 
   @IsPublic()

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { CalendarDays, ChevronLeft, ChevronRight, X } from "lucide-react";
 
 export type DateRangeValue = {
@@ -19,6 +20,7 @@ type CustomDatePickerProps = {
   dateRange?: boolean;
   variant?: "dark" | "light";
   className?: string;
+  portal?: boolean;
 };
 
 const WEEK_DAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
@@ -105,13 +107,19 @@ export default function CustomDatePicker({
   dateRange = false,
   variant = "light",
   className,
+  portal = false,
 }: CustomDatePickerProps) {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [draftRange, setDraftRange] = useState(rangeValue);
   const [draftValue, setDraftValue] = useState(value);
   const [visibleMonth, setVisibleMonth] = useState(
     parseMonth(rangeValue.start || value)
   );
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!open) {
@@ -328,6 +336,50 @@ export default function CustomDatePicker({
     setOpen(false);
   };
 
+  const calendarPanel = (
+    <div
+      className={`${
+        portal
+          ? "fixed left-1/2 top-1/2 z-[140] max-h-[min(82vh,620px)] w-[min(92vw,360px)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto"
+          : "absolute right-0 top-12 z-[80] w-[min(92vw,340px)]"
+      } rounded-lg border p-3 ${panelClass}`}
+    >
+      <div className="mb-3 flex items-center justify-between">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gold-dark">
+          {placeholder || "Select date"}
+        </p>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className={`rounded p-1 transition hover:bg-ink/5 ${mutedText}`}
+          aria-label="Close calendar"
+        >
+          <X size={15} />
+        </button>
+      </div>
+
+      {renderCalendar()}
+      {renderTimeFields()}
+
+      <div className="mt-3 flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={clearSelection}
+          className="rounded-md border border-mist bg-white px-3 py-2 text-xs font-medium text-ink/60 transition hover:text-ink"
+        >
+          Clear
+        </button>
+        <button
+          type="button"
+          onClick={applySelection}
+          className="rounded-md bg-ink px-3 py-2 text-xs font-medium text-white transition hover:opacity-90"
+        >
+          Done
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <div className={`relative ${className || ""}`}>
       <button
@@ -346,43 +398,7 @@ export default function CustomDatePicker({
       </button>
 
       {open && (
-        <div
-          className={`absolute right-0 top-12 z-[80] w-[min(92vw,340px)] rounded-lg border p-3 ${panelClass}`}
-        >
-          <div className="mb-3 flex items-center justify-between">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gold-dark">
-              {placeholder || "Select date"}
-            </p>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className={`rounded p-1 transition hover:bg-ink/5 ${mutedText}`}
-              aria-label="Close calendar"
-            >
-              <X size={15} />
-            </button>
-          </div>
-
-          {renderCalendar()}
-          {renderTimeFields()}
-
-          <div className="mt-3 flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={clearSelection}
-              className="rounded-md border border-mist bg-white px-3 py-2 text-xs font-medium text-ink/60 transition hover:text-ink"
-            >
-              Clear
-            </button>
-            <button
-              type="button"
-              onClick={applySelection}
-              className="rounded-md bg-ink px-3 py-2 text-xs font-medium text-white transition hover:opacity-90"
-            >
-              Done
-            </button>
-          </div>
-        </div>
+        portal && mounted ? createPortal(calendarPanel, document.body) : calendarPanel
       )}
     </div>
   );

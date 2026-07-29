@@ -1,6 +1,8 @@
 import type { LucideIcon } from "lucide-react";
 
 export type ModuleKey =
+  | "dashboard"
+  | "master"
   | "problem"
   | "services"
   | "astrologers"
@@ -9,7 +11,24 @@ export type ModuleKey =
   | "payments"
   | "support"
   | "roles"
-  | "customers";
+  | "countryCodes"
+  | "users";
+
+export type MasterModuleKey =
+  | "users"
+  | "problem"
+  | "services"
+  | "roles"
+  | "astrologers"
+  | "countryCodes";
+
+export type DashboardFilterPreset = "today" | "mtd" | "custom";
+
+export type AdminDateFilter = {
+  preset: DashboardFilterPreset;
+  start: string;
+  end: string;
+};
 
 export type Translation = {
   lang: string;
@@ -27,6 +46,7 @@ export type AstrologerTranslation = ServiceTranslation & {
 
 export type Problem = {
   id: number;
+  createdAt?: string;
   displayOrder: number;
   status: "active" | "inactive";
   translations: Translation[];
@@ -41,6 +61,7 @@ export type SimpleRow = {
 
 export type ServiceRow = {
   id: number;
+  createdAt?: string;
   displayOrder: number;
   status: "active" | "inactive";
   translations: ServiceTranslation[];
@@ -48,6 +69,7 @@ export type ServiceRow = {
 
 export type AstrologerRow = {
   id: number;
+  createdAt?: string;
   experience: string;
   languages: string;
   rating: number;
@@ -60,6 +82,7 @@ export type EnquiryStatus = number;
 
 export type EnquiryRow = {
   enq_id: number;
+  created_at?: string;
   customer_name: string;
   customer_number: string;
   country_code: string;
@@ -73,12 +96,14 @@ export type FollowUpStatus = number;
 
 export type FollowUpRow = {
   followup_id: number;
+  created_at?: string;
   enq_id: number;
   customer_name: string;
   customer_number: string;
   problem_name: string;
   remark: string;
   status: FollowUpStatus;
+  follow_up_at?: string;
 };
 
 export type AdminModule = {

@@ -62,6 +62,19 @@ export class AuthRepository {
     return query.getOne();
   }
 
+  findUserById(userId: number, includeSensitive = false) {
+    const query = this.userRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.role', 'role')
+      .where('user.id = :userId', { userId });
+
+    if (includeSensitive) {
+      query.addSelect(['user.token']);
+    }
+
+    return query.getOne();
+  }
+
   createUser(input: Pick<UserEntity, 'role_id' | 'name' | 'country_code' | 'mobile'>) {
     return this.userRepository.save(this.userRepository.create(input));
   }

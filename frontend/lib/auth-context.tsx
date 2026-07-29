@@ -111,13 +111,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const handleUnauthorized = () => {
       persist({ user: null, accessToken: null, refreshToken: null });
     };
+    const handleTokenRefreshed = (event: Event) => {
+      const detail = (event as CustomEvent<{
+        storageKey?: string;
+        session?: AuthState;
+      }>).detail;
+
+      if (detail?.storageKey === storageKey && detail.session) {
+        setState(detail.session);
+      }
+    };
 
     window.addEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized);
+    window.addEventListener("astronova:token-refreshed", handleTokenRefreshed);
 
     return () => {
       window.removeEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized);
+      window.removeEventListener("astronova:token-refreshed", handleTokenRefreshed);
     };
-  }, [persist]);
+  }, [persist, storageKey]);
 
   const login = useCallback(async (data: { countryCode: string; mobile: string }) => {
     return authApi.login(tenant.id, data);

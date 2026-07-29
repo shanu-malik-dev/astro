@@ -1,4 +1,4 @@
-import { ClipboardList, CreditCard, Headset, HelpCircle, ListChecks, Settings, ShieldCheck, Sparkles, Users } from "lucide-react";
+import { ClipboardList, CreditCard, Gauge, Globe2, Headset, HelpCircle, ListChecks, Settings, ShieldCheck, Sparkles, Users } from "lucide-react";
 import type { SelectOption } from "@/components/ui/CustomSelect";
 import { ADMIN_MODULE_FLAGS } from "@/lib/feature-flags";
 import { FOLLOW_UP_STATUS } from "@/lib/status-constants";
@@ -26,36 +26,27 @@ export const FOLLOW_UP_STATUS_OPTIONS: SelectOption[] = [
   { value: String(FOLLOW_UP_STATUS.COLD), label: "Cold" },
 ];
 
+export const MASTER_MODULE_KEYS = [
+  "users",
+  "problem",
+  "services",
+  "roles",
+  "astrologers",
+  "countryCodes",
+] as const;
+
 export const ALL_MODULES: AdminModule[] = [
   {
-    key: "problem",
-    label: "Problem",
-    description: "Create, update, translate, and manage customer problems.",
-    icon: ClipboardList,
-  },
-  {
-    key: "services",
-    label: "Services",
-    description: "Manage service names, descriptions, and status.",
-    icon: Settings,
-  },
-  {
-    key: "astrologers",
-    label: "Astrologers",
-    description: "Manage astrologer profiles, expertise, and languages.",
-    icon: Sparkles,
+    key: "dashboard",
+    label: "Dashboard",
+    description: "Review today's operational totals.",
+    icon: Gauge,
   },
   {
     key: "enquiry",
     label: "Enquiry",
     description: "Review inbound customer enquiries and follow-up status.",
     icon: HelpCircle,
-  },
-  {
-    key: "customers",
-    label: "Customers",
-    description: "View customers and track whether they were called.",
-    icon: Users,
   },
   {
     key: "followUp",
@@ -76,6 +67,42 @@ export const ALL_MODULES: AdminModule[] = [
     icon: Headset,
   },
   {
+    key: "master",
+    label: "Master",
+    description: "Manage users, roles, services, and setup data.",
+    icon: Settings,
+  },
+  {
+    key: "problem",
+    label: "Problem",
+    description: "Create, update, translate, and manage customer problems.",
+    icon: ClipboardList,
+  },
+  {
+    key: "services",
+    label: "Services",
+    description: "Manage service names, descriptions, and status.",
+    icon: Settings,
+  },
+  {
+    key: "astrologers",
+    label: "Astrologers",
+    description: "Manage astrologer profiles, expertise, and languages.",
+    icon: Sparkles,
+  },
+  {
+    key: "countryCodes",
+    label: "Country Codes",
+    description: "Manage country names, ISO codes, and mobile prefixes.",
+    icon: Globe2,
+  },
+  {
+    key: "users",
+    label: "Users",
+    description: "Create users and manage role-based access.",
+    icon: Users,
+  },
+  {
     key: "roles",
     label: "Roles",
     description: "Assign admin modules to each role.",
@@ -85,6 +112,10 @@ export const ALL_MODULES: AdminModule[] = [
 
 export const MODULES: AdminModule[] = ALL_MODULES.filter(
   (module) => ADMIN_MODULE_FLAGS[module.key]
+);
+
+export const SIDEBAR_MODULES: AdminModule[] = MODULES.filter(
+  (module) => !(MASTER_MODULE_KEYS as readonly string[]).includes(module.key)
 );
 
 export const PROFESSIONS: SimpleRow[] = [

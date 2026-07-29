@@ -7,7 +7,15 @@ import { useTenant } from "@/lib/tenant-context";
 import CustomSelect from "@/components/ui/CustomSelect";
 import { useAdminSnackbar } from "../AdminSnackbar";
 import { PAGE_SIZE } from "../constants";
-import { EmptyListState, Pagination } from "../shared";
+import {
+  DateRangeFilter,
+  EmptyListState,
+  formatAdminDate,
+  ListPanelHeader,
+  Pagination,
+  toAdminDateRange,
+} from "../shared";
+import type { DateRangeValue } from "@/components/ui/CustomDatePicker";
 
 const STATUS_OPTIONS = [
   { value: "", label: "All status" },
@@ -42,7 +50,17 @@ export function PaymentsModule() {
   const [search, setSearch] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
   const [provider, setProvider] = useState("");
+  const [appliedProvider, setAppliedProvider] = useState("");
   const [status, setStatus] = useState("");
+  const [appliedStatus, setAppliedStatus] = useState("");
+  const [dateFilter, setDateFilter] = useState<DateRangeValue>({
+    start: "",
+    end: "",
+  });
+  const [appliedDateFilter, setAppliedDateFilter] = useState<DateRangeValue>({
+    start: "",
+    end: "",
+  });
   const lastFetchKeyRef = useRef("");
 
   const loadPayments = useCallback(
@@ -55,10 +73,12 @@ export function PaymentsModule() {
           page,
           limit: PAGE_SIZE,
           search: appliedSearch.trim() || undefined,
-          provider: provider ? (provider as "razorpay" | "stripe") : undefined,
-          payment_status: status
-            ? Number(status)
+          provider: appliedProvider ? (appliedProvider as "razorpay" | "stripe") : undefined,
+          payment_status: appliedStatus
+            ? Number(appliedStatus)
             : undefined,
+          date_from: appliedDateFilter.start || undefined,
+          date_to: appliedDateFilter.end || undefined,
         });
         const records = response.data?.records || [];
         const pagination = response.data?.pagination;
@@ -75,7 +95,15 @@ export function PaymentsModule() {
         snackbar.setPageLoading(false);
       }
     },
-    [accessToken, appliedSearch, provider, snackbar, status, tenant.id]
+    [
+      accessToken,
+      appliedDateFilter,
+      appliedProvider,
+      appliedSearch,
+      appliedStatus,
+      snackbar,
+      tenant.id,
+    ]
   );
 
   useEffect(() => {
@@ -85,24 +113,29 @@ export function PaymentsModule() {
       accessToken: accessToken || "",
       currentPage,
       appliedSearch,
-      provider,
-      status,
+      provider: appliedProvider,
+      status: appliedStatus,
+      date: appliedDateFilter,
     });
     if (lastFetchKeyRef.current === fetchKey) return;
     lastFetchKeyRef.current = fetchKey;
     loadPayments(currentPage);
   }, [
     accessToken,
+    appliedDateFilter,
+    appliedProvider,
     appliedSearch,
+    appliedStatus,
     currentPage,
     loadPayments,
-    provider,
-    status,
     tenant.id,
   ]);
 
   const applyFilters = () => {
     setAppliedSearch(search);
+    setAppliedProvider(provider);
+    setAppliedStatus(status);
+    setAppliedDateFilter(toAdminDateRange(dateFilter));
     setCurrentPage(1);
   };
 
@@ -110,31 +143,30 @@ export function PaymentsModule() {
     setSearch("");
     setAppliedSearch("");
     setProvider("");
+    setAppliedProvider("");
     setStatus("");
+    setAppliedStatus("");
+    setDateFilter({ start: "", end: "" });
+    setAppliedDateFilter({ start: "", end: "" });
+    setCurrentPage(1);
+  };
+
+  const applyDateFilter = (range = dateFilter) => {
+    setAppliedDateFilter(toAdminDateRange(range));
+  };
+
+  const clearDateFilter = () => {
+    const emptyRange = { start: "", end: "" };
+    setDateFilter(emptyRange);
+    setAppliedDateFilter(emptyRange);
     setCurrentPage(1);
   };
 
   return (
     <>
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="mt-2 font-display text-3xl font-semibold text-ink">
-            Payment Module
-          </h1>
-        </div>
-        <div className="rounded-md border border-mist bg-white px-4 py-2 text-sm text-ink/60">
-          {totalRecords} payment entries
-        </div>
-      </div>
-
-      <div className="mt-5 overflow-visible rounded-lg border border-mist bg-white shadow-sm">
-        <div className="border-b border-mist bg-white">
-          <div className="flex flex-wrap items-center gap-2 px-4 py-3">
-            <div className="relative h-10 min-w-[240px] flex-1">
-              <Search
-                size={15}
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink/35"
-              />
+      <div className="admin-filter-panel">
+        <div className="flex flex-wrap items-center gap-2">
+            <div className="relative h-10 w-full sm:w-72">
               <input
                 type="search"
                 value={search}
@@ -143,7 +175,7 @@ export function PaymentsModule() {
                   if (event.key === "Enter") applyFilters();
                 }}
                 placeholder="Search customer, mobile, payment id"
-                className="h-full w-full rounded-md border border-mist bg-white pl-9 pr-9 text-sm text-ink outline-none transition placeholder:text-ink/35 focus:border-gold"
+                className="h-full w-full rounded-md border border-mist bg-white pl-3 pr-9 text-sm text-ink outline-none transition placeholder:text-ink/35 focus:border-gold"
               />
               {search && (
                 <button
@@ -164,7 +196,6 @@ export function PaymentsModule() {
               variant="light"
               onChange={(option) => {
                 setProvider(option?.value || "");
-                setCurrentPage(1);
               }}
               className="w-full sm:w-44"
             />
@@ -176,37 +207,54 @@ export function PaymentsModule() {
               variant="light"
               onChange={(option) => {
                 setStatus(option?.value || "");
-                setCurrentPage(1);
               }}
               className="w-full sm:w-44"
             />
 
-            <button
-              type="button"
-              onClick={applyFilters}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-ink px-3 text-xs font-semibold text-white transition hover:opacity-90"
-            >
-              <Search size={14} />
-              Search
-            </button>
-
-            {(search || appliedSearch || provider || status) && (
-              <button
-                type="button"
-                onClick={clearFilters}
-                className="h-10 rounded-md border border-mist bg-white px-3 text-xs font-medium text-ink/60 transition hover:border-gold hover:text-ink"
-              >
-                Clear
-              </button>
-            )}
-          </div>
         </div>
+        <div>
+          <DateRangeFilter
+            value={dateFilter}
+            onChange={setDateFilter}
+            onApply={applyDateFilter}
+            onClear={clearDateFilter}
+            hasValue={Boolean(appliedDateFilter.start || appliedDateFilter.end)}
+          />
+        </div>
+        {(search || appliedSearch || provider || appliedProvider || status || appliedStatus) && (
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-mist bg-white text-ink/60 transition hover:border-gold hover:text-ink"
+            title="Clear filters"
+            aria-label="Clear filters"
+          >
+            <X size={15} />
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={applyFilters}
+          className="admin-create-button"
+          title="Search"
+          aria-label="Search"
+        >
+          <Search size={14} />
+        </button>
+      </div>
 
+      <div data-admin-list className="mt-4 overflow-hidden rounded-lg border border-mist bg-white shadow-sm">
+        <ListPanelHeader
+          title="Payment Listing"
+          totalRecords={totalRecords}
+          onList={() => loadPayments(currentPage)}
+        />
         <div className="overflow-x-auto">
           <table className="w-full min-w-[980px] border-collapse text-left">
             <thead className="bg-parchment">
               <tr className="border-b border-mist text-[11px] uppercase tracking-wide text-ink/55">
                 <th className="w-24 px-4 py-2.5 font-semibold">ID</th>
+                <th className="w-44 px-4 py-2.5 font-semibold">Created Date</th>
                 <th className="w-48 px-4 py-2.5 font-semibold">Customer</th>
                 <th className="w-44 px-4 py-2.5 font-semibold">Mobile</th>
                 <th className="w-32 px-4 py-2.5 font-semibold">Amount</th>
@@ -219,40 +267,43 @@ export function PaymentsModule() {
             <tbody className="divide-y divide-mist">
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-5">
+                  <td colSpan={9} className="px-4 py-5">
                     <EmptyListState message="No payment entries found." />
                   </td>
                 </tr>
               ) : (
                 rows.map((payment) => (
                   <tr key={payment.id} className="text-sm transition hover:bg-parchment/55">
-                    <td className="px-4 py-2.5 font-mono text-[11px] text-ink/45">
+                    <td data-label="ID" className="px-4 py-2.5 font-mono text-[11px] text-ink/45">
                       #{payment.id.toString().padStart(4, "0")}
                     </td>
-                    <td className="px-4 py-2.5">
+                    <td data-label="Created Date" className="px-4 py-2.5 text-ink/60">
+                      {formatAdminDate(payment.created_at)}
+                    </td>
+                    <td data-label="Customer" className="px-4 py-2.5">
                       <p className="font-medium text-ink">{payment.customer_name}</p>
                       {payment.enq_id && (
                         <p className="text-xs text-ink/45">Enq #{payment.enq_id}</p>
                       )}
                     </td>
-                    <td className="px-4 py-2.5 text-ink/65">
+                    <td data-label="Mobile" className="px-4 py-2.5 text-ink/65">
                       {payment.customer_mobile}
                     </td>
-                    <td className="px-4 py-2.5 font-medium text-ink">
+                    <td data-label="Amount" className="px-4 py-2.5 font-medium text-ink">
                       {payment.currency} {payment.amount}
                     </td>
-                    <td className="px-4 py-2.5 capitalize text-ink/70">
+                    <td data-label="Provider" className="px-4 py-2.5 capitalize text-ink/70">
                       {payment.provider}
                     </td>
-                    <td className="px-4 py-2.5">
+                    <td data-label="Status" className="px-4 py-2.5">
                       <span className={`rounded-full px-2.5 py-1 text-xs font-medium capitalize ${statusClass(payment.payment_status)}`}>
                         {PAYMENT_STATUS_LABELS[payment.payment_status] || payment.payment_status}
                       </span>
                     </td>
-                    <td className="px-4 py-2.5 font-mono text-xs text-ink/55">
+                    <td data-label="Payment ID" className="px-4 py-2.5 font-mono text-xs text-ink/55">
                       {payment.provider_payment_id || "-"}
                     </td>
-                    <td className="px-4 py-2.5 text-right">
+                    <td data-label="Link" className="px-4 py-2.5 text-right">
                       {payment.payment_link ? (
                         <a
                           href={payment.payment_link}

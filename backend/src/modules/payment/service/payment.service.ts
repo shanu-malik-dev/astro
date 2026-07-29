@@ -87,6 +87,18 @@ export class PaymentService {
       );
     }
 
+    if (query.date_from) {
+      queryBuilder.andWhere('payment.created_at >= :dateFrom', {
+        dateFrom: new Date(query.date_from),
+      });
+    }
+
+    if (query.date_to) {
+      queryBuilder.andWhere('payment.created_at <= :dateTo', {
+        dateTo: new Date(query.date_to),
+      });
+    }
+
     const [payments, total] = await queryBuilder
       .orderBy('payment.id', 'DESC')
       .skip(skip)

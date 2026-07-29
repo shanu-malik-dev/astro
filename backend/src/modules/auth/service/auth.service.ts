@@ -21,6 +21,7 @@ import { EmailLoginDto } from '../dto/email-login.dto';
 import { ForgotPasswordResetDto } from '../dto/forgot-password-reset.dto';
 import { ForgotPasswordSendOtpDto } from '../dto/forgot-password-send-otp.dto';
 import { LoginDto } from '../dto/login.dto';
+import { RefreshTokenDto } from '../dto/refresh-token.dto';
 import { ResendOtpDto } from '../dto/resend-otp.dto';
 import { SignupDto } from '../dto/signup.dto';
 import { VerifyOtpDto } from '../dto/verify-otp.dto';
@@ -132,6 +133,64 @@ export class AuthService {
     requestMeta?: RequestMeta,
   ): Promise<unknown> {
     return this.loginWithEmail(dto, requestMeta, false);
+  }
+
+  async refresh(dto: RefreshTokenDto): Promise<unknown> {
+    const refreshToken = dto.refreshToken || dto.refresh_token;
+    if (!refreshToken) {
+      throw new UnauthorizedException(this.message('USER_NOT_FOUND_OR_INACTIVE'));
+    }
+
+    let payload: { sub?: string | number };
+    try {
+      payload = await this.jwtService.verifyAsync(refreshToken, {
+        secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
+      });
+    } catch {
+      throw new UnauthorizedException(this.message('USER_NOT_FOUND_OR_INACTIVE'));
+    }
+
+    const userId = Number(payload.sub);
+    const user = await this.authRepository.findUserById(userId, true);
+    if (
+      !user ||
+      user.is_delete !== 0 ||
+      user.status !== 1 ||
+      !user.token ||
+      !user.token_expiry ||
+      user.token_expiry <= new Date()
+    ) {
+      throw new UnauthorizedException(this.message('USER_NOT_FOUND_OR_INACTIVE'));
+    }
+
+    const refreshTokenValid = await bcrypt.compare(refreshToken, user.token);
+    if (!refreshTokenValid) {
+      throw new UnauthorizedException(this.message('USER_NOT_FOUND_OR_INACTIVE'));
+    }
+
+    const tokens = await this.signTokens(user);
+    const hashedRefreshToken = await bcrypt.hash(tokens.refresh_token, 12);
+    const adminModules = await this.roleService.getModulesForRole(Number(user.role_id));
+
+    await this.authRepository.updateUserToken(
+      user.id,
+      hashedRefreshToken,
+      this.getRefreshTokenExpiry(),
+      1,
+    );
+
+    return successResponse(
+      'LOGIN_SUCCESSFUL',
+      {
+        ...tokens,
+        token_type: AUTH_CONSTANTS.TOKEN_TYPE,
+        expires_in: this.getAccessTokenSeconds(),
+        user: this.toSafeUser(
+          user,
+          adminModules.length > 0 ? adminModules : undefined,
+        ),
+      },
+    );
   }
 
   async sendForgotPasswordOtp(dto: ForgotPasswordSendOtpDto) {

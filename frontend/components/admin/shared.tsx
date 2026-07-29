@@ -1,4 +1,5 @@
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ListFilter, Plus, Rows3, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ListFilter, Plus, Rows3, X } from "lucide-react";
+import CustomDatePicker, { type DateRangeValue } from "@/components/ui/CustomDatePicker";
 
 export function StatusBadge({ status }: { status: string }) {
   const tone =
@@ -30,10 +31,129 @@ export function EmptyListState({
       >
         <rect x="36" y="22" width="108" height="76" rx="8" fill="#f8fafc" stroke="#cbd5e1" />
         <path d="M54 44h72M54 60h52M54 76h64" stroke="#94a3b8" strokeWidth="5" strokeLinecap="round" />
-        <circle cx="132" cy="82" r="18" fill="#ede9fe" stroke="#7c3aed" strokeWidth="4" />
-        <path d="M123 82h18" stroke="#7c3aed" strokeWidth="5" strokeLinecap="round" />
+        <circle cx="132" cy="82" r="18" fill="var(--admin-accent-soft)" stroke="var(--admin-accent)" strokeWidth="4" />
+        <path d="M123 82h18" stroke="var(--admin-accent)" strokeWidth="5" strokeLinecap="round" />
       </svg>
       <p>{loading ? "Loading..." : message}</p>
+    </div>
+  );
+}
+
+export function formatAdminDate(value?: string) {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(value));
+}
+
+export function toAdminDateRange(range: DateRangeValue) {
+  return {
+    start: range.start ? new Date(range.start).toISOString() : "",
+    end: range.end ? new Date(range.end).toISOString() : "",
+  };
+}
+
+export function DateRangeFilter({
+  value,
+  onChange,
+  onClear,
+  hasValue,
+  placeholder = "Created date",
+}: {
+  value: DateRangeValue;
+  onChange: (value: DateRangeValue) => void;
+  onApply?: (value: DateRangeValue) => void;
+  onClear: () => void;
+  hasValue: boolean;
+  placeholder?: string;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <CustomDatePicker
+        dateRange
+        rangeValue={value}
+        onRangeChange={onChange}
+        placeholder={placeholder}
+        variant="light"
+        className="w-full sm:w-44"
+      />
+      {hasValue && (
+        <button
+          type="button"
+          onClick={onClear}
+          className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-mist bg-white text-ink/60 transition hover:border-gold hover:text-ink"
+          title="Clear date filter"
+          aria-label="Clear date filter"
+        >
+          <X size={15} />
+        </button>
+      )}
+    </div>
+  );
+}
+
+export function ListPanelHeader({
+  title,
+  totalRecords,
+  createLabel,
+  onCreate,
+  onList,
+  onSort,
+  sortDirection,
+  loading,
+}: {
+  title: string;
+  totalRecords: number;
+  createLabel?: string;
+  onCreate?: () => void;
+  onList?: () => void;
+  onSort?: () => void;
+  sortDirection?: "asc" | "desc";
+  loading?: boolean;
+}) {
+  const scrollToList = () => {
+    onList?.();
+    document
+      .querySelector<HTMLElement>("[data-admin-list]")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  return (
+    <div className="flex flex-col gap-3 border-b border-mist bg-white px-4 py-3 md:flex-row md:items-center md:justify-between">
+      <div>
+        <h2 className="text-sm font-semibold text-ink">{title}</h2>
+        <p className="text-[11px] text-ink/50">{totalRecords} total records</p>
+      </div>
+      <div className="admin-toolbar">
+        <button type="button" onClick={scrollToList} className="admin-toolbar-button">
+          <Rows3 size={15} />
+          <span>List</span>
+        </button>
+        {onSort && (
+          <button
+            type="button"
+            onClick={onSort}
+            className="admin-toolbar-button"
+            title={sortDirection ? `Sorted ${sortDirection}` : "Sort list"}
+          >
+            <ListFilter size={15} />
+            <span>Sort</span>
+          </button>
+        )}
+        {onCreate && createLabel && (
+          <button
+            type="button"
+            onClick={onCreate}
+            className="admin-create-button"
+          >
+            <Plus size={16} />
+            <span>{createLabel}</span>
+          </button>
+        )}
+        {loading && <span className="text-xs text-ink/50">Loading</span>}
+      </div>
     </div>
   );
 }
@@ -43,43 +163,27 @@ export function ModuleHeader({
   title,
   createLabel,
   onCreate,
+  onList,
+  onSort,
+  sortDirection,
 }: {
   eyebrow: string;
   title: string;
   createLabel: string;
   onCreate: () => void;
+  onList?: () => void;
+  onSort?: () => void;
+  sortDirection?: "asc" | "desc";
 }) {
-  return (
-    <div className="admin-module-heading">
-      <div>
-        <h1 className="admin-title">
-          {title}
-        </h1>
-      </div>
-      <div className="admin-toolbar">
-        <button type="button" className="admin-toolbar-button">
-          <Rows3 size={15} />
-          List
-        </button>
-        <button type="button" className="admin-toolbar-button">
-          <ListFilter size={15} />
-          Sort
-        </button>
-        <button type="button" className="admin-toolbar-button admin-toolbar-search">
-          <Search size={15} />
-          Find in this list
-        </button>
-        <button
-          type="button"
-          onClick={onCreate}
-          className="admin-create-button"
-        >
-          <Plus size={16} />
-          {createLabel}
-        </button>
-      </div>
-    </div>
-  );
+  const scrollToList = () => {
+    onList?.();
+
+    document
+      .querySelector<HTMLElement>("[data-admin-list]")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  return null;
 }
 
 export function Pagination({

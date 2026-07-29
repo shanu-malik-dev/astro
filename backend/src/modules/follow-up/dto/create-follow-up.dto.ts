@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsNotEmpty, IsString, Min } from 'class-validator';
+import { IsDateString, IsIn, IsInt, IsNotEmpty, IsString, Min } from 'class-validator';
 import { FOLLOW_UP_STATUS, FollowUpStatus } from '../../../common/constants/status.constant';
 
 export class CreateFollowUpDto {
@@ -15,4 +15,7 @@ export class CreateFollowUpDto {
   @IsString()
   @IsNotEmpty()
   remark: string;
+
+  @IsDateString()
+  follow_up_at: string;
 }

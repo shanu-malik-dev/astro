@@ -19,8 +19,8 @@ import {
 import { useTenant } from "@/lib/tenant-context";
 import { useAdminSnackbar } from "../AdminSnackbar";
 import { FOLLOW_UP_STATUS_OPTIONS, PAGE_SIZE } from "../constants";
-import { EmptyListState, Pagination } from "../shared";
-import type { EnquiryRow, EnquiryStatus, FollowUpStatus } from "../types";
+import { EmptyListState, formatAdminDate, ListPanelHeader, Pagination } from "../shared";
+import type { AdminDateFilter, EnquiryRow, EnquiryStatus, FollowUpStatus } from "../types";
 
 type MainDateTab = "today" | "all";
 type EnquiryTabData = Record<
@@ -45,6 +45,16 @@ function getTodayRange(): DateRangeValue {
   };
 }
 
+function defaultFollowUpAt() {
+  const date = new Date();
+  date.setMinutes(date.getMinutes() + 30);
+  const pad = (value: number) => String(value).padStart(2, "0");
+
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+    date.getDate()
+  )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 function toApiRange(range: DateRangeValue, mainTab: MainDateTab) {
   if (mainTab === "today") return getTodayRange();
 
@@ -57,6 +67,7 @@ function toApiRange(range: DateRangeValue, mainTab: MainDateTab) {
 function mapEnquiryDto(enquiry: EnquiryDto): EnquiryRow {
   return {
     enq_id: Number(enquiry.id),
+    created_at: enquiry.created_at,
     customer_name: enquiry.customer_name,
     customer_number:
       enquiry.customer_mobile || `${enquiry.country_code} ${enquiry.mobile}`,
@@ -68,7 +79,13 @@ function mapEnquiryDto(enquiry: EnquiryDto): EnquiryRow {
   };
 }
 
-export function EnquiryModule() {
+export function EnquiryModule({
+  initialDateFilter,
+  filterToken,
+}: {
+  initialDateFilter?: AdminDateFilter | null;
+  filterToken?: number;
+} = {}) {
   const { accessToken } = useAuth();
   const { tenant } = useTenant();
   const snackbar = useAdminSnackbar();
@@ -96,6 +113,7 @@ export function EnquiryModule() {
   });
   const [followDraft, setFollowDraft] = useState<EnquiryRow | null>(null);
   const [followStatus, setFollowStatus] = useState<FollowUpStatus>(FOLLOW_UP_STATUS.WARM);
+  const [followUpAt, setFollowUpAt] = useState("");
   const [closeDraft, setCloseDraft] = useState<EnquiryRow | null>(null);
   const [closeRemarkError, setCloseRemarkError] = useState("");
   const [followError, setFollowError] = useState("");
@@ -110,6 +128,21 @@ export function EnquiryModule() {
   useEffect(() => {
     activeTabRef.current = activeTab;
   }, [activeTab]);
+
+  useEffect(() => {
+    if (!filterToken || !initialDateFilter) return;
+
+    setMainTab(initialDateFilter.preset === "today" ? "today" : "all");
+    setDateFilter({
+      start: initialDateFilter.start,
+      end: initialDateFilter.end,
+    });
+    setAppliedDateFilter({
+      start: initialDateFilter.start,
+      end: initialDateFilter.end,
+    });
+    setCurrentPage(1);
+  }, [filterToken, initialDateFilter]);
 
   const fetchEnquiries = useCallback(
     async (
@@ -249,6 +282,10 @@ export function EnquiryModule() {
       setFollowError("Remark is required.");
       return;
     }
+    if (!followUpAt) {
+      setFollowError("Follow-up date and time is required.");
+      return;
+    }
 
     snackbar.setPageLoading(true);
     try {
@@ -256,9 +293,11 @@ export function EnquiryModule() {
         enq_id: followDraft.enq_id,
         remark: followDraft.remark.trim(),
         status: followStatus,
+        follow_up_at: new Date(followUpAt).toISOString(),
       });
       setFollowDraft(null);
       setFollowError("");
+      setFollowUpAt("");
       setFollowStatus(FOLLOW_UP_STATUS.WARM);
       snackbar.success("Follow up created successfully.");
     } catch (err) {
@@ -403,29 +442,11 @@ export function EnquiryModule() {
 
   return (
     <>
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="mt-2 font-display text-3xl font-semibold text-ink">
-            Enquiry Module
-          </h1>
-        </div>
-        <div className="rounded-md border border-mist bg-white px-4 py-2 text-sm text-ink/60">
-          {totalRecords} {ENQUIRY_STATUS_LABELS[activeTab] || activeTab} enquiries
-        </div>
-      </div>
-
-      <div className="mt-5 overflow-visible rounded-lg border border-mist bg-white shadow-sm">
-        <div className="border-b border-mist bg-white">
-          <div className="space-y-3 px-4 py-3">
-            <div>
-              <h2 className="text-sm font-semibold text-ink">Enquiry Listing</h2>
-              <p className="text-[11px] text-ink/50">
-                Manage open enquiries and review closed enquiries.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex h-10 rounded-md border border-mist bg-parchment p-1">
+      <div className="admin-filter-panel">
+        <div className="w-full">
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <div className="admin-filter-segment">
                 {(["today", "all"] as MainDateTab[]).map((tab) => (
                   <button
                     key={tab}
@@ -442,7 +463,7 @@ export function EnquiryModule() {
                 ))}
               </div>
 
-              <div className="inline-flex h-10 w-fit rounded-md border border-mist bg-parchment p-1">
+              <div className="admin-filter-segment">
                 {tabItems.map((tab) => (
                   <button
                     key={tab.value}
@@ -462,11 +483,7 @@ export function EnquiryModule() {
                 ))}
               </div>
 
-              <div className="relative h-10 min-w-[240px] flex-1">
-                <Search
-                  size={15}
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink/35"
-                />
+              <div className="relative h-10 w-full sm:w-72">
                 <input
                   type="search"
                   value={customerFilter}
@@ -475,7 +492,7 @@ export function EnquiryModule() {
                     if (event.key === "Enter") applyFilters();
                   }}
                   placeholder="Search customer name or number"
-                  className="h-full w-full rounded-md border border-mist bg-white pl-9 pr-9 text-sm text-ink outline-none transition placeholder:text-ink/35 focus:border-gold"
+                  className="h-full w-full rounded-md border border-mist bg-white pl-3 pr-9 text-sm text-ink outline-none transition placeholder:text-ink/35 focus:border-gold"
                 />
                 {customerFilter && (
                   <button
@@ -497,18 +514,10 @@ export function EnquiryModule() {
                   onRangeChange={setDateFilter}
                   placeholder="Enquiry date"
                   variant="light"
-                  className="w-full sm:w-52"
+                  className="w-full sm:w-44"
                 />
               )}
 
-              <button
-                type="button"
-                onClick={applyFilters}
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-ink px-3 text-xs font-semibold text-white transition hover:opacity-90"
-              >
-                <Search size={14} />
-                Search
-              </button>
               {(customerFilter ||
                 appliedCustomerFilter ||
                 (mainTab === "all" &&
@@ -519,20 +528,41 @@ export function EnquiryModule() {
                 <button
                   type="button"
                   onClick={clearFilters}
-                  className="h-10 rounded-md border border-mist bg-white px-3 text-xs font-medium text-ink/60 transition hover:border-gold hover:text-ink"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-mist bg-white text-ink/60 transition hover:border-gold hover:text-ink"
+                  title="Clear filters"
+                  aria-label="Clear filters"
                 >
-                  Clear
+                  <X size={15} />
                 </button>
               )}
+              <button
+                type="button"
+                onClick={applyFilters}
+                className="admin-create-button"
+                title="Search"
+                aria-label="Search"
+              >
+                <Search size={14} />
+              </button>
             </div>
           </div>
         </div>
+      </div>
 
+      <div data-admin-list className="mt-4 overflow-hidden rounded-lg border border-mist bg-white shadow-sm">
+        <ListPanelHeader
+          title="Enquiry Listing"
+          totalRecords={totalRecords}
+          onList={() =>
+            loadEnquiries(currentPage, appliedCustomerFilter, appliedDateFilter)
+          }
+        />
         <div className="overflow-x-auto">
           <table className="w-full min-w-[840px] border-collapse text-left">
             <thead className="bg-parchment">
               <tr className="border-b border-mist text-[11px] uppercase tracking-wide text-ink/55">
                 <th className="w-24 px-4 py-2.5 font-semibold">Enq ID</th>
+                <th className="w-44 px-4 py-2.5 font-semibold">Created Date</th>
                 <th className="w-48 px-4 py-2.5 font-semibold">Customer</th>
                 <th className="w-44 px-4 py-2.5 font-semibold">Number</th>
                 <th className="px-4 py-2.5 font-semibold">Problem</th>
@@ -548,7 +578,7 @@ export function EnquiryModule() {
               {rows.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={6}
                     className="px-4 py-5"
                   >
                     <EmptyListState message="No enquiries found." />
@@ -557,25 +587,28 @@ export function EnquiryModule() {
               ) : (
                 rows.map((enquiry) => (
                   <tr key={enquiry.enq_id} className="text-sm transition hover:bg-parchment/55">
-                    <td className="px-4 py-2.5 font-mono text-[11px] text-ink/45">
+                    <td data-label="Enq ID" className="px-4 py-2.5 font-mono text-[11px] text-ink/45">
                       #{enquiry.enq_id.toString().padStart(4, "0")}
                     </td>
-                    <td className="px-4 py-2.5">
+                    <td data-label="Created Date" className="px-4 py-2.5 text-ink/60">
+                      {formatAdminDate(enquiry.created_at)}
+                    </td>
+                    <td data-label="Customer" className="px-4 py-2.5">
                       <p className="font-medium text-ink">{enquiry.customer_name}</p>
                     </td>
-                    <td className="px-4 py-2.5 text-ink/65">
+                    <td data-label="Number" className="px-4 py-2.5 text-ink/65">
                       {enquiry.customer_number}
                     </td>
-                    <td className="px-4 py-2.5 text-ink/70">
+                    <td data-label="Problem" className="px-4 py-2.5 text-ink/70">
                       {enquiry.problem_name}
                     </td>
                     {activeTab === ENQUIRY_STATUS.CLOSED && (
-                      <td className="px-4 py-2.5 text-ink/60">
+                      <td data-label="Close Remark" className="px-4 py-2.5 text-ink/60">
                         {enquiry.remark || "-"}
                       </td>
                     )}
                     {activeTab === ENQUIRY_STATUS.OPEN && (
-                      <td className="px-4 py-2.5">
+                      <td data-label="Actions" className="px-4 py-2.5">
                         <div className="flex justify-end gap-2">
                           <a
                             href={`tel:${enquiry.customer_number.replace(/\s/g, "")}`}
@@ -597,6 +630,7 @@ export function EnquiryModule() {
                             onClick={() => {
                               setFollowError("");
                               setFollowStatus(FOLLOW_UP_STATUS.WARM);
+                              setFollowUpAt(defaultFollowUpAt());
                               setFollowDraft({ ...enquiry, remark: "" });
                             }}
                             className="rounded-md bg-ink px-2.5 py-1.5 text-xs font-medium text-white transition hover:opacity-90"
@@ -644,7 +678,11 @@ export function EnquiryModule() {
               </div>
               <button
                 type="button"
-                onClick={() => setFollowDraft(null)}
+                onClick={() => {
+                  setFollowDraft(null);
+                  setFollowUpAt("");
+                  setFollowError("");
+                }}
                 className="rounded-md border border-mist p-2 text-ink/60 hover:text-ink"
                 aria-label="Close follow up"
               >
@@ -684,6 +722,22 @@ export function EnquiryModule() {
               </label>
 
               <label className="block text-sm font-medium text-ink">
+                Follow Date & Time <span className="text-red-500">*</span>
+                <CustomDatePicker
+                  value={followUpAt}
+                  onChange={(value) => {
+                    setFollowError("");
+                    setFollowUpAt(value);
+                  }}
+                  showTime
+                  placeholder="Follow-up date and time"
+                  variant="light"
+                  className="mt-2"
+                  portal
+                />
+              </label>
+
+              <label className="block text-sm font-medium text-ink">
                 Remark <span className="text-red-500">*</span>
                 <textarea
                   value={followDraft.remark || ""}
@@ -707,7 +761,11 @@ export function EnquiryModule() {
             <div className="flex justify-end gap-3 border-t border-mist bg-parchment px-5 py-4">
               <button
                 type="button"
-                onClick={() => setFollowDraft(null)}
+                onClick={() => {
+                  setFollowDraft(null);
+                  setFollowUpAt("");
+                  setFollowError("");
+                }}
                 className="rounded-md border border-mist bg-white px-4 py-2.5 text-sm font-medium text-ink/65 hover:text-ink"
               >
                 Cancel

@@ -8,11 +8,14 @@ import { SaveRoleDto } from '../dto/save-role.dto';
 import { RoleAdminModuleEntity } from '../entity/role-admin-module.entity';
 
 export const ADMIN_MODULE_KEYS = [
+  'dashboard',
+  'master',
   'problem',
   'services',
   'astrologers',
   'enquiry',
-  'customers',
+  'countryCodes',
+  'users',
   'followUp',
   'payments',
   'support',
@@ -32,7 +35,10 @@ export class RoleService {
     const page = query.page || 1;
     const limit = Math.min(query.limit || 10, 100);
     const skip = (page - 1) * limit;
+    const sortOrder = query.sort_order === 'desc' ? 'DESC' : 'ASC';
     const queryBuilder = this.roleRepository.createQueryBuilder('role');
+
+    queryBuilder.where('role.id != :adminRoleId', { adminRoleId: 1 });
 
     if (query.search) {
       queryBuilder.andWhere('role.name LIKE :search', {
@@ -40,8 +46,21 @@ export class RoleService {
       });
     }
 
+    if (query.date_from) {
+      queryBuilder.andWhere('role.created_at >= :dateFrom', {
+        dateFrom: new Date(query.date_from),
+      });
+    }
+
+    if (query.date_to) {
+      queryBuilder.andWhere('role.created_at <= :dateTo', {
+        dateTo: new Date(query.date_to),
+      });
+    }
+
     const [roles, total] = await queryBuilder
-      .orderBy('role.id', 'ASC')
+      .orderBy('role.name', sortOrder)
+      .addOrderBy('role.id', sortOrder)
       .skip(skip)
       .take(limit)
       .getManyAndCount();

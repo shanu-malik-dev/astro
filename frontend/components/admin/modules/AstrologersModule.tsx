@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Edit3, Loader2, Power, Save, Trash2, X } from "lucide-react";
+import { Edit3, Loader2, Power, Save, Search, Trash2, X } from "lucide-react";
 import {
   adminAstrologerApi,
   ApiError,
@@ -14,7 +14,17 @@ import {
   getEnglishTranslation,
   syncAstrologerTranslations,
 } from "../helpers";
-import { EmptyListState, ModuleHeader, Pagination, StatusBadge } from "../shared";
+import {
+  DateRangeFilter,
+  EmptyListState,
+  formatAdminDate,
+  ListPanelHeader,
+  ModuleHeader,
+  Pagination,
+  StatusBadge,
+  toAdminDateRange,
+} from "../shared";
+import type { DateRangeValue } from "@/components/ui/CustomDatePicker";
 import type { AstrologerRow, AstrologerTranslation } from "../types";
 
 type AstrologerFormErrors = {
@@ -50,6 +60,7 @@ function mapAstrologerDto(astrologer: AdminAstrologerDto): AstrologerRow {
 
   return syncAstrologerTranslations({
     id: Number(astrologer.id),
+    createdAt: astrologer.created_at,
     experience: astrologer.experience || "",
     languages: astrologer.languages || "",
     rating: Number(astrologer.rating || 0),
@@ -90,10 +101,19 @@ export function AstrologersModule() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formErrors, setFormErrors] = useState<AstrologerFormErrors>({});
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [dateFilter, setDateFilter] = useState<DateRangeValue>({
+    start: "",
+    end: "",
+  });
+  const [appliedDateFilter, setAppliedDateFilter] = useState<DateRangeValue>({
+    start: "",
+    end: "",
+  });
   const lastFetchKeyRef = useRef("");
 
   const loadAstrologers = useCallback(
-    async (page: number) => {
+    async (page: number, sortOrder = sortDirection) => {
       if (!accessToken) return;
 
       setLoading(true);
@@ -103,6 +123,9 @@ export function AstrologersModule() {
         const response = await adminAstrologerApi.list(tenant.id, accessToken, {
           page,
           limit: PAGE_SIZE,
+          sort_order: sortOrder,
+          date_from: appliedDateFilter.start || undefined,
+          date_to: appliedDateFilter.end || undefined,
         });
         const records = response.data?.records || [];
         const pagination = response.data?.pagination;
@@ -122,15 +145,32 @@ export function AstrologersModule() {
         snackbar.setPageLoading(false);
       }
     },
-    [accessToken, snackbar, tenant.id]
+    [accessToken, appliedDateFilter, snackbar, sortDirection, tenant.id]
   );
 
   useEffect(() => {
-    const fetchKey = `astrologers:1:${tenant.id}:${accessToken || ""}`;
+    const fetchKey = JSON.stringify({
+      module: "astrologers",
+      tenantId: tenant.id,
+      accessToken: accessToken || "",
+      date: appliedDateFilter,
+    });
     if (lastFetchKeyRef.current === fetchKey) return;
     lastFetchKeyRef.current = fetchKey;
     loadAstrologers(1);
-  }, [accessToken, loadAstrologers, tenant.id]);
+  }, [accessToken, appliedDateFilter, loadAstrologers, tenant.id]);
+
+  const applyDateFilter = (range = dateFilter) => {
+    setAppliedDateFilter(toAdminDateRange(range));
+    setCurrentPage(1);
+  };
+
+  const clearDateFilter = () => {
+    const emptyRange = { start: "", end: "" };
+    setDateFilter(emptyRange);
+    setAppliedDateFilter(emptyRange);
+    setCurrentPage(1);
+  };
 
   const startCreate = () => {
     setFormErrors({});
@@ -293,31 +333,55 @@ export function AstrologersModule() {
         title="Astrologers Module"
         createLabel="Create Astrologer"
         onCreate={startCreate}
+        onList={() => loadAstrologers(currentPage)}
+        onSort={() => {
+          const nextDirection = sortDirection === "asc" ? "desc" : "asc";
+          setSortDirection(nextDirection);
+          loadAstrologers(1, nextDirection);
+        }}
+        sortDirection={sortDirection}
       />
 
-      <div className="mt-5 overflow-hidden rounded-lg border border-mist bg-white shadow-sm">
-        <div className="flex items-center justify-between border-b border-mist bg-white px-4 py-3">
-          <div>
-            <h2 className="text-sm font-semibold text-ink">
-              Astrologer Listing
-            </h2>
-            <p className="text-[11px] text-ink/50">
-              {totalRecords} total records
-            </p>
-          </div>
-          {loading && (
-            <div className="flex items-center gap-2 text-xs text-ink/50">
-              <Loader2 size={14} className="animate-spin" />
-              Loading
-            </div>
-          )}
-        </div>
+      <div className="admin-filter-panel mt-3">
+        <DateRangeFilter
+          value={dateFilter}
+          onChange={setDateFilter}
+          onApply={applyDateFilter}
+          onClear={clearDateFilter}
+          hasValue={Boolean(appliedDateFilter.start || appliedDateFilter.end)}
+        />
+        <button
+          type="button"
+          onClick={() => applyDateFilter()}
+          className="admin-create-button"
+          title="Search"
+          aria-label="Search"
+        >
+          <Search size={14} />
+        </button>
+      </div>
 
+      <div data-admin-list className="mt-4 overflow-hidden rounded-lg border border-mist bg-white shadow-sm">
+        <ListPanelHeader
+          title="Astrologer Listing"
+          totalRecords={totalRecords}
+          createLabel="Create Astrologer"
+          onCreate={startCreate}
+          onList={() => loadAstrologers(currentPage)}
+          onSort={() => {
+            const nextDirection = sortDirection === "asc" ? "desc" : "asc";
+            setSortDirection(nextDirection);
+            loadAstrologers(1, nextDirection);
+          }}
+          sortDirection={sortDirection}
+          loading={loading}
+        />
         <div className="overflow-x-auto">
           <table className="w-full min-w-[980px] border-collapse text-left">
             <thead className="bg-parchment">
               <tr className="border-b border-mist text-[11px] uppercase tracking-wide text-ink/55">
                 <th className="w-20 px-4 py-2.5 font-semibold">ID</th>
+                <th className="w-44 px-4 py-2.5 font-semibold">Created Date</th>
                 <th className="w-52 px-4 py-2.5 font-semibold">Name</th>
                 <th className="w-32 px-4 py-2.5 font-semibold">Experience</th>
                 <th className="px-4 py-2.5 font-semibold">Expertise</th>
@@ -333,7 +397,7 @@ export function AstrologersModule() {
             <tbody className="divide-y divide-mist">
               {astrologers.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-5">
+                  <td colSpan={10} className="px-4 py-5">
                     <EmptyListState
                       loading={loading}
                       message="No astrologers yet. Create the first astrologer."
@@ -351,35 +415,38 @@ export function AstrologersModule() {
                       key={astrologer.id}
                       className="text-sm transition hover:bg-parchment/55"
                     >
-                      <td className="px-4 py-2.5 font-mono text-[11px] text-ink/45">
+                      <td data-label="ID" className="px-4 py-2.5 font-mono text-[11px] text-ink/45">
                         #{astrologer.id.toString().padStart(3, "0")}
                       </td>
-                      <td className="px-4 py-2.5 font-medium text-ink">
+                      <td data-label="Created Date" className="px-4 py-2.5 text-ink/60">
+                        {formatAdminDate(astrologer.createdAt)}
+                      </td>
+                      <td data-label="Name" className="px-4 py-2.5 font-medium text-ink">
                         {english?.name || "Untitled astrologer"}
                       </td>
-                      <td className="px-4 py-2.5 text-ink/60">
+                      <td data-label="Experience" className="px-4 py-2.5 text-ink/60">
                         {astrologer.experience}
                       </td>
-                      <td className="px-4 py-2.5 text-ink/60">
+                      <td data-label="Expertise" className="px-4 py-2.5 text-ink/60">
                         <span className="line-clamp-1">
                           {english?.expertise || "No expertise"}
                         </span>
                       </td>
-                      <td className="px-4 py-2.5 text-ink/60">
+                      <td data-label="Languages" className="px-4 py-2.5 text-ink/60">
                         <span className="line-clamp-1">
                           {astrologer.languages}
                         </span>
                       </td>
-                      <td className="px-4 py-2.5 text-ink/60">
+                      <td data-label="Rating" className="px-4 py-2.5 text-ink/60">
                         {astrologer.rating}
                       </td>
-                      <td className="px-4 py-2.5 text-ink/60">
+                      <td data-label="Consultations" className="px-4 py-2.5 text-ink/60">
                         {astrologer.consultations}
                       </td>
-                      <td className="px-4 py-2.5">
+                      <td data-label="Status" className="px-4 py-2.5">
                         <StatusBadge status={astrologer.status} />
                       </td>
-                      <td className="px-4 py-2.5">
+                      <td data-label="Actions" className="px-4 py-2.5">
                         <div className="flex justify-end gap-2">
                           <button
                             type="button"

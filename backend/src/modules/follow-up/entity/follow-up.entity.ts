@@ -40,6 +40,9 @@ export class FollowUpEntity {
   @Column({ type: 'tinyint' })
   status: FollowUpStatus;
 
+  @Column({ type: 'timestamp', nullable: true })
+  follow_up_at: Date | null;
+
   @Column({
     type: 'tinyint',
     width: 1,

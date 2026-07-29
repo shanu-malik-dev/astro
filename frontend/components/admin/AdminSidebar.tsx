@@ -1,20 +1,33 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { BRAND } from "@/lib/brand";
-import type { AdminModule, ModuleKey } from "./types";
+import type { AdminModule, MasterModuleKey, ModuleKey } from "./types";
 
 export function AdminSidebar({
   activeModule,
   modules,
+  masterModules,
   sidebarOpen,
+  activeMasterSubmodule,
   onModuleChange,
+  onMasterSubmoduleChange,
   onToggle,
 }: {
   activeModule: ModuleKey;
   modules: AdminModule[];
+  masterModules: AdminModule[];
   sidebarOpen: boolean;
+  activeMasterSubmodule: MasterModuleKey;
   onModuleChange: (module: ModuleKey) => void;
+  onMasterSubmoduleChange: (module: MasterModuleKey) => void;
   onToggle: () => void;
 }) {
+  const [masterExpanded, setMasterExpanded] = useState(activeModule === "master");
+
+  useEffect(() => {
+    if (activeModule === "master") setMasterExpanded(true);
+  }, [activeModule]);
+
   return (
     <aside
       className={`admin-sidebar border-r border-mist bg-white transition-all duration-300 ${
@@ -49,21 +62,75 @@ export function AdminSidebar({
         {modules.map((module) => {
           const Icon = module.icon;
           const active = activeModule === module.key;
+          const isMaster = module.key === "master";
+          const showMasterSubnav = isMaster && masterExpanded && sidebarOpen;
 
           return (
-            <button
-              key={module.key}
-              type="button"
-              onClick={() => onModuleChange(module.key)}
-              className={`flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm transition ${
-                active
-                  ? "bg-gold/15 text-ink"
-                  : "text-ink/65 hover:bg-parchment hover:text-ink"
-              }`}
-            >
-              <Icon size={17} />
-              {sidebarOpen && <span>{module.label}</span>}
-            </button>
+            <div key={module.key}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (isMaster) {
+                    if (active) {
+                      setMasterExpanded((expanded) => !expanded);
+                    } else {
+                      setMasterExpanded(true);
+                      onModuleChange(module.key);
+                    }
+                    return;
+                  }
+
+                  onModuleChange(module.key);
+                }}
+                className={`flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm transition ${
+                  active
+                    ? "bg-gold/15 text-gold-dark"
+                    : "text-ink/65 hover:bg-gold/10 hover:text-gold-dark"
+                }`}
+              >
+                <Icon size={17} />
+                {sidebarOpen && (
+                  <>
+                    <span className="min-w-0 flex-1 text-left">{module.label}</span>
+                    {isMaster && (
+                      <ChevronDown
+                        size={14}
+                        className={`transition ${
+                          masterExpanded ? "rotate-180" : ""
+                        }`}
+                      />
+                    )}
+                  </>
+                )}
+              </button>
+
+              {showMasterSubnav && masterModules.length > 0 && (
+                <div className="mt-1 space-y-1 border-l border-mist/80 pl-3">
+                  {masterModules.map((submodule) => {
+                    const SubIcon = submodule.icon;
+                    const subActive = activeMasterSubmodule === submodule.key;
+
+                    return (
+                      <button
+                        key={submodule.key}
+                        type="button"
+                        onClick={() =>
+                          onMasterSubmoduleChange(submodule.key as MasterModuleKey)
+                        }
+                        className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-xs transition ${
+                          subActive
+                            ? "bg-gold/15 text-gold-dark"
+                            : "text-ink/55 hover:bg-gold/10 hover:text-gold-dark"
+                        }`}
+                      >
+                        <SubIcon size={14} />
+                        <span className="min-w-0 truncate">{submodule.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           );
         })}
       </nav>

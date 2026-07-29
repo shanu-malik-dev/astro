@@ -21,6 +21,11 @@ interface CountryCodeResponse {
 let countryCodeCache: CountryCodeOption[] | null = null;
 let countryCodeRequest: Promise<CountryCodeOption[]> | null = null;
 
+export function clearCountryCodeCache() {
+  countryCodeCache = null;
+  countryCodeRequest = null;
+}
+
 export async function fetchCountryCodes() {
   if (countryCodeCache) return countryCodeCache;
 

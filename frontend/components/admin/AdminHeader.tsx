@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bell, LogOut, Menu, Search, Settings, UserCircle } from "lucide-react";
+import { Bell, LogOut, Menu, Moon, Settings, Sun, UserCircle } from "lucide-react";
 
 const ADMIN_THEME_KEY = "astronova_admin_accent";
+const ADMIN_MODE_KEY = "astronova_admin_mode";
 const ADMIN_THEMES = [
   {
     name: "Gold",
@@ -53,6 +54,110 @@ const ADMIN_THEMES = [
     softer: "rgb(124 58 237 / 0.16)",
     dark: "#6D28D9",
   },
+  {
+    name: "Amber",
+    accent: "#D97706",
+    light: "#FBBF24",
+    soft: "rgb(217 119 6 / 0.12)",
+    softer: "rgb(217 119 6 / 0.16)",
+    dark: "#B45309",
+  },
+  {
+    name: "Teal",
+    accent: "#0D9488",
+    light: "#2DD4BF",
+    soft: "rgb(13 148 136 / 0.12)",
+    softer: "rgb(13 148 136 / 0.16)",
+    dark: "#0F766E",
+  },
+  {
+    name: "Cyan",
+    accent: "#0891B2",
+    light: "#22D3EE",
+    soft: "rgb(8 145 178 / 0.12)",
+    softer: "rgb(8 145 178 / 0.16)",
+    dark: "#0E7490",
+  },
+  {
+    name: "Fuchsia",
+    accent: "#C026D3",
+    light: "#E879F9",
+    soft: "rgb(192 38 211 / 0.12)",
+    softer: "rgb(192 38 211 / 0.16)",
+    dark: "#A21CAF",
+  },
+  {
+    name: "Ruby",
+    accent: "#DC2626",
+    light: "#F87171",
+    soft: "rgb(220 38 38 / 0.12)",
+    softer: "rgb(220 38 38 / 0.16)",
+    dark: "#B91C1C",
+  },
+  {
+    name: "Slate",
+    accent: "#475569",
+    light: "#94A3B8",
+    soft: "rgb(71 85 105 / 0.12)",
+    softer: "rgb(71 85 105 / 0.16)",
+    dark: "#334155",
+  },
+  {
+    name: "Neon Lime",
+    accent: "#65A30D",
+    light: "#BEF264",
+    soft: "rgb(101 163 13 / 0.12)",
+    softer: "rgb(101 163 13 / 0.16)",
+    dark: "#4D7C0F",
+  },
+  {
+    name: "Electric Blue",
+    accent: "#2563EB",
+    light: "#60A5FA",
+    soft: "rgb(37 99 235 / 0.12)",
+    softer: "rgb(37 99 235 / 0.16)",
+    dark: "#1D4ED8",
+  },
+  {
+    name: "Hot Pink",
+    accent: "#DB2777",
+    light: "#F9A8D4",
+    soft: "rgb(219 39 119 / 0.12)",
+    softer: "rgb(219 39 119 / 0.16)",
+    dark: "#BE185D",
+  },
+  {
+    name: "Laser Orange",
+    accent: "#EA580C",
+    light: "#FDBA74",
+    soft: "rgb(234 88 12 / 0.12)",
+    softer: "rgb(234 88 12 / 0.16)",
+    dark: "#C2410C",
+  },
+  {
+    name: "Toxic Green",
+    accent: "#16A34A",
+    light: "#86EFAC",
+    soft: "rgb(22 163 74 / 0.12)",
+    softer: "rgb(22 163 74 / 0.16)",
+    dark: "#15803D",
+  },
+  {
+    name: "Cyber Grape",
+    accent: "#9333EA",
+    light: "#D8B4FE",
+    soft: "rgb(147 51 234 / 0.12)",
+    softer: "rgb(147 51 234 / 0.16)",
+    dark: "#7E22CE",
+  },
+  {
+    name: "Aqua Blast",
+    accent: "#06B6D4",
+    light: "#67E8F9",
+    soft: "rgb(6 182 212 / 0.12)",
+    softer: "rgb(6 182 212 / 0.16)",
+    dark: "#0891B2",
+  },
 ];
 
 function applyAdminTheme(themeName: string) {
@@ -86,12 +191,17 @@ export function AdminHeader({
 }) {
   const [selectedTheme, setSelectedTheme] = useState(ADMIN_THEMES[0].name);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [mode, setMode] = useState<"light" | "dark">("light");
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem(ADMIN_THEME_KEY);
+    const savedMode =
+      window.localStorage.getItem(ADMIN_MODE_KEY) === "dark" ? "dark" : "light";
     const theme = applyAdminTheme(savedTheme || ADMIN_THEMES[0].name);
 
     setSelectedTheme(theme.name);
+    setMode(savedMode);
+    document.documentElement.classList.toggle("admin-dark", savedMode === "dark");
   }, []);
 
   const selectTheme = (themeName: string) => {
@@ -100,6 +210,14 @@ export function AdminHeader({
     setSelectedTheme(theme.name);
     window.localStorage.setItem(ADMIN_THEME_KEY, theme.name);
     setSettingsOpen(false);
+  };
+
+  const toggleMode = () => {
+    const nextMode = mode === "dark" ? "light" : "dark";
+
+    setMode(nextMode);
+    window.localStorage.setItem(ADMIN_MODE_KEY, nextMode);
+    document.documentElement.classList.toggle("admin-dark", nextMode === "dark");
   };
 
   return (
@@ -113,14 +231,18 @@ export function AdminHeader({
         <Menu size={18} />
       </button>
 
-      <div className="hidden w-full max-w-sm items-center gap-2 rounded-md border border-[#d8e1ea] bg-[#f8fafc] px-3 py-2 text-sm text-ink/45 md:flex">
-        <Search size={16} />
-        <span>Search here</span>
-      </div>
-
       <div className="ml-auto flex items-center gap-3">
         <button className="rounded-full border border-mist p-2 text-ink/60 transition hover:text-ink" aria-label="Notifications">
           <Bell size={17} />
+        </button>
+        <button
+          type="button"
+          onClick={toggleMode}
+          className="rounded-full border border-mist p-2 text-ink/60 transition hover:text-ink"
+          aria-label={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          title={mode === "dark" ? "Light mode" : "Dark mode"}
+        >
+          {mode === "dark" ? <Sun size={17} /> : <Moon size={17} />}
         </button>
         <div className="relative">
           <button

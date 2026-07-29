@@ -34,6 +34,7 @@ export class FollowUpRepository {
         problem_name: enquiry.problem_name,
         remark: dto.remark.trim(),
         status: dto.status,
+        follow_up_at: new Date(dto.follow_up_at),
         is_delete: 0,
       }),
     );

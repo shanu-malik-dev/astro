@@ -2,6 +2,11 @@ const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
 export const AUTH_UNAUTHORIZED_EVENT = "astronova:unauthorized";
 const inFlightRequests = new Map<string, Promise<unknown>>();
+const AUTH_STORAGE_KEYS = [
+  "astronova_admin_session",
+  "astronova_website_session",
+] as const;
+let refreshPromise: Promise<string | null> | null = null;
 
 function getAcceptLanguage() {
   if (typeof window === "undefined") return "en";
@@ -21,6 +26,130 @@ export class ApiError extends Error {
 function notifyUnauthorized() {
   if (typeof window === "undefined") return;
   window.dispatchEvent(new CustomEvent(AUTH_UNAUTHORIZED_EVENT));
+}
+
+function getTokenFromHeaders(headers: HeadersInit | undefined) {
+  const authHeader = new Headers(headers).get("authorization");
+  const match = /^Bearer\s+(.+)$/i.exec(authHeader || "");
+
+  return match?.[1] || null;
+}
+
+function findStoredSession(accessToken: string | null) {
+  if (typeof window === "undefined") return null;
+
+  for (const key of AUTH_STORAGE_KEYS) {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) continue;
+
+    try {
+      const session = JSON.parse(raw) as {
+        accessToken?: string | null;
+        refreshToken?: string | null;
+        user?: unknown;
+      };
+      if (!accessToken || session.accessToken === accessToken) {
+        return { key, session };
+      }
+    } catch {
+      window.localStorage.removeItem(key);
+    }
+  }
+
+  const scopedKey = window.location.pathname.startsWith("/admin")
+    ? "astronova_admin_session"
+    : "astronova_website_session";
+  const scopedRaw = window.localStorage.getItem(scopedKey);
+  if (scopedRaw) {
+    try {
+      return {
+        key: scopedKey,
+        session: JSON.parse(scopedRaw) as {
+          accessToken?: string | null;
+          refreshToken?: string | null;
+          user?: unknown;
+        },
+      };
+    } catch {
+      window.localStorage.removeItem(scopedKey);
+    }
+  }
+
+  return null;
+}
+
+function getAuthSessionFromRefreshResponse(data: any) {
+  const user = data?.user || data?.data?.user;
+  const accessToken =
+    data?.accessToken ||
+    data?.access_token ||
+    data?.data?.accessToken ||
+    data?.data?.access_token ||
+    data?.data?.token ||
+    null;
+  const refreshToken =
+    data?.refreshToken ||
+    data?.refresh_token ||
+    data?.data?.refreshToken ||
+    data?.data?.refresh_token ||
+    null;
+
+  if (!user || !accessToken || !refreshToken) return null;
+
+  return {
+    user: {
+      ...user,
+      fullName: user.fullName || user.name || "",
+    },
+    accessToken,
+    refreshToken,
+  };
+}
+
+async function refreshAccessToken(headers: HeadersInit | undefined) {
+  const accessToken = getTokenFromHeaders(headers);
+  const stored = findStoredSession(accessToken);
+  const refreshToken = stored?.session.refreshToken;
+  const tenantId = new Headers(headers).get("x-tenant-id");
+
+  if (!stored || !refreshToken || !tenantId) return null;
+
+  if (!refreshPromise) {
+    refreshPromise = fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: "POST",
+      body: JSON.stringify({ refreshToken }),
+      headers: {
+        "Content-Type": "application/json",
+        "Accept-Language": getAcceptLanguage(),
+        "x-tenant-id": tenantId,
+      },
+    })
+      .then(async (response) => {
+        const contentType = response.headers.get("content-type");
+        const isJson = contentType?.includes("application/json");
+        const data = isJson ? await response.json().catch(() => null) : null;
+
+        if (!response.ok || data?.statusCode === 401) return null;
+
+        const nextSession = getAuthSessionFromRefreshResponse(data);
+        if (!nextSession) return null;
+
+        window.localStorage.setItem(stored.key, JSON.stringify(nextSession));
+        window.dispatchEvent(
+          new CustomEvent("astronova:token-refreshed", {
+            detail: { storageKey: stored.key, session: nextSession },
+          })
+        );
+
+        return nextSession.accessToken;
+      })
+      .catch(() => null)
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+
+  return refreshPromise;
 }
 
 type ApiRequestOptions = Omit<RequestInit, "body"> & {
@@ -97,20 +226,37 @@ export async function apiService<T>(
   const existingRequest = dedupeKey ? inFlightRequests.get(dedupeKey) : null;
   if (existingRequest) return existingRequest as Promise<T>;
 
-  const requestPromise = fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    body: serializedBody,
-    headers: {
-      "Content-Type": "application/json",
-      "Accept-Language": getAcceptLanguage(),
-      ...headers,
-    },
-  }).then(async (response) => {
+  const executeRequest = (
+    requestHeaders: HeadersInit | undefined,
+    retry = true
+  ): Promise<T> =>
+    fetch(`${API_BASE_URL}${path}`, {
+      ...options,
+      body: serializedBody,
+      headers: {
+        "Content-Type": "application/json",
+        "Accept-Language": getAcceptLanguage(),
+        ...requestHeaders,
+      },
+    }).then(async (response) => {
     const contentType = response.headers.get("content-type");
     const isJson = contentType?.includes("application/json");
     const data = isJson ? await response.json().catch(() => null) : null;
 
     if (response.status === 401 || data?.statusCode === 401) {
+      if (retry && path !== "/auth/refresh" && getTokenFromHeaders(requestHeaders)) {
+        const nextAccessToken = await refreshAccessToken(requestHeaders);
+        if (nextAccessToken) {
+          return executeRequest(
+            {
+              ...requestHeaders,
+              Authorization: `Bearer ${nextAccessToken}`,
+            },
+            false
+          );
+        }
+      }
+
       notifyUnauthorized();
 
       const message =
@@ -137,7 +283,9 @@ export async function apiService<T>(
     }
 
     return data as T;
-  }).finally(() => {
+  });
+
+  const requestPromise = executeRequest(headers).finally(() => {
     if (dedupeKey) inFlightRequests.delete(dedupeKey);
   });
 
