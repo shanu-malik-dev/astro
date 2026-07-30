@@ -46,7 +46,7 @@ export function CtaBand() {
       <h2 className="mx-auto mt-5 max-w-xl text-3xl md:text-4xl">
         {t("home.cta.title")}
       </h2>
-      <button type="button" onClick={openBookEnquiryModal} className="btn-gold mt-9 inline-flex">
+      <button type="button" onClick={() => openBookEnquiryModal()} className="btn-gold mt-9 inline-flex">
         {t("home.cta.button")}
       </button>
     </Section>

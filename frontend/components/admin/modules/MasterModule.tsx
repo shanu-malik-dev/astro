@@ -1,6 +1,6 @@
 import { AstrologersModule } from "./AstrologersModule";
 import { CountryCodesModule } from "./CountryCodesModule";
-import { ProblemModule } from "./ProblemModule";
+import { ProductModule } from "./ProductModule";
 import { RoleModule } from "./RoleModule";
 import { ServicesModule } from "./ServicesModule";
 import { UsersModule } from "./UsersModule";
@@ -26,8 +26,8 @@ export function MasterModule({
           filterToken={filterToken}
         />
       )}
-      {activeSubmodule === "problem" && <ProblemModule />}
       {activeSubmodule === "services" && <ServicesModule />}
+      {activeSubmodule === "products" && <ProductModule />}
       {activeSubmodule === "roles" && <RoleModule />}
       {activeSubmodule === "astrologers" && <AstrologersModule />}
       {activeSubmodule === "countryCodes" && <CountryCodesModule />}

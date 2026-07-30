@@ -20,7 +20,7 @@ const GROUPS = [
   {
     title: 'During the Session',
     items: [
-      ['How do I join the video call?', 'A Google Meet link is emailed to you after booking and again as a reminder before your session.'],
+      ['How does the call consultation happen?', 'After booking, our team connects with you over phone call or WhatsApp for your consultation.'],
       ['What should I have ready?', 'Just yourself — your birth details are already on file from booking.'],
       ['Can I record the session?', 'Session recording is not currently offered, but a written summary is added to your account afterward.'],
     ],

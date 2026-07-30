@@ -1,33 +1,36 @@
 "use client";
 
+import { useMemo } from "react";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
+import { adminServiceApi, type ServiceDto } from "@/lib/api";
 import { useLanguage } from "@/lib/language-context";
+import { useTenant } from "@/lib/tenant-context";
 
-const SERVICES = [
-  {
-    key: "love",
-    icon: "❤️",
-  },
-  {
-    key: "career",
-    icon: "💼",
-  },
-  {
-    key: "marriage",
-    icon: "💍",
-  },
-  {
-    key: "finance",
-    icon: "💰",
-  },
-  {
-    key: "health",
-    icon: "🩺",
-  },
-];
+const SERVICE_ICONS = ["❤️", "💼", "💍", "💰", "🩺"];
+
+function getLocalizedService(service: ServiceDto, language: string) {
+  const translation = service.all_names?.find(
+    (item) => item.label.toLowerCase() === language
+  );
+
+  return {
+    name:
+      translation?.value ||
+      (language === "hi" ? service.hi_label : service.en_label) ||
+      service.name,
+    description: translation?.description || service.description || "",
+  };
+}
 
 export function ServicesBar() {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
+  const { tenant } = useTenant();
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["home-services-bar", tenant.id],
+    queryFn: () => adminServiceApi.publicList(tenant.id),
+  });
+  const services = useMemo(() => (data?.data || []).slice(0, 5), [data?.data]);
 
   return (
     <section className="border-b border-mist bg-parchment">
@@ -50,24 +53,30 @@ export function ServicesBar() {
         </div>
 
         {/* Services Grid */}
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
-          {SERVICES.map((service) => (
+        {!isLoading && !isError && services.length > 0 && (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
+          {services.map((service, index) => {
+            const localized = getLocalizedService(service, language);
+
+            return (
             <div
-              key={service.key}
-              className="rounded-xl border border-mist bg-white p-6 text-center transition duration-300 hover:-translate-y-1 hover:shadow-lg"
+              key={service.id}
+              className="rounded-lg border border-mist bg-white p-6 text-center transition duration-300 hover:-translate-y-1 hover:shadow-lg"
             >
-              <div className="text-4xl">{service.icon}</div>
+              <div className="text-4xl">{SERVICE_ICONS[index] || "✨"}</div>
 
               <h3 className="mt-4 text-lg font-semibold text-ink">
-                {t(`home.servicesBar.items.${service.key}.title`)}
+                {localized.name}
               </h3>
 
               <p className="mt-2 text-sm leading-6 text-ink/60">
-                {t(`home.servicesBar.items.${service.key}.description`)}
+                {localized.description}
               </p>
             </div>
-          ))}
-        </div>
+            );
+          })}
+          </div>
+        )}
       </div>
     </section>
   );

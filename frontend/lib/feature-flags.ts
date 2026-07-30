@@ -1,7 +1,6 @@
 export const ADMIN_MODULE_FLAGS = {
   dashboard: true,
   master: true,
-  problem: true,
   services: true,
   astrologers: true,
   enquiry: true,
@@ -9,6 +8,7 @@ export const ADMIN_MODULE_FLAGS = {
   users: true,
   followUp: true,
   payments: true,
+  products: true,
   support: true,
   roles: true,
   login: false,

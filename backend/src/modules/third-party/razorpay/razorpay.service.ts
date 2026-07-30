@@ -37,14 +37,17 @@ export class RazorpayService {
       amount: Math.round(amount * 100),
       currency,
       accept_partial: false,
-      description: `Astro consultation enquiry #${enquiry.id}`,
-      customer: {
+      description: options.description || `Astro consultation enquiry #${enquiry.id}`,
+      notify: { sms: true, email: false },
+      notes: options.notes || { enq_id: String(enquiry.id) },
+    };
+
+    if (enquiry.mobile) {
+      payload.customer = {
         name: enquiry.customer_name,
         contact: `${enquiry.country_code}${enquiry.mobile}`,
-      },
-      notify: { sms: true, email: false },
-      notes: { enq_id: String(enquiry.id) },
-    };
+      };
+    }
 
     if (
       this.configService.get<string>(

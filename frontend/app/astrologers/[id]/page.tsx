@@ -119,7 +119,7 @@ export default function AstrologerProfilePage() {
 
                 <button
                   type="button"
-                  onClick={openBookEnquiryModal}
+                  onClick={() => openBookEnquiryModal()}
                   className="rounded-lg border border-gold px-5 py-3 hover:bg-gold hover:text-black"
                 >
                   {t("astrologerProfile.bookConsultation")}

@@ -1,14 +1,17 @@
 import { request, type SortOrder, type TenantId } from "../shared";
 
 export interface ServiceDto {
-  id: string;
+  id: string | number;
   name: string;
   category?: string;
   description?: string;
-  price: number;
-  durationMinutes: number;
-  isActive: boolean;
-  createdAt: string;
+  price?: number;
+  durationMinutes?: number;
+  isActive?: boolean;
+  createdAt?: string;
+  en_label?: string;
+  hi_label?: string;
+  all_names?: ServiceNameDto[];
 }
 
 export interface ServiceNameDto {
@@ -50,7 +53,39 @@ export interface AdminServiceResponse {
   data?: AdminServiceDto | null;
 }
 
+export interface ServiceDropdownOptionDto {
+  value: number;
+  en_label: string;
+  hi_label: string;
+}
+
+export interface ServiceDropdownResponse {
+  success?: boolean;
+  statusCode?: number;
+  message?: string;
+  data?: ServiceDropdownOptionDto[];
+}
+
+export interface ServicePublicListResponse {
+  success?: boolean;
+  statusCode?: number;
+  message?: string;
+  data?: ServiceDto[];
+}
+
 export const adminServiceApi = {
+  dropdown: (tenantId: TenantId) =>
+    request<ServiceDropdownResponse>("/service/dropdown", {
+      tenantId,
+      method: "POST",
+      body: JSON.stringify({}),
+    }),
+  publicList: (tenantId: TenantId) =>
+    request<ServicePublicListResponse>("/service/public-list", {
+      tenantId,
+      method: "POST",
+      body: JSON.stringify({}),
+    }),
   list: (
     tenantId: TenantId,
     accessToken: string,

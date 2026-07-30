@@ -8,6 +8,8 @@ export const DATABASE_TABLES = {
   PROBLEM_TRANSLATIONS: 'problem_translation',
   SERVICES: 'services',
   SERVICE_TRANSLATIONS: 'service_translation',
+  PRODUCTS: 'products',
+  PRODUCT_TRANSLATIONS: 'product_translation',
   ASTROLOGERS: 'astrologers',
   ASTROLOGER_TRANSLATIONS: 'astrologers_translations',
   ASTROLOGER_RATINGS: 'astrologer_ratings',

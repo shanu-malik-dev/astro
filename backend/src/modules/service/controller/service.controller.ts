@@ -1,5 +1,6 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { IsPublic } from '../../auth/decorators/is-public.decorator';
 import { CreateServiceDto } from '../dto/create-service.dto';
 import { DeleteServiceDto } from '../dto/delete-service.dto';
 import { ListServiceDto } from '../dto/list-service.dto';
@@ -20,6 +21,18 @@ export class ServiceController {
   @Post('list')
   findAll(@Body() dto: ListServiceDto) {
     return this.serviceService.findAll(dto);
+  }
+
+  @IsPublic()
+  @Post('dropdown')
+  dropdown() {
+    return this.serviceService.dropdown();
+  }
+
+  @IsPublic()
+  @Post('public-list')
+  publicList() {
+    return this.serviceService.publicList();
   }
 
   @Post('update')

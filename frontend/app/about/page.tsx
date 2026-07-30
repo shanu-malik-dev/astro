@@ -14,12 +14,12 @@ export default function AboutPage() {
 
   return (
     <>
-      <Section tone="dark" className="py-10 md:py-12">
+      <Section tone="dark" className="!py-6 md:!py-8">
         <p className="eyebrow-on-dark">{t("about.eyebrow")}</p>
         <h1 className="mt-3 max-w-2xl text-3xl leading-tight md:text-4xl">
           {t("about.title")}
         </h1>
-        <ConstellationLine className="mt-6 h-auto w-full max-w-xs" variant="gold" />
+        <ConstellationLine className="mt-4 h-auto w-full max-w-[220px]" variant="gold" />
       </Section>
 
       <Section>

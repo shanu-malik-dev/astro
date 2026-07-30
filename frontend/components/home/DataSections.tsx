@@ -1,10 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Star, ArrowRight } from 'lucide-react';
 import { Section, SectionHeading } from '@/components/ui/Section';
 import { FullPageLoader } from '@/components/ui/FullPageLoader';
+import { SiteSnackbar } from '@/components/ui/SiteSnackbar';
 import { openBookEnquiryModal } from '@/lib/book-enquiry-modal';
 import { useTenant } from '@/lib/tenant-context';
 import { servicesApi, testimonialsApi, blogApi } from '@/lib/api';
@@ -17,12 +19,24 @@ function EmptyState({ message }: { message: string }) {
 export function ServicesGrid({ limit }: { limit?: number }) {
   const { tenant, formatMoney } = useTenant();
   const { t } = useLanguage();
+  const [snackbar, setSnackbar] = useState("");
   const { data, isLoading, isError } = useQuery({
     queryKey: ['services', tenant.id],
     queryFn: () => servicesApi.listPublic(tenant.id),
   });
 
   const services = limit ? data?.slice(0, limit) : data;
+
+  useEffect(() => {
+    if (!isError) return;
+    setSnackbar(t("home.dataSections.services.error"));
+  }, [isError, t]);
+
+  useEffect(() => {
+    if (!snackbar) return;
+    const timeout = window.setTimeout(() => setSnackbar(""), 3500);
+    return () => window.clearTimeout(timeout);
+  }, [snackbar]);
 
   return (
     <Section>
@@ -33,7 +47,7 @@ export function ServicesGrid({ limit }: { limit?: number }) {
       />
 
       {isLoading && <FullPageLoader message={t("home.dataSections.services.loading")} />}
-      {isError && <EmptyState message={t("home.dataSections.services.error")} />}
+      <SiteSnackbar message={snackbar} onClose={() => setSnackbar("")} />
 
       {services && services.length > 0 && (
         <div className="mt-12 grid gap-6 md:grid-cols-3">
@@ -45,13 +59,26 @@ export function ServicesGrid({ limit }: { limit?: number }) {
                 {service.description && <p className="mt-2 text-sm leading-relaxed text-ink/60">{service.description}</p>}
               </div>
               <div className="mt-8 flex items-end justify-between">
-                <div>
-                  <p className="font-display text-2xl text-ink">{formatMoney(service.price)}</p>
-                  <p className="text-xs uppercase tracking-wide text-ink/40">{service.durationMinutes} {t("home.dataSections.services.minutes")}</p>
-                </div>
+                {(service.price !== undefined || service.durationMinutes !== undefined) && (
+                  <div>
+                    {service.price !== undefined && (
+                      <p className="font-display text-2xl text-ink">{formatMoney(service.price)}</p>
+                    )}
+                    {service.durationMinutes !== undefined && (
+                      <p className="text-xs uppercase tracking-wide text-ink/40">{service.durationMinutes} {t("home.dataSections.services.minutes")}</p>
+                    )}
+                  </div>
+                )}
                 <button
                   type="button"
-                  onClick={openBookEnquiryModal}
+                  onClick={() =>
+                    openBookEnquiryModal({
+                      concern: {
+                        value: service.id,
+                        label: service.name,
+                      },
+                    })
+                  }
                   className="flex items-center gap-1 text-sm text-wine opacity-0 transition-opacity group-hover:opacity-100"
                 >
                   {t("common.actions.book")} <ArrowRight size={14} />
@@ -70,17 +97,29 @@ export function ServicesGrid({ limit }: { limit?: number }) {
 export function TestimonialsCarousel() {
   const { tenant } = useTenant();
   const { t } = useLanguage();
+  const [snackbar, setSnackbar] = useState("");
   const { data, isLoading, isError } = useQuery({
     queryKey: ['testimonials', tenant.id],
     queryFn: () => testimonialsApi.listApproved(tenant.id),
   });
+
+  useEffect(() => {
+    if (!isError) return;
+    setSnackbar(t("home.dataSections.testimonials.error"));
+  }, [isError, t]);
+
+  useEffect(() => {
+    if (!snackbar) return;
+    const timeout = window.setTimeout(() => setSnackbar(""), 3500);
+    return () => window.clearTimeout(timeout);
+  }, [snackbar]);
 
   return (
     <Section tone="dark">
       <SectionHeading tone="dark" eyebrow={t("home.dataSections.testimonials.eyebrow")} title={t("home.dataSections.testimonials.title")} align="center" />
 
       {isLoading && <FullPageLoader message={t("home.dataSections.testimonials.loading")} />}
-      {isError && <p className="mt-10 text-center text-sm text-parchment/50">{t("home.dataSections.testimonials.error")}</p>}
+      <SiteSnackbar message={snackbar} onClose={() => setSnackbar("")} />
 
       {data && data.length > 0 && (
         <div className="mt-14 grid gap-8 md:grid-cols-3">

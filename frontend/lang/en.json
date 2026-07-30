@@ -36,13 +36,17 @@
       "sendFailed": "Unable to send OTP. Please try again.",
       "nameRequired": "Please enter your name.",
       "phoneInvalid": "Please enter a valid 10 digit phone number.",
-      "concernRequired": "Please select your concern."
+      "concernRequired": "Please select your concern.",
+      "mobileExists": "Mobile number already exists.",
+      "checkingMobile": "Checking mobile number...",
+      "otpWillBeRequired": "OTP verification will be required."
     }
   },
   "header": {
     "nav": {
       "about": "About",
       "services": "Services",
+      "shop": "Shop",
       "astrologer": "Astrologer",
       "bookConsultation": "Book Consultation"
     },
@@ -79,7 +83,7 @@
       "stats": {
         "consultations": "✓ 1000+ Consultations",
         "private": "✓ Private & Confidential",
-        "video": "✓ Video Sessions"
+        "video": "✓ Call Sessions"
       },
       "formTitle": "Book Your Consultation",
       "formDescription": "Fill your details to schedule your private reading.",
@@ -154,15 +158,15 @@
           "body": "Card, Apple Pay, or Google Pay via Stripe. Confirmation is instant."
         },
         "meet": {
-          "title": "Meet on video",
-          "body": "A Google Meet link is generated automatically and emailed to you."
+          "title": "Talk on call",
+          "body": "Our team connects with you over phone call or WhatsApp."
         }
       }
     },
     "aboutTeaser": {
       "eyebrow": "Why Shree Samriddhi Atro",
       "title": "One astrologer. Full attention. No app to download.",
-      "description": "Most astrology platforms optimize for volume — quick chats, rotating readers, upsells at every turn. Shree Samriddhi Atro is built around a single, focused practice: you book a real slot, meet by video, and get a session shaped around your actual chart and questions.",
+      "description": "Most astrology platforms optimize for volume — quick chats, rotating readers, upsells at every turn. Shree Samriddhi Atro is built around a focused service: you share your details and receive guidance over phone call or WhatsApp.",
       "items": {
         "prepared": {
           "title": "Prepared, not improvised",
@@ -181,8 +185,8 @@
       "allQuestions": "All questions",
       "items": {
         "accurate": {
-          "question": "How accurate is a video consultation compared to in-person?",
-          "answer": "Every reading is done live with your full chart pulled up on screen, so you see exactly what’s being interpreted in real time."
+          "question": "How does a call consultation work?",
+          "answer": "Your details are reviewed first, then guidance is shared over phone call or WhatsApp based on your questions."
         },
         "birthTime": {
           "question": "What if I don’t know my exact birth time?",
@@ -224,16 +228,16 @@
   },
   "about": {
     "eyebrow": "About Shree Samriddhi Atro",
-    "title": "Astrology, treated like a serious consultation — not a party trick.",
-    "paragraph1": "Shree Samriddhi Atro began with a simple frustration: most online astrology felt either impersonal — a rotating cast of readers on a chat app — or theatrical, heavy on performance and light on anything you could use afterward.",
-    "paragraph2": "We built something narrower on purpose. One practicing astrologer. A booking system that respects your time zone and your calendar. A video session where the chart is on screen and the conversation is about your actual questions — a relationship, a career decision, a business bet.",
-    "paragraph3": "Every consultation is logged to your account: what was discussed, what was recommended, and what to revisit later. No starting over at the next session.",
+    "title": "Astrology guidance over call and WhatsApp.",
+    "paragraph1": "Shree Samriddhi Atro offers private astrology guidance for real life questions around love, marriage, career, business, family, and personal decisions.",
+    "paragraph2": "Our service is simple and direct. Share your details, choose your concern, and our team connects with you over phone call or WhatsApp for the consultation.",
+    "paragraph3": "You get practical guidance in a familiar way, without downloading an app. Follow-up communication can also continue on WhatsApp when needed.",
     "whoTitle": "Who it's for",
     "whoBody": "Adults navigating a specific decision — love, marriage, career, business, or family — who want a grounded second read on the timing.",
     "sessionsTitle": "How sessions run",
-    "sessionsBody": "20 to 90 minutes, over Google Meet, with your birth chart reviewed in advance.",
+    "sessionsBody": "Consultations are provided over phone call or WhatsApp, with your details reviewed before guidance is shared.",
     "whereTitle": "Where we operate",
-    "whereBody": "Currently serving the United States and India, with pricing and scheduling adapted to each region.",
+    "whereBody": "Serving customers remotely through call and WhatsApp, with support adapted to each region.",
     "ctaEyebrow": "Start here",
     "ctaTitle": "See which reading fits your question",
     "ctaButton": "Browse Services"
@@ -431,7 +435,7 @@
       "refund": "Refund Policy"
     },
     "rights": "All rights reserved.",
-    "meta": "Consultations conducted via Google Meet · Payments secured by Stripe"
+    "meta": "Consultations by call or WhatsApp · Payments secured by Stripe"
   },
   "mobileValidation": {
     "generic": "Please enter a valid mobile number.",

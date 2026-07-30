@@ -4,9 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
 import CustomSelect, { type SelectOption } from "@/components/ui/CustomSelect";
 import { FullPageLoader } from "@/components/ui/FullPageLoader";
-import { ApiError, enquiryApi, problemApi, type ProblemDropdownOptionDto } from "@/lib/api";
+import { ApiError, adminServiceApi, enquiryApi, type ServiceDropdownOptionDto } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import { BOOK_ENQUIRY_EVENT } from "@/lib/book-enquiry-modal";
+import { BOOK_ENQUIRY_EVENT, type BookEnquiryPayload } from "@/lib/book-enquiry-modal";
 import { useCountryCodes } from "@/lib/country-code-store";
 import { useLanguage } from "@/lib/language-context";
 import { getMobileMaxLength, validateMobileNumber } from "@/lib/mobile-validation";
@@ -34,9 +34,12 @@ export function BookEnquiryModal() {
   const [phone, setPhone] = useState("");
   const [countryCode, setCountryCode] = useState<SelectOption | null>(null);
   const [problem, setProblem] = useState<SelectOption | null>(null);
-  const [problems, setProblems] = useState<ProblemDropdownOptionDto[]>([]);
+  const [lockedProblem, setLockedProblem] = useState(false);
+  const [problems, setProblems] = useState<ServiceDropdownOptionDto[]>([]);
   const [problemsLoading, setProblemsLoading] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [mobileChecking, setMobileChecking] = useState(false);
+  const [mobileExists, setMobileExists] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [toast, setToast] = useState<ToastState>(null);
 
@@ -49,12 +52,27 @@ export function BookEnquiryModal() {
     [language, problems]
   );
   const selectedProblem = problem
-    ? problemOptions.find((option) => option.value === problem.value) || null
+    ? problemOptions.find((option) => option.value === problem.value) || problem
     : null;
   const maxMobileLength = getMobileMaxLength(countryCode?.value || "");
 
   useEffect(() => {
-    const openModal = () => setOpen(true);
+    const openModal = (payload?: BookEnquiryPayload) => {
+      if (payload?.concern) {
+        setProblem({
+          value: String(payload.concern.value),
+          label: payload.concern.label,
+        });
+        setLockedProblem(true);
+      } else {
+        setProblem(null);
+        setLockedProblem(false);
+      }
+      setOpen(true);
+    };
+    const onOpenEvent = (event: Event) => {
+      openModal((event as CustomEvent<BookEnquiryPayload>).detail);
+    };
     const onDocumentClick = (event: MouseEvent) => {
       const target = event.target as HTMLElement | null;
       const anchor = target?.closest<HTMLAnchorElement>("a[href]");
@@ -68,10 +86,10 @@ export function BookEnquiryModal() {
       }
     };
 
-    window.addEventListener(BOOK_ENQUIRY_EVENT, openModal);
+    window.addEventListener(BOOK_ENQUIRY_EVENT, onOpenEvent);
     document.addEventListener("click", onDocumentClick, true);
     return () => {
-      window.removeEventListener(BOOK_ENQUIRY_EVENT, openModal);
+      window.removeEventListener(BOOK_ENQUIRY_EVENT, onOpenEvent);
       document.removeEventListener("click", onDocumentClick, true);
     };
   }, []);
@@ -83,7 +101,7 @@ export function BookEnquiryModal() {
     async function loadProblems() {
       setProblemsLoading(true);
       try {
-        const response = await problemApi.dropdown(tenant.id);
+        const response = await adminServiceApi.dropdown(tenant.id);
         if (active) setProblems(response.data || []);
       } catch (err) {
         if (!active) return;
@@ -92,7 +110,7 @@ export function BookEnquiryModal() {
           message:
             err instanceof ApiError
               ? err.message
-              : "Unable to load problem list.",
+              : "Unable to load service list.",
         });
       } finally {
         if (active) setProblemsLoading(false);
@@ -117,6 +135,48 @@ export function BookEnquiryModal() {
     return () => window.clearTimeout(timeout);
   }, [toast]);
 
+  useEffect(() => {
+    setMobileExists(false);
+
+    if (!open || !countryCode || !phone || phone.length !== maxMobileLength) {
+      return;
+    }
+
+    const validation = validateMobileNumber(countryCode.value, phone, language);
+    if (!validation.valid) return;
+
+    let active = true;
+    setMobileChecking(true);
+
+    enquiryApi
+      .mobileCheck(tenant.id, {
+        country_code: countryCode.value,
+        mobile: phone,
+      })
+      .then((response) => {
+        if (!active) return;
+
+        const exists = Boolean(response.data?.exists);
+        setMobileExists(exists);
+        if (exists) {
+          setErrors((current) => ({
+            ...current,
+            phone: t("common.validation.mobileExists"),
+          }));
+        }
+      })
+      .catch(() => {
+        if (!active) return;
+      })
+      .finally(() => {
+        if (active) setMobileChecking(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [countryCode, language, maxMobileLength, open, phone, t, tenant.id]);
+
   const validateForm = () => {
     const nextErrors: FormErrors = {};
 
@@ -130,6 +190,8 @@ export function BookEnquiryModal() {
       if (!validation.valid) nextErrors.phone = validation.message;
     }
 
+    if (mobileChecking) nextErrors.phone = t("common.validation.checkingMobile");
+    if (mobileExists) nextErrors.phone = t("common.validation.mobileExists");
     if (!problem) nextErrors.problem = t("common.validation.concernRequired");
 
     setErrors(nextErrors);
@@ -139,7 +201,8 @@ export function BookEnquiryModal() {
   const resetForm = () => {
     setName("");
     setPhone("");
-    setProblem(null);
+    if (!lockedProblem) setProblem(null);
+    setMobileExists(false);
     setErrors({});
   };
 
@@ -234,6 +297,7 @@ export function BookEnquiryModal() {
                         countryCode: undefined,
                         phone: undefined,
                       }));
+                      setMobileExists(false);
                     }}
                   />
                 </div>
@@ -247,6 +311,7 @@ export function BookEnquiryModal() {
                       event.target.value.replace(/\D/g, "").slice(0, maxMobileLength)
                     );
                     setErrors((current) => ({ ...current, phone: undefined }));
+                    setMobileExists(false);
                   }}
                   className="flex-1 rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-parchment placeholder:text-parchment/40 outline-none focus:border-gold-light"
                 />
@@ -256,11 +321,15 @@ export function BookEnquiryModal() {
                   {errors.countryCode || errors.phone}
                 </p>
               )}
+              {!errors.countryCode && !errors.phone && mobileChecking && (
+                <p className="-mt-2 text-xs text-parchment/50">{t("common.validation.checkingMobile")}</p>
+              )}
 
               <CustomSelect
                 options={problemOptions}
                 value={selectedProblem}
                 placeholder={t("home.hero.concernPlaceholder")}
+                isDisabled={lockedProblem}
                 onChange={(option) => {
                   setProblem(option);
                   setErrors((current) => ({ ...current, problem: undefined }));

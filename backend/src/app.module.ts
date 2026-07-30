@@ -10,8 +10,8 @@ import { AstrologerModule } from './modules/astrologer/astrologer.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { EnquiryModule } from './modules/enquiry/enquiry.module';
 import { FollowUpModule } from './modules/follow-up/follow-up.module';
-import { ProblemModule } from './modules/problem/problem.module';
 import { PaymentModule } from './modules/payment/payment.module';
+import { ProductModule } from './modules/product/product.module';
 import { ServiceModule } from './modules/service/service.module';
 import { SharedModule } from './modules/shared-module/shared.module';
 import { NotificationModule } from './modules/notification/notification.module';
@@ -31,13 +31,13 @@ import { UserModule } from './modules/user/user.module';
     AuthModule,
     DashboardModule,
     SharedModule,
-    ProblemModule,
     ServiceModule,
     AstrologerModule,
     EnquiryModule,
     NotificationModule,
     FollowUpModule,
     PaymentModule,
+    ProductModule,
     RoleModule,
     SupportModule,
     UserModule,

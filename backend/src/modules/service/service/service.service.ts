@@ -95,6 +95,47 @@ export class ServiceService {
     });
   }
 
+  async dropdown() {
+    const services = await this.serviceRepository.getServiceRepository().find({
+      where: { is_delete: 0, status: 1 },
+      relations: { translations: true },
+      order: { display_order: 'ASC', id: 'ASC' },
+    });
+
+    return successResponse(
+      'SERVICE_DROPDOWN_FETCHED',
+      services.map((service) => {
+        const translations = service.translations || [];
+        const english = translations.find(
+          (translation) => translation.lang_code === 'en',
+        );
+        const hindi = translations.find(
+          (translation) => translation.lang_code === 'hi',
+        );
+        const fallback = translations[0];
+
+        return {
+          value: service.id,
+          en_label: english?.name || fallback?.name || '',
+          hi_label: hindi?.name || english?.name || fallback?.name || '',
+        };
+      }),
+    );
+  }
+
+  async publicList() {
+    const services = await this.serviceRepository.getServiceRepository().find({
+      where: { is_delete: 0, status: 1 },
+      relations: { translations: true },
+      order: { display_order: 'ASC', id: 'ASC' },
+    });
+
+    return successResponse(
+      'SERVICE_LIST_FETCHED',
+      services.map((service) => this.formatPublicService(service)),
+    );
+  }
+
   async update(dto: UpdateServiceDto) {
     if (dto.translations) this.validateTranslations(dto.translations);
 
@@ -232,6 +273,31 @@ export class ServiceService {
       status: service.status,
       display_order: service.display_order,
       created_at: service.created_at,
+      all_names: translations.map((translation) => ({
+        label: translation.lang_code.toUpperCase(),
+        value: translation.name,
+        description: translation.description || '',
+      })),
+    };
+  }
+
+  private formatPublicService(service: ServiceEntity) {
+    const translations = [...(service.translations || [])].sort((a, b) =>
+      a.lang_code.localeCompare(b.lang_code),
+    );
+    const english =
+      translations.find((translation) => translation.lang_code === 'en') ||
+      translations[0];
+    const hindi = translations.find(
+      (translation) => translation.lang_code === 'hi',
+    );
+
+    return {
+      id: service.id,
+      name: english?.name || '',
+      description: english?.description || '',
+      en_label: english?.name || '',
+      hi_label: hindi?.name || english?.name || '',
       all_names: translations.map((translation) => ({
         label: translation.lang_code.toUpperCase(),
         value: translation.name,

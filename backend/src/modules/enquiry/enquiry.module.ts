@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserEntity } from '../auth/entity/user.entity';
-import { ProblemTranslationEntity } from '../problem/entity/problem-translation.entity';
-import { ProblemEntity } from '../problem/entity/problem.entity';
+import { ServiceTranslationEntity } from '../service/entity/service-translation.entity';
+import { ServiceEntity } from '../service/entity/service.entity';
 import { EnquiryController } from './controller/enquiry.controller';
 import { EnquiryEntity } from './entity/enquiry.entity';
 import { EnquiryRepository } from './repository/enquiry.repository';
@@ -12,8 +12,8 @@ import { EnquiryService } from './service/enquiry.service';
   imports: [
     TypeOrmModule.forFeature([
       EnquiryEntity,
-      ProblemEntity,
-      ProblemTranslationEntity,
+      ServiceEntity,
+      ServiceTranslationEntity,
       UserEntity,
     ]),
   ],

@@ -60,6 +60,7 @@ const darkStyles: StylesConfig<SelectOption, false> = {
 
   menu: (base) => ({
     ...base,
+    zIndex: 9999,
     backgroundColor: "#171723",
     border: "1px solid rgba(255,255,255,.08)",
     borderRadius: 12,
@@ -97,6 +98,11 @@ const darkStyles: StylesConfig<SelectOption, false> = {
 
   indicatorSeparator: () => ({
     display: "none",
+  }),
+
+  menuPortal: (base) => ({
+    ...base,
+    zIndex: 9999,
   }),
 };
 
@@ -191,6 +197,11 @@ const lightStyles: StylesConfig<SelectOption, false> = {
   indicatorSeparator: () => ({
     display: "none",
   }),
+
+  menuPortal: (base) => ({
+    ...base,
+    zIndex: 9999,
+  }),
 };
 
 export default function CustomSelect({
@@ -218,6 +229,8 @@ export default function CustomSelect({
         styles={variant === "light" ? lightStyles : darkStyles}
         isDisabled={isDisabled}
         isSearchable={isSearchable}
+        menuPortalTarget={typeof document === "undefined" ? undefined : document.body}
+        menuPosition="fixed"
       />
     </div>
   );

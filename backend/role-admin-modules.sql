@@ -37,13 +37,13 @@ INSERT IGNORE INTO role_admin_modules (role_id, module_key)
 SELECT id, module_key
 FROM roles
 JOIN (
-  SELECT 'problem' AS module_key
-  UNION ALL SELECT 'services'
+  SELECT 'services' AS module_key
   UNION ALL SELECT 'astrologers'
   UNION ALL SELECT 'enquiry'
   UNION ALL SELECT 'customers'
   UNION ALL SELECT 'followUp'
   UNION ALL SELECT 'payments'
+  UNION ALL SELECT 'products'
   UNION ALL SELECT 'support'
   UNION ALL SELECT 'roles'
 ) modules

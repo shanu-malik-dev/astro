@@ -8,7 +8,7 @@ import { useCountryCodes } from "@/lib/country-code-store";
 import { useLanguage } from "@/lib/language-context";
 import { useAuth } from "@/lib/auth-context";
 import { useTenant } from "@/lib/tenant-context";
-import { ApiError, enquiryApi, problemApi, type ProblemDropdownOptionDto } from "@/lib/api";
+import { ApiError, adminServiceApi, enquiryApi, type ServiceDropdownOptionDto } from "@/lib/api";
 import { getMobileMaxLength, validateMobileNumber } from "@/lib/mobile-validation";
 
 type FormErrors = {
@@ -30,7 +30,7 @@ export function Hero() {
   const { tenant } = useTenant();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [problems, setProblems] = useState<ProblemDropdownOptionDto[]>([]);
+  const [problems, setProblems] = useState<ServiceDropdownOptionDto[]>([]);
 
   const [countryCode, setCountryCode] = useState<SelectOption | null>(null);
 
@@ -38,6 +38,8 @@ export function Hero() {
 
   const [loading, setLoading] = useState(false);
   const [problemsLoading, setProblemsLoading] = useState(true);
+  const [mobileChecking, setMobileChecking] = useState(false);
+  const [mobileExists, setMobileExists] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [toast, setToast] = useState<ToastState>(null);
   const problemOptions: SelectOption[] = problems.map((item) => ({
@@ -61,7 +63,7 @@ export function Hero() {
     async function loadProblems() {
       setProblemsLoading(true);
       try {
-        const response = await problemApi.dropdown(tenant.id);
+        const response = await adminServiceApi.dropdown(tenant.id);
         if (active) setProblems(response.data || []);
       } catch (err) {
         if (!active) return;
@@ -70,7 +72,7 @@ export function Hero() {
           message:
             err instanceof ApiError
               ? err.message
-              : "Unable to load problem list.",
+              : "Unable to load service list.",
         });
       } finally {
         if (active) setProblemsLoading(false);
@@ -83,6 +85,46 @@ export function Hero() {
       active = false;
     };
   }, [tenant.id]);
+
+  useEffect(() => {
+    setMobileExists(false);
+
+    if (!countryCode || !phone || phone.length !== maxMobileLength) return;
+
+    const validation = validateMobileNumber(countryCode.value, phone, language);
+    if (!validation.valid) return;
+
+    let active = true;
+    setMobileChecking(true);
+
+    enquiryApi
+      .mobileCheck(tenant.id, {
+        country_code: countryCode.value,
+        mobile: phone,
+      })
+      .then((response) => {
+        if (!active) return;
+
+        const exists = Boolean(response.data?.exists);
+        setMobileExists(exists);
+        if (exists) {
+          setErrors((current) => ({
+            ...current,
+            phone: t("common.validation.mobileExists"),
+          }));
+        }
+      })
+      .catch(() => {
+        if (!active) return;
+      })
+      .finally(() => {
+        if (active) setMobileChecking(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [countryCode, language, maxMobileLength, phone, t, tenant.id]);
 
   useEffect(() => {
     if (!toast) return;
@@ -106,6 +148,14 @@ export function Hero() {
     } else if (countryCode) {
       const validation = validateMobileNumber(countryCode.value, phone, language);
       if (!validation.valid) nextErrors.phone = validation.message;
+    }
+
+    if (mobileChecking) {
+      nextErrors.phone = t("common.validation.checkingMobile");
+    }
+
+    if (mobileExists) {
+      nextErrors.phone = t("common.validation.mobileExists");
     }
 
     if (!problem) {
@@ -144,6 +194,7 @@ export function Hero() {
       setPhone("");
       setProblem(null);
       setCountryCode(null);
+      setMobileExists(false);
       setErrors({});
     } catch (err) {
       setToast({
@@ -241,11 +292,12 @@ export function Hero() {
                     onChange={(option) => {
                       if (option) setCountryCode(option);
                       setPhone("");
-                      setErrors((current) => ({
+                  setErrors((current) => ({
                         ...current,
                         countryCode: undefined,
                         phone: undefined,
                       }));
+                      setMobileExists(false);
                     }}
                   />
                   {errors.countryCode && (
@@ -265,12 +317,16 @@ export function Hero() {
                       e.target.value.replace(/\D/g, "").slice(0, maxMobileLength)
                     );
                     setErrors((current) => ({ ...current, phone: undefined }));
+                    setMobileExists(false);
                   }}
                   className="flex-1 rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-parchment placeholder:text-parchment/40 outline-none focus:border-gold-light"
                 />
               </div>
               {errors.phone && (
                 <p className="-mt-2 text-xs text-red-300">{errors.phone}</p>
+              )}
+              {!errors.phone && mobileChecking && (
+                <p className="-mt-2 text-xs text-parchment/50">{t("common.validation.checkingMobile")}</p>
               )}
 
               <CustomSelect

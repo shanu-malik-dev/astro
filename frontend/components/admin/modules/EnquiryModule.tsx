@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Copy, CreditCard, ExternalLink, Phone, Save, Search, Share2, X } from "lucide-react";
+import { CalendarClock, Copy, CreditCard, ExternalLink, Phone, Save, Search, Share2, X } from "lucide-react";
 import CustomDatePicker, { type DateRangeValue } from "@/components/ui/CustomDatePicker";
 import CustomSelect from "@/components/ui/CustomSelect";
 import {
@@ -633,8 +633,9 @@ export function EnquiryModule({
                               setFollowUpAt(defaultFollowUpAt());
                               setFollowDraft({ ...enquiry, remark: "" });
                             }}
-                            className="rounded-md bg-ink px-2.5 py-1.5 text-xs font-medium text-white transition hover:opacity-90"
+                            className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-[#8a3d50] bg-[#8a3d50] px-2.5 py-1.5 text-xs font-medium text-white shadow-sm transition hover:border-[#743242] hover:bg-[#743242]"
                           >
+                            <CalendarClock size={14} />
                             Follow
                           </button>
                           <button

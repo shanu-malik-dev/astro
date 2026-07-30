@@ -1,5 +1,5 @@
+import { adminServiceApi, type ServiceDto } from "../services";
 import { request, type TenantId } from "../shared";
-import type { ServiceDto } from "../services";
 
 export interface TestimonialDto {
   id: string;
@@ -28,7 +28,9 @@ export interface BlogPostDto {
 
 export const servicesApi = {
   listPublic: (tenantId: TenantId) =>
-    request<ServiceDto[]>("/services", { tenantId, method: "GET" }),
+    adminServiceApi
+      .publicList(tenantId)
+      .then((response) => response.data || []),
 };
 
 export const testimonialsApi = {

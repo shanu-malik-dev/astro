@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { LogIn, LogOut, Menu, UserCircle, X } from 'lucide-react';
+import { Home, LogIn, LogOut, Menu, UserCircle, X } from 'lucide-react';
 import clsx from 'clsx';
 import { Container } from '@/components/ui/Container';
 import CustomSelect, { SelectOption } from '@/components/ui/CustomSelect';
@@ -17,6 +17,7 @@ import { WEBSITE_MODULE_FLAGS } from '@/lib/visibility-flags';
 const NAV_LINKS = [
   { href: '/about', labelKey: 'header.nav.about', enabled: WEBSITE_MODULE_FLAGS.about },
   { href: '/services', labelKey: 'header.nav.services', enabled: WEBSITE_MODULE_FLAGS.services },
+  { href: '/shop', labelKey: 'header.nav.shop', enabled: WEBSITE_MODULE_FLAGS.shop },
   { href: '/astrologers', labelKey: 'header.nav.astrologer', enabled: WEBSITE_MODULE_FLAGS.astrologers }
 ].filter((link) => link.enabled);
 
@@ -44,7 +45,12 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-mist bg-parchment/90 backdrop-blur">
       <Container className="flex h-20 items-center justify-between">
-        <Link href="/" className="flex items-center gap-2.5 text-ink">
+        <Link
+          href="/"
+          title="Open homepage"
+          aria-label={`${brandName} homepage`}
+          className="group flex items-center gap-2.5 text-ink"
+        >
           {BRAND.logoPath && (
             <img
               src={BRAND.logoPath}
@@ -55,8 +61,13 @@ export function Header() {
               }}
             />
           )}
-          <span className="font-display text-xl font-semibold italic leading-tight md:text-2xl">
-            {brandName}
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="font-display text-xl font-semibold italic leading-tight md:text-2xl">
+              {brandName}
+            </span>
+            <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-mist bg-white/70 text-ink/45 transition group-hover:border-gold group-hover:text-wine" title="Home">
+              <Home size={12} />
+            </span>
           </span>
         </Link>
 

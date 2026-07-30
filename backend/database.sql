@@ -135,6 +135,65 @@ CREATE TABLE IF NOT EXISTS service_translation (
 DEFAULT CHARSET=utf8mb4
 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS products (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  product_code VARCHAR(50) NOT NULL,
+  product_image TEXT NOT NULL,
+  product_price DECIMAL(10,2) NOT NULL,
+  display_order INT UNSIGNED NOT NULL DEFAULT 1,
+  status TINYINT(1) NOT NULL DEFAULT 1 COMMENT '1=Active, 0=Inactive',
+  is_delete TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1=Deleted, 0=Not Deleted',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ON UPDATE CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (id),
+
+  UNIQUE KEY uq_products_code (
+    product_code
+  ),
+
+  KEY idx_products_status_delete_order (
+    status,
+    is_delete,
+    display_order
+  )
+) ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS product_translation (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  product_id BIGINT UNSIGNED NOT NULL,
+  lang_code VARCHAR(10) NOT NULL,
+  name VARCHAR(150) NOT NULL,
+  description TEXT NULL,
+  status TINYINT(1) NOT NULL DEFAULT 1 COMMENT '1=Active, 0=Inactive',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ON UPDATE CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (id),
+
+  UNIQUE KEY uq_product_translation_lang (
+    product_id,
+    lang_code
+  ),
+
+  KEY idx_product_translation_lang_status (
+    lang_code,
+    status
+  ),
+
+  CONSTRAINT fk_product_translation_product
+    FOREIGN KEY (product_id)
+    REFERENCES products (id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE
+) ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS astrologers (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   experience VARCHAR(50) NOT NULL,
@@ -344,9 +403,9 @@ CREATE TABLE IF NOT EXISTS enquiries (
     ON UPDATE CASCADE
     ON DELETE SET NULL,
 
-  CONSTRAINT fk_enquiries_problem
+  CONSTRAINT fk_enquiries_service
     FOREIGN KEY (problem_id)
-    REFERENCES problems (id)
+    REFERENCES services (id)
     ON UPDATE CASCADE
     ON DELETE RESTRICT
 ) ENGINE=InnoDB
@@ -500,13 +559,13 @@ INSERT IGNORE INTO role_admin_modules (role_id, module_key)
 SELECT id, module_key
 FROM roles
 JOIN (
-  SELECT 'problem' AS module_key
-  UNION ALL SELECT 'services'
+  SELECT 'services' AS module_key
   UNION ALL SELECT 'astrologers'
   UNION ALL SELECT 'enquiry'
   UNION ALL SELECT 'customers'
   UNION ALL SELECT 'followUp'
   UNION ALL SELECT 'payments'
+  UNION ALL SELECT 'products'
   UNION ALL SELECT 'support'
   UNION ALL SELECT 'roles'
 ) modules

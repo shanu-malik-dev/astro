@@ -1,4 +1,4 @@
-import { ClipboardList, CreditCard, Gauge, Globe2, Headset, HelpCircle, ListChecks, Settings, ShieldCheck, Sparkles, Users } from "lucide-react";
+import { CreditCard, Gauge, Globe2, Headset, HelpCircle, ListChecks, Package, Settings, ShieldCheck, Sparkles, Users } from "lucide-react";
 import type { SelectOption } from "@/components/ui/CustomSelect";
 import { ADMIN_MODULE_FLAGS } from "@/lib/feature-flags";
 import { FOLLOW_UP_STATUS } from "@/lib/status-constants";
@@ -28,8 +28,8 @@ export const FOLLOW_UP_STATUS_OPTIONS: SelectOption[] = [
 
 export const MASTER_MODULE_KEYS = [
   "users",
-  "problem",
   "services",
+  "products",
   "roles",
   "astrologers",
   "countryCodes",
@@ -61,6 +61,12 @@ export const ALL_MODULES: AdminModule[] = [
     icon: CreditCard,
   },
   {
+    key: "products",
+    label: "Products",
+    description: "Manage shop products, pricing, images, and translations.",
+    icon: Package,
+  },
+  {
     key: "support",
     label: "Support",
     description: "Review contact requests and support status.",
@@ -71,12 +77,6 @@ export const ALL_MODULES: AdminModule[] = [
     label: "Master",
     description: "Manage users, roles, services, and setup data.",
     icon: Settings,
-  },
-  {
-    key: "problem",
-    label: "Problem",
-    description: "Create, update, translate, and manage customer problems.",
-    icon: ClipboardList,
   },
   {
     key: "services",

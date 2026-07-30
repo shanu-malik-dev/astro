@@ -10,7 +10,6 @@ import { RoleAdminModuleEntity } from '../entity/role-admin-module.entity';
 export const ADMIN_MODULE_KEYS = [
   'dashboard',
   'master',
-  'problem',
   'services',
   'astrologers',
   'enquiry',
@@ -18,6 +17,7 @@ export const ADMIN_MODULE_KEYS = [
   'users',
   'followUp',
   'payments',
+  'products',
   'support',
   'roles',
 ] as const;

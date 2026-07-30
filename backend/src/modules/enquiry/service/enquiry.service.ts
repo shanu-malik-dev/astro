@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { ENQUIRY_STATUS } from '../../../common/constants/status.constant';
 import { successResponse } from '../../../common/helpers/response.helper';
+import { CheckMobileDto } from '../dto/check-mobile.dto';
 import { CloseEnquiryDto } from '../dto/close-enquiry.dto';
 import { CreateEnquiryDto } from '../dto/create-enquiry.dto';
 import { ListEnquiryDto } from '../dto/list-enquiry.dto';
@@ -12,19 +13,19 @@ export class EnquiryService {
   constructor(private readonly enquiryRepository: EnquiryRepository) {}
 
   async create(dto: CreateEnquiryDto) {
-    const problem = await this.enquiryRepository.findProblemById(dto.problem_id);
-    if (!problem) throw new NotFoundException('Problem not found.');
+    const service = await this.enquiryRepository.findServiceById(dto.problem_id);
+    if (!service) throw new NotFoundException('Service not found.');
 
     const exists = await this.enquiryRepository.existsOpenEnquiry(dto);
     if (exists) {
       throw new BadRequestException(
-        'An open enquiry already exists for this customer and problem.',
+        'An open enquiry already exists for this customer and service.',
       );
     }
 
     const problemName =
       dto.problem_name?.trim() ||
-      this.getEnglishProblemName(problem.translations || []);
+      this.getEnglishProblemName(service.translations || []);
     const enquiry = await this.enquiryRepository.createEnquiry(dto, problemName);
     const created = await this.findById(enquiry.id);
 
@@ -82,6 +83,18 @@ export class EnquiryService {
         limit,
         total_pages: Math.max(1, Math.ceil(total / limit)),
       },
+    });
+  }
+
+  async checkMobile(dto: CheckMobileDto) {
+    const exists = await this.enquiryRepository.mobileExists(
+      dto.country_code,
+      dto.mobile,
+    );
+
+    return successResponse('MOBILE_CHECKED', {
+      exists,
+      requires_otp: !exists,
     });
   }
 

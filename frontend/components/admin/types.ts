@@ -3,12 +3,12 @@ import type { LucideIcon } from "lucide-react";
 export type ModuleKey =
   | "dashboard"
   | "master"
-  | "problem"
   | "services"
   | "astrologers"
   | "enquiry"
   | "followUp"
   | "payments"
+  | "products"
   | "support"
   | "roles"
   | "countryCodes"
@@ -16,8 +16,8 @@ export type ModuleKey =
 
 export type MasterModuleKey =
   | "users"
-  | "problem"
   | "services"
+  | "products"
   | "roles"
   | "astrologers"
   | "countryCodes";
@@ -76,6 +76,17 @@ export type AstrologerRow = {
   consultations: string;
   status: "active" | "inactive";
   translations: AstrologerTranslation[];
+};
+
+export type ProductRow = {
+  id: number;
+  createdAt?: string;
+  productCode: string;
+  productImage: string;
+  productPrice: number;
+  displayOrder: number;
+  status: "active" | "inactive";
+  translations: ServiceTranslation[];
 };
 
 export type EnquiryStatus = number;

@@ -36,6 +36,16 @@ export interface EnquiryResponse {
   data?: EnquiryDto | null;
 }
 
+export interface MobileCheckResponse {
+  success?: boolean;
+  statusCode?: number;
+  message?: string;
+  data?: {
+    exists: boolean;
+    requires_otp: boolean;
+  };
+}
+
 export const enquiryApi = {
   create: (
     tenantId: TenantId,
@@ -49,6 +59,18 @@ export const enquiryApi = {
     }
   ) =>
     request<EnquiryResponse>("/enquiry", {
+      tenantId,
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  mobileCheck: (
+    tenantId: TenantId,
+    data: {
+      country_code: string;
+      mobile: string;
+    }
+  ) =>
+    request<MobileCheckResponse>("/enquiry/mobile-check", {
       tenantId,
       method: "POST",
       body: JSON.stringify(data),

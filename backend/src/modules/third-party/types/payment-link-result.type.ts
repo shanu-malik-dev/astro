@@ -6,6 +6,8 @@ export type PaymentLinkResult = {
 
 export type PaymentLinkOptions = {
   expireBy?: number;
+  description?: string;
+  notes?: Record<string, string>;
 };
 
 export type PaymentLinkCustomer = {

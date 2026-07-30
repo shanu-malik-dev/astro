@@ -14,13 +14,14 @@ import {
 import { Section } from "@/components/ui/Section";
 import { DisabledRouteRedirect } from "@/components/DisabledRouteRedirect";
 import { FullPageLoader } from "@/components/ui/FullPageLoader";
+import { SiteSnackbar } from "@/components/ui/SiteSnackbar";
 import { ApiError, astrologerApi, type PublicAstrologerDto } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useLanguage } from "@/lib/language-context";
 import { useTenant } from "@/lib/tenant-context";
 import { WEBSITE_MODULE_FLAGS } from "@/lib/visibility-flags";
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 10;
 const SUPPORT_PHONE = "+919876543210";
 
 export default function AstrologersPage() {
@@ -31,7 +32,7 @@ export default function AstrologersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [snackbar, setSnackbar] = useState("");
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const loginHref = "/login?redirect=/astrologers";
   const signupHref = "/register?redirect=/astrologers";
@@ -39,7 +40,7 @@ export default function AstrologersPage() {
   const loadAstrologers = useCallback(
     async (page: number) => {
       setLoading(true);
-      setError("");
+      setSnackbar("");
 
       try {
         const response = await astrologerApi.listPublic(tenant.id, {
@@ -53,7 +54,7 @@ export default function AstrologersPage() {
         setCurrentPage(pagination?.page || page);
         setTotalPages(pagination?.total_pages || 1);
       } catch (err) {
-        setError(
+        setSnackbar(
           err instanceof ApiError
             ? err.message
             : "Unable to load astrologers."
@@ -71,6 +72,12 @@ export default function AstrologersPage() {
     loadAstrologers(1);
   }, [loadAstrologers]);
 
+  useEffect(() => {
+    if (!snackbar) return;
+    const timeout = window.setTimeout(() => setSnackbar(""), 3500);
+    return () => window.clearTimeout(timeout);
+  }, [snackbar]);
+
   const requireAuth = (event: React.MouseEvent<HTMLAnchorElement>) => {
     if (user) return;
 
@@ -83,8 +90,9 @@ export default function AstrologersPage() {
   return (
     <>
       {loading && <FullPageLoader message={t("common.actions.pleaseWait")} />}
+      <SiteSnackbar message={snackbar} onClose={() => setSnackbar("")} />
 
-      <Section tone="dark" className="py-10 md:py-12">
+      <Section tone="dark" className="!py-6 md:!py-8">
         <div className="mx-auto max-w-3xl text-center">
           <p className="eyebrow-on-dark">{t("astrologersPage.eyebrow")}</p>
 
@@ -99,12 +107,6 @@ export default function AstrologersPage() {
       </Section>
 
       <Section>
-        {error && (
-          <div className="mb-5 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {error}
-          </div>
-        )}
-
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {astrologers.map((astrologer) => {
               const name =

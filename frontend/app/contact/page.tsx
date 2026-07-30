@@ -1,17 +1,24 @@
 'use client';
 
-import { useState } from 'react';
-import { Mail, Phone } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Facebook, Instagram, Mail } from 'lucide-react';
 import { Section, SectionHeading } from '@/components/ui/Section';
+import { SiteSnackbar } from '@/components/ui/SiteSnackbar';
 import { ApiError, supportApi } from '@/lib/api';
 import { openBookEnquiryModal } from '@/lib/book-enquiry-modal';
 import { useTenant } from '@/lib/tenant-context';
+
+const CONTACT = {
+  email: 'contact@shreesamriddhiatro.com',
+  facebookHref: 'https://facebook.com/',
+  instagramHref: 'https://instagram.com/',
+};
 
 export default function ContactPage() {
   const { tenant } = useTenant();
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [snackbar, setSnackbar] = useState("");
   const [form, setForm] = useState({
     full_name: "",
     email: "",
@@ -19,9 +26,15 @@ export default function ContactPage() {
     message: "",
   });
 
+  useEffect(() => {
+    if (!snackbar) return;
+    const timeout = window.setTimeout(() => setSnackbar(""), 3500);
+    return () => window.clearTimeout(timeout);
+  }, [snackbar]);
+
   const submitSupportRequest = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setError("");
+    setSnackbar("");
     setLoading(true);
 
     try {
@@ -29,7 +42,7 @@ export default function ContactPage() {
       setSent(true);
       setForm({ full_name: "", email: "", subject: "", message: "" });
     } catch (err) {
-      setError(
+      setSnackbar(
         err instanceof ApiError
           ? err.message
           : "Unable to send support request."
@@ -41,33 +54,54 @@ export default function ContactPage() {
 
   return (
     <>
-      <Section tone="dark" className="pb-14 pt-20">
+      <Section tone="dark" className="!py-6 md:!py-8">
         <p className="eyebrow-on-dark">Contact</p>
-        <h1 className="mt-5 max-w-xl text-4xl leading-tight md:text-5xl">Questions before booking? Ask directly.</h1>
+        <h1 className="mt-3 max-w-xl text-3xl leading-tight md:text-4xl">Questions before booking? Ask directly.</h1>
       </Section>
 
-      <Section>
-        <div className="grid gap-14 lg:grid-cols-[0.9fr_1.1fr]">
-          <div className="space-y-8">
-            <div className="flex gap-4">
-              <Mail className="mt-1 text-gold" size={18} />
-              <div>
+      <Section className="!py-10 md:!py-14">
+        <SiteSnackbar message={snackbar} onClose={() => setSnackbar("")} />
+        <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+            <div className="flex items-start gap-4 rounded-lg border border-mist bg-white p-4 shadow-sm">
+              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-gold/10 text-gold-dark">
+                <Mail size={18} />
+              </span>
+              <div className="min-w-0">
                 <p className="font-medium text-ink">Email</p>
-                <p className="mt-1 text-sm text-ink/60">contact@shreesamriddhiatro.com</p>
+                <a href={`mailto:${CONTACT.email}`} className="mt-1 block break-all text-sm text-ink/60 hover:text-wine">
+                  {CONTACT.email}
+                </a>
               </div>
             </div>
-            <div className="flex gap-4">
-              <Phone className="mt-1 text-gold" size={18} />
-              <div>
-                <p className="font-medium text-ink">Call</p>
-                <p className="mt-1 text-sm text-ink/60">Available for confirmed bookings only</p>
+            <div className="rounded-lg border border-mist bg-white p-4 shadow-sm">
+              <p className="font-medium text-ink">Follow Us</p>
+              <div className="mt-3 flex gap-3">
+                <a
+                  href={CONTACT.facebookHref}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-mist text-ink/60 transition hover:border-gold hover:text-wine"
+                  aria-label="Facebook"
+                >
+                  <Facebook size={18} />
+                </a>
+                <a
+                  href={CONTACT.instagramHref}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-mist text-ink/60 transition hover:border-gold hover:text-wine"
+                  aria-label="Instagram"
+                >
+                  <Instagram size={18} />
+                </a>
               </div>
             </div>
           </div>
 
-          <div>
+          <div className="rounded-lg border border-mist bg-white p-5 shadow-sm md:p-6">
             {sent ? (
-              <div className="border border-mist p-8 text-sm text-ink/70">
+              <div className="rounded-md border border-mist bg-parchment p-6 text-sm text-ink/70">
                 Thanks for reaching out — we'll reply to your email shortly.
               </div>
             ) : (
@@ -86,7 +120,7 @@ export default function ContactPage() {
                       }))
                     }
                     placeholder="Full name"
-                    className="border border-mist bg-parchment px-4 py-3 text-sm outline-none focus:border-gold"
+                    className="rounded-md border border-mist bg-parchment px-4 py-3 text-sm outline-none transition focus:border-gold"
                   />
                   <input
                     required
@@ -99,7 +133,7 @@ export default function ContactPage() {
                       }))
                     }
                     placeholder="Email address"
-                    className="border border-mist bg-parchment px-4 py-3 text-sm outline-none focus:border-gold"
+                    className="rounded-md border border-mist bg-parchment px-4 py-3 text-sm outline-none transition focus:border-gold"
                   />
                 </div>
                 <input
@@ -111,7 +145,7 @@ export default function ContactPage() {
                     }))
                   }
                   placeholder="Subject"
-                  className="w-full border border-mist bg-parchment px-4 py-3 text-sm outline-none focus:border-gold"
+                  className="w-full rounded-md border border-mist bg-parchment px-4 py-3 text-sm outline-none transition focus:border-gold"
                 />
                 <textarea
                   required
@@ -124,10 +158,9 @@ export default function ContactPage() {
                     }))
                   }
                   placeholder="How can we help?"
-                  className="w-full border border-mist bg-parchment px-4 py-3 text-sm outline-none focus:border-gold"
+                  className="w-full rounded-md border border-mist bg-parchment px-4 py-3 text-sm outline-none transition focus:border-gold"
                 />
-                {error && <p className="text-sm text-red-600">{error}</p>}
-                <button type="submit" disabled={loading} className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-60">
+                <button type="submit" disabled={loading} className="btn-primary w-full justify-center disabled:cursor-not-allowed disabled:opacity-60">
                   {loading ? "Sending..." : "Send Message"}
                 </button>
               </form>
@@ -136,9 +169,9 @@ export default function ContactPage() {
         </div>
       </Section>
 
-      <Section tone="dim" className="text-center">
+      <Section tone="dim" className="!py-10 text-center md:!py-14">
         <SectionHeading align="center" eyebrow="Prefer to just book?" title="Skip the message and pick a slot directly" />
-        <button type="button" onClick={openBookEnquiryModal} className="btn-primary mt-8 inline-flex">Book a Consultation</button>
+        <button type="button" onClick={() => openBookEnquiryModal()} className="btn-primary mt-8 inline-flex">Book a Consultation</button>
       </Section>
     </>
   );

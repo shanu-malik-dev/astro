@@ -9,6 +9,7 @@ export * from "./astrologers";
 export * from "./enquiry";
 export * from "./follow-up";
 export * from "./payments";
+export * from "./products";
 export * from "./country-codes";
 export * from "./support";
 export * from "./home";

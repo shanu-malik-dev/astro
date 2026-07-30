@@ -9,18 +9,6 @@ END;
 ALTER TABLE users
   MODIFY call_status TINYINT NOT NULL DEFAULT 1 COMMENT '1=Not called, 2=Called';
 
-UPDATE astrologer_consultations
-SET status = CASE
-  WHEN status = 'pending' THEN 1
-  WHEN status = 'confirmed' THEN 2
-  WHEN status = 'completed' THEN 3
-  WHEN status IN ('cancelled', 'canceled') THEN 4
-  WHEN status IN ('1', '2', '3', '4') THEN CAST(status AS UNSIGNED)
-  ELSE 1
-END;
-
-ALTER TABLE astrologer_consultations
-  MODIFY status TINYINT NOT NULL DEFAULT 1 COMMENT '1=Pending, 2=Confirmed, 3=Completed, 4=Cancelled';
 
 UPDATE enquiries
 SET status = CASE
