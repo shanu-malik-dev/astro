@@ -1,6 +1,13 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'crypto';
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  createHmac,
+  randomBytes,
+  timingSafeEqual,
+} from 'crypto';
 import { DATABASE_TABLES } from '../../../common/constants/database.constant';
 import { PAYMENT_STATUS, PaymentStatus } from '../../../common/constants/status.constant';
 import { successResponse } from '../../../common/helpers/response.helper';
@@ -13,6 +20,7 @@ import {
   CustomerPaymentEntity,
   PaymentProvider,
 } from '../entity/customer-payment.entity';
+import { PaymentLogEntity } from '../entity/payment-log.entity';
 import { PaymentRepository } from '../repository/payment.repository';
 
 type AuthUser = {
@@ -166,6 +174,73 @@ export class PaymentService {
     return successResponse('PAYMENT_STATUS_UPDATED', this.formatPayment(payment));
   }
 
+  async handleRazorpayWebhook(rawBody: Buffer, signature?: string, eventId?: string) {
+    if (!rawBody?.length) {
+      throw new BadRequestException('Webhook payload is required.');
+    }
+
+    const rawPayload = rawBody.toString('utf8');
+    const signatureVerified = this.verifyRazorpayWebhookSignature(
+      rawPayload,
+      signature,
+    );
+
+    let body: Record<string, any>;
+    try {
+      body = JSON.parse(rawPayload) as Record<string, any>;
+    } catch {
+      throw new BadRequestException('Invalid webhook payload.');
+    }
+
+    const parsed = this.parseRazorpayWebhookPayload(body);
+    const payment = parsed.paymentId
+      ? await this.paymentRepository.findByProviderPaymentId('razorpay', parsed.paymentId)
+      : null;
+    const logEnquiryId =
+      payment?.enq_id ||
+      (parsed.enquiryId && (await this.paymentRepository.enquiryExists(parsed.enquiryId))
+        ? parsed.enquiryId
+        : null);
+
+    await this.paymentRepository.getLogRepository().save(
+      this.paymentRepository.getLogRepository().create({
+        enq_id: logEnquiryId,
+        customer_payment_id: payment?.id || null,
+        provider: 'razorpay',
+        provider_payment_id: parsed.paymentId || null,
+        provider_event_id: eventId || null,
+        provider_event: parsed.event || null,
+        payment_status: parsed.status,
+        signature_verified: signatureVerified ? 1 : 0,
+        payload: body,
+        raw_body: rawPayload,
+      }),
+    );
+
+    if (!signatureVerified) {
+      throw new BadRequestException('Invalid Razorpay webhook signature.');
+    }
+
+    if (!payment || !parsed.paymentId) {
+      throw new NotFoundException('Payment not found.');
+    }
+
+    await this.paymentRepository.getRepository().update(payment.id, {
+      payment_status: parsed.status,
+      provider_response: body,
+    });
+
+    return successResponse('PAYMENT_STATUS_UPDATED', {
+      id: payment.id,
+      enq_id: payment.enq_id,
+      provider: 'razorpay',
+      provider_payment_id: parsed.paymentId,
+      payment_status: parsed.status,
+      event: parsed.event,
+      event_id: eventId || null,
+    });
+  }
+
   private getProvider(countryCode: string): PaymentProvider {
     return countryCode.trim() === '+91' ? 'razorpay' : 'stripe';
   }
@@ -200,6 +275,52 @@ export class PaymentService {
       paymentId: paymentId ? String(paymentId) : '',
       status: this.normalizePaymentStatus(String(rawStatus || 'pending')),
     };
+  }
+
+  private parseRazorpayWebhookPayload(body: Record<string, any>) {
+    const paymentLink = body.payload?.payment_link?.entity;
+    const payment = body.payload?.payment?.entity;
+    const order = body.payload?.order?.entity;
+    const event = String(body.event || '');
+
+    const paymentId =
+      paymentLink?.id ||
+      payment?.payment_link_id ||
+      payment?.id ||
+      order?.id ||
+      body.payment_id ||
+      '';
+
+    const rawStatus =
+      paymentLink?.status ||
+      payment?.status ||
+      order?.status ||
+      body.status ||
+      event;
+
+    return {
+      event,
+      enquiryId: Number(paymentLink?.notes?.enq_id || payment?.notes?.enq_id || 0) || null,
+      paymentId: paymentId ? String(paymentId) : '',
+      status: this.normalizePaymentStatus(String(rawStatus || 'pending')),
+    };
+  }
+
+  private verifyRazorpayWebhookSignature(rawPayload: string, signature?: string) {
+    const secret = this.configService.get<string>('RAZORPAY_WEBHOOK_SECRET');
+    if (!secret || !signature) return false;
+
+    const expected = createHmac('sha256', secret)
+      .update(rawPayload)
+      .digest('hex');
+
+    const receivedBuffer = Buffer.from(signature, 'hex');
+    const expectedBuffer = Buffer.from(expected, 'hex');
+
+    return (
+      receivedBuffer.length === expectedBuffer.length &&
+      timingSafeEqual(receivedBuffer, expectedBuffer)
+    );
   }
 
   private normalizePaymentStatus(status: string): PaymentStatus {

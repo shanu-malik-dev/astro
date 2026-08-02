@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { DATABASE_TABLES } from '../../../common/constants/database.constant';
 import { EnquiryEntity } from '../../enquiry/entity/enquiry.entity';
 import { CustomerPaymentEntity } from '../entity/customer-payment.entity';
+import { PaymentLogEntity } from '../entity/payment-log.entity';
 
 @Injectable()
 export class PaymentRepository {
@@ -12,14 +13,26 @@ export class PaymentRepository {
     private readonly paymentRepository: Repository<CustomerPaymentEntity>,
     @InjectRepository(EnquiryEntity)
     private readonly enquiryRepository: Repository<EnquiryEntity>,
+    @InjectRepository(PaymentLogEntity)
+    private readonly paymentLogRepository: Repository<PaymentLogEntity>,
   ) {}
 
   getRepository() {
     return this.paymentRepository;
   }
 
+  getLogRepository() {
+    return this.paymentLogRepository;
+  }
+
   findEnquiry(id: number) {
     return this.enquiryRepository.findOne({
+      where: { id, is_delete: 0 },
+    });
+  }
+
+  async enquiryExists(id: number) {
+    return this.enquiryRepository.exist({
       where: { id, is_delete: 0 },
     });
   }
@@ -42,5 +55,14 @@ export class PaymentRepository {
     }
 
     return queryBuilder.getOne();
+  }
+
+  findByProviderPaymentId(provider: string, providerPaymentId: string) {
+    return this.paymentRepository.findOne({
+      where: {
+        provider: provider as any,
+        provider_payment_id: providerPaymentId,
+      },
+    });
   }
 }

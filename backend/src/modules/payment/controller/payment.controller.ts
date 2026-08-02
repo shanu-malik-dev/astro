@@ -27,11 +27,31 @@ export class PaymentController {
   @IsPublic()
   @Post('webhook')
   webhook(@Req() req: Request & { body: Buffer | Record<string, unknown> }) {
-    return this.paymentService.handleWebhook(
-      {},
-      Buffer.isBuffer(req.body)
-        ? req.body
-        : Buffer.from(JSON.stringify(req.body || {})),
+    return this.paymentService.handleRazorpayWebhook(
+      this.getRawBody(req),
+      this.getHeader(req, 'x-razorpay-signature'),
+      this.getHeader(req, 'x-razorpay-event-id'),
     );
+  }
+
+  @IsPublic()
+  @Post('razorpay-webhook')
+  razorpayWebhook(@Req() req: Request & { body: Buffer | Record<string, unknown> }) {
+    return this.paymentService.handleRazorpayWebhook(
+      this.getRawBody(req),
+      this.getHeader(req, 'x-razorpay-signature'),
+      this.getHeader(req, 'x-razorpay-event-id'),
+    );
+  }
+
+  private getRawBody(req: Request & { body: Buffer | Record<string, unknown> }) {
+    return Buffer.isBuffer(req.body)
+      ? req.body
+      : Buffer.from(JSON.stringify(req.body || {}));
+  }
+
+  private getHeader(req: Request, name: string) {
+    const value = req.headers[name];
+    return Array.isArray(value) ? value[0] : value;
   }
 }

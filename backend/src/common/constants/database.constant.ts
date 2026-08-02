@@ -18,6 +18,7 @@ export const DATABASE_TABLES = {
   ENQUIRY_ASSIGNMENTS: 'enquiry_assignments',
   FOLLOW_UPS: 'follow_ups',
   CUSTOMER_PAYMENTS: 'customer_payment',
+  PAYMENT_LOGS: 'payment_logs',
   SUPPORT_REQUESTS: 'support_requests',
 } as const;
 
