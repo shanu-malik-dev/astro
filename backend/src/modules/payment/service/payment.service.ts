@@ -1,11 +1,8 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
-  createCipheriv,
-  createDecipheriv,
   createHash,
   createHmac,
-  randomBytes,
   timingSafeEqual,
 } from 'crypto';
 import { DATABASE_TABLES } from '../../../common/constants/database.constant';
@@ -59,24 +56,36 @@ export class PaymentService {
         ? await this.razorpayService.createPaymentLink(enquiry, amount, currency, paymentLinkOptions)
         : await this.stripeService.createCheckoutLink(enquiry, amount, currency);
 
-    const payment = await this.paymentRepository.getRepository().save(
-      this.paymentRepository.getRepository().create({
+    const paymentInsert = await this.paymentRepository
+      .getRepository()
+      .createQueryBuilder()
+      .insert()
+      .into(CustomerPaymentEntity)
+      .values({
         enq_id: enquiry.id,
         customer_name: enquiry.customer_name,
         country_code: enquiry.country_code,
         customer_mobile: enquiry.mobile,
-        amount: this.encryptAmount(amount),
+        amount: () => 'AES_ENCRYPT(:amount, :amountKey)' as any,
         currency,
         provider,
         provider_payment_id: providerResult.providerPaymentId,
         payment_link: providerResult.paymentLink,
         qr_code_url: this.createQrCodeUrl(providerResult.paymentLink),
         payment_status: PAYMENT_STATUS.PENDING,
-        provider_response: providerResult.raw,
-      }),
-    );
+        provider_response: providerResult.raw as any,
+      })
+      .setParameters({
+        amount: String(amount),
+        amountKey: this.getMysqlAesKey(),
+      })
+      .execute();
 
-    return successResponse('PAYMENT_LINK_CREATED', this.formatPayment(payment));
+    const payment = await this.paymentRepository.getRepository().findOne({
+      where: { id: Number(paymentInsert.identifiers[0]?.id) },
+    });
+
+    return successResponse('PAYMENT_LINK_CREATED', this.formatPayment(payment, amount));
   }
 
   async findAll(query: ListPaymentDto, authUser?: AuthUser) {
@@ -130,14 +139,24 @@ export class PaymentService {
       });
     }
 
-    const [payments, total] = await queryBuilder
+    queryBuilder.addSelect(
+      'CAST(AES_DECRYPT(payment.amount, :amountKey) AS CHAR)',
+      'decrypted_amount',
+    );
+    queryBuilder.setParameter('amountKey', this.getMysqlAesKey());
+
+    const { entities: payments, raw } = await queryBuilder
       .orderBy('payment.id', 'DESC')
       .skip(skip)
       .take(limit)
-      .getManyAndCount();
+      .getRawAndEntities();
+    const total = await queryBuilder.getCount();
+    const amountMap = this.toAmountMap(raw);
 
     return successResponse('PAYMENT_LIST_FETCHED', {
-      records: payments.map((payment) => this.formatPayment(payment)),
+      records: payments.map((payment) =>
+        this.formatPayment(payment, amountMap.get(String(payment.id))),
+      ),
       pagination: {
         total,
         page,
@@ -332,34 +351,13 @@ export class PaymentService {
     return PAYMENT_STATUS.PENDING;
   }
 
-  private encryptAmount(amount: number) {
-    const iv = randomBytes(12);
-    const cipher = createCipheriv('aes-256-gcm', this.getAesKey(), iv);
-    const encrypted = Buffer.concat([
-      cipher.update(String(amount), 'utf8'),
-      cipher.final(),
-    ]);
-    const authTag = cipher.getAuthTag();
-    return Buffer.concat([iv, authTag, encrypted]);
-  }
-
-  private decryptAmount(encryptedAmount: Buffer) {
-    const iv = encryptedAmount.subarray(0, 12);
-    const authTag = encryptedAmount.subarray(12, 28);
-    const encrypted = encryptedAmount.subarray(28);
-    const decipher = createDecipheriv('aes-256-gcm', this.getAesKey(), iv);
-    decipher.setAuthTag(authTag);
-    return Number(
-      Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8'),
-    );
-  }
-
-  private getAesKey() {
-    const secret =
+  private getMysqlAesKey() {
+    return (
+      this.configService.get<string>('MYSQL_PAYMENT_AES_KEY') ||
       this.configService.get<string>('PAYMENT_AES_KEY') ||
       this.configService.get<string>('JWT_ACCESS_SECRET') ||
-      'astronova-payment-secret';
-    return createHash('sha256').update(secret).digest();
+      'astronova-payment-secret'
+    );
   }
 
   private getPaymentLinkExpireBy() {
@@ -380,7 +378,7 @@ export class PaymentService {
     return `https://api.qrserver.com/v1/create-qr-code/?size=360x360&ecc=H&qzone=4&data=${encodeURIComponent(paymentLink)}`;
   }
 
-  private formatPayment(payment?: CustomerPaymentEntity | null) {
+  private formatPayment(payment?: CustomerPaymentEntity | null, decryptedAmount?: unknown) {
     if (!payment) return null;
 
     return {
@@ -389,7 +387,7 @@ export class PaymentService {
       customer_name: payment.customer_name,
       country_code: payment.country_code,
       customer_mobile: `${payment.country_code} ${payment.customer_mobile}`,
-      amount: this.decryptAmount(payment.amount),
+      amount: Number(decryptedAmount) || 0,
       currency: payment.currency,
       provider: payment.provider,
       provider_payment_id: payment.provider_payment_id,
@@ -399,6 +397,16 @@ export class PaymentService {
       created_at: payment.created_at,
       updated_at: payment.updated_at,
     };
+  }
+
+  private toAmountMap(rawRows: Array<Record<string, unknown>>) {
+    return rawRows.reduce<Map<string, unknown>>((map, row) => {
+      const paymentId = row.payment_id;
+      if (paymentId !== undefined && paymentId !== null) {
+        map.set(String(paymentId), row.decrypted_amount);
+      }
+      return map;
+    }, new Map<string, unknown>());
   }
 
   private getExecutiveId(authUser?: AuthUser) {
