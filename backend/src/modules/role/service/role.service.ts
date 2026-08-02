@@ -5,22 +5,8 @@ import { successResponse } from '../../../common/helpers/response.helper';
 import { RoleEntity } from '../../auth/entity/role.entity';
 import { ListRoleDto } from '../dto/list-role.dto';
 import { SaveRoleDto } from '../dto/save-role.dto';
+import { ModuleEntity } from '../entity/module.entity';
 import { RoleAdminModuleEntity } from '../entity/role-admin-module.entity';
-
-export const ADMIN_MODULE_KEYS = [
-  'dashboard',
-  'master',
-  'services',
-  'astrologers',
-  'enquiry',
-  'countryCodes',
-  'users',
-  'followUp',
-  'payments',
-  'products',
-  'support',
-  'roles',
-] as const;
 
 @Injectable()
 export class RoleService {
@@ -29,6 +15,8 @@ export class RoleService {
     private readonly roleRepository: Repository<RoleEntity>,
     @InjectRepository(RoleAdminModuleEntity)
     private readonly roleAdminModuleRepository: Repository<RoleAdminModuleEntity>,
+    @InjectRepository(ModuleEntity)
+    private readonly moduleRepository: Repository<ModuleEntity>,
   ) {}
 
   async findAll(query: ListRoleDto) {
@@ -38,7 +26,11 @@ export class RoleService {
     const sortOrder = query.sort_order === 'desc' ? 'DESC' : 'ASC';
     const queryBuilder = this.roleRepository.createQueryBuilder('role');
 
-    queryBuilder.where('role.id != :adminRoleId', { adminRoleId: 1 });
+    queryBuilder
+      .where('role.id != :adminRoleId', { adminRoleId: 1 })
+      .andWhere('LOWER(role.name) NOT IN (:...hiddenRoles)', {
+        hiddenRoles: ['admin', 'customer'],
+      });
 
     if (query.search) {
       queryBuilder.andWhere('role.name LIKE :search', {
@@ -64,11 +56,14 @@ export class RoleService {
       .skip(skip)
       .take(limit)
       .getManyAndCount();
-    const moduleMap = await this.getModulesByRoleIds(roles.map((role) => role.id));
+    const [moduleMap, availableModules] = await Promise.all([
+      this.getModulesByRoleIds(roles.map((role) => role.id)),
+      this.getActiveModules(),
+    ]);
 
     return successResponse('ROLE_LIST_FETCHED', {
       records: roles.map((role) => this.formatRole(role, moduleMap.get(Number(role.id)) || [])),
-      available_modules: ADMIN_MODULE_KEYS,
+      available_modules: availableModules.map((module) => module.module_key),
       pagination: {
         total,
         page,
@@ -79,7 +74,8 @@ export class RoleService {
   }
 
   async save(dto: SaveRoleDto) {
-    const moduleKeys = this.normalizeModules(dto.modules);
+    const moduleMap = await this.getModuleMap();
+    const moduleKeys = this.normalizeModules(dto.modules, moduleMap);
     const status = dto.status === 0 ? 0 : 1;
     const role = dto.id
       ? await this.roleRepository.findOne({ where: { id: dto.id } })
@@ -93,25 +89,28 @@ export class RoleService {
     role.name = dto.name.trim();
     role.status = status;
     const saved = await this.roleRepository.save(role);
-    await this.replaceModules(saved.id, moduleKeys);
+    await this.replaceModules(saved.id, moduleKeys, moduleMap);
 
     return successResponse('ROLE_SAVED', this.formatRole(saved, moduleKeys));
   }
 
   async getModulesForRole(roleId: number) {
-    if (Number(roleId) === 1) return [...ADMIN_MODULE_KEYS];
+    if (Number(roleId) === 1) {
+      return (await this.getActiveModules()).map((module) => module.module_key);
+    }
 
     const modules = await this.roleAdminModuleRepository.find({
       where: { role_id: roleId },
-      select: ['module_key'],
+      relations: ['module'],
     });
 
-    return modules.map((module) => module.module_key);
+    return modules
+      .filter((roleModule) => roleModule.module?.status === 1)
+      .map((roleModule) => roleModule.module.module_key);
   }
 
-  private normalizeModules(modules: string[]) {
-    const valid = new Set<string>(ADMIN_MODULE_KEYS);
-    const normalized = modules.filter((module) => valid.has(module));
+  private normalizeModules(modules: string[], moduleMap: Map<string, ModuleEntity>) {
+    const normalized = modules.filter((module) => moduleMap.has(module));
 
     if (normalized.length !== modules.length) {
       throw new BadRequestException('Invalid admin module selected.');
@@ -120,7 +119,11 @@ export class RoleService {
     return normalized;
   }
 
-  private async replaceModules(roleId: number, modules: string[]) {
+  private async replaceModules(
+    roleId: number,
+    modules: string[],
+    moduleMap: Map<string, ModuleEntity>,
+  ) {
     await this.roleAdminModuleRepository.delete({ role_id: roleId });
     if (modules.length === 0) return;
 
@@ -128,7 +131,7 @@ export class RoleService {
       modules.map((moduleKey) =>
         this.roleAdminModuleRepository.create({
           role_id: roleId,
-          module_key: moduleKey,
+          module_id: moduleMap.get(moduleKey)!.id,
         }),
       ),
     );
@@ -140,19 +143,37 @@ export class RoleService {
 
     const modules = await this.roleAdminModuleRepository.find({
       where: { role_id: In(roleIds) },
+      relations: ['module'],
     });
 
     modules.forEach((module) => {
+      if (!module.module || module.module.status !== 1) return;
       const roleModules = map.get(Number(module.role_id)) || [];
-      roleModules.push(module.module_key);
+      roleModules.push(module.module.module_key);
       map.set(Number(module.role_id), roleModules);
     });
 
     if (roleIds.includes(1)) {
-      map.set(1, [...ADMIN_MODULE_KEYS]);
+      const adminModules = await this.getActiveModules();
+      map.set(1, adminModules.map((module) => module.module_key));
     }
 
     return map;
+  }
+
+  private getActiveModules() {
+    return this.moduleRepository.find({
+      where: { status: 1 },
+      order: { sort_order: 'ASC', id: 'ASC' },
+    });
+  }
+
+  private async getModuleMap() {
+    const modules = await this.getActiveModules();
+    return modules.reduce<Map<string, ModuleEntity>>((map, module) => {
+      map.set(module.module_key, module);
+      return map;
+    }, new Map<string, ModuleEntity>());
   }
 
   private formatRole(role: RoleEntity, modules: string[]) {

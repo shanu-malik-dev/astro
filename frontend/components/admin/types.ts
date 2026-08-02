@@ -8,6 +8,7 @@ export type ModuleKey =
   | "enquiry"
   | "followUp"
   | "payments"
+  | "shop"
   | "products"
   | "support"
   | "roles"

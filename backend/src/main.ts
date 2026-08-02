@@ -5,6 +5,7 @@ import { ValidationPipe } from '@nestjs/common';
 import * as express from 'express';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { AdminModuleGuard } from './modules/auth/guards/admin-module.guard';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 
 async function bootstrap() {
@@ -29,7 +30,7 @@ async function bootstrap() {
     }),
   );
   app.useGlobalFilters(new HttpExceptionFilter());
-  app.useGlobalGuards(app.get(JwtAuthGuard));
+  app.useGlobalGuards(app.get(JwtAuthGuard), app.get(AdminModuleGuard));
   app.setGlobalPrefix('api');
 
   const config = new DocumentBuilder()

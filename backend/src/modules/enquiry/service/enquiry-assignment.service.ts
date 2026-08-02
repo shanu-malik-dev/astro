@@ -30,8 +30,13 @@ export class EnquiryAssignmentService {
         .innerJoin(
           DATABASE_TABLES.ROLE_ADMIN_MODULES,
           'module',
-          'module.role_id = user.role_id AND module.module_key = :moduleKey',
-          { moduleKey: ASSIGNABLE_MODULE },
+          'module.role_id = user.role_id',
+        )
+        .innerJoin(
+          DATABASE_TABLES.MODULES,
+          'adminModule',
+          'adminModule.id = module.module_id AND adminModule.module_key = :moduleKey AND adminModule.status = :moduleStatus',
+          { moduleKey: ASSIGNABLE_MODULE, moduleStatus: 1 },
         )
         .where('assignment.is_active = :active', { active: 1 })
         .andWhere('user.is_delete = :isDelete', { isDelete: 0 })
@@ -69,8 +74,13 @@ export class EnquiryAssignmentService {
       .innerJoin(
         DATABASE_TABLES.ROLE_ADMIN_MODULES,
         'module',
-        'module.role_id = user.role_id AND module.module_key = :moduleKey',
-        { moduleKey: ASSIGNABLE_MODULE },
+        'module.role_id = user.role_id',
+      )
+      .innerJoin(
+        DATABASE_TABLES.MODULES,
+        'adminModule',
+        'adminModule.id = module.module_id AND adminModule.module_key = :moduleKey AND adminModule.status = :moduleStatus',
+        { moduleKey: ASSIGNABLE_MODULE, moduleStatus: 1 },
       )
       .where('user.is_delete = :isDelete', { isDelete: 0 })
       .andWhere('user.status = :status', { status: 1 })

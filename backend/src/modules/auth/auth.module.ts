@@ -10,6 +10,7 @@ import { LoginLogEntity } from './entity/login-log.entity';
 import { RoleEntity } from './entity/role.entity';
 import { UserEntity } from './entity/user.entity';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { AdminModuleGuard } from './guards/admin-module.guard';
 import { AuthRepository } from './repository/auth.repository';
 import { AuthService } from './service/auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
@@ -30,10 +31,11 @@ import { IsSupportedMobileConstraint } from './validators/is-supported-mobile.va
     AuthRepository,
     OtpService,
     JwtAuthGuard,
+    AdminModuleGuard,
     JwtStrategy,
     IsValidOtpConstraint,
     IsSupportedMobileConstraint,
   ],
-  exports: [JwtAuthGuard, AuthService],
+  exports: [JwtAuthGuard, AdminModuleGuard, AuthService],
 })
 export class AuthModule {}

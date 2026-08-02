@@ -3,7 +3,7 @@ import { ADMIN_MODULE_FLAGS } from "@/lib/feature-flags";
 export const WEBSITE_MODULE_FLAGS = {
   about: true,
   services: ADMIN_MODULE_FLAGS.services,
-  shop: ADMIN_MODULE_FLAGS.products,
+  shop: ADMIN_MODULE_FLAGS.shop,
   astrologers: ADMIN_MODULE_FLAGS.astrologers,
 };
 

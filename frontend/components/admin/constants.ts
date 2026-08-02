@@ -61,6 +61,12 @@ export const ALL_MODULES: AdminModule[] = [
     icon: CreditCard,
   },
   {
+    key: "shop",
+    label: "Shop",
+    description: "Show or hide the website shop module.",
+    icon: Package,
+  },
+  {
     key: "products",
     label: "Products",
     description: "Manage shop products, pricing, images, and translations.",

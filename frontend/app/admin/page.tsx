@@ -17,8 +17,9 @@ import { useAuth } from "@/lib/auth-context";
 import { FullPageLoader } from "@/components/ui/FullPageLoader";
 
 export default function AdminPage() {
-  const { user, loading, logout } = useAuth();
+  const { user, accessToken, loading, logout, syncCurrentUser } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [userSynced, setUserSynced] = useState(false);
   const [activeModule, setActiveModule] = useState<ModuleKey>(
     SIDEBAR_MODULES[0]?.key || "dashboard"
   );
@@ -35,10 +36,6 @@ export default function AdminPage() {
     }
 
     const modules = user?.admin_modules || [];
-    if (modules.includes("master")) {
-      return Array.from(new Set([...modules, ...MASTER_MODULE_KEYS]));
-    }
-
     return modules;
   }, [user?.admin_modules, user?.role_id]);
   const permittedModules = useMemo(() => {
@@ -91,6 +88,30 @@ export default function AdminPage() {
     return () => window.removeEventListener("resize", syncSidebar);
   }, []);
 
+  useEffect(() => {
+    let active = true;
+
+    async function syncUserModules() {
+      if (!accessToken) {
+        setUserSynced(true);
+        return;
+      }
+
+      setUserSynced(false);
+      try {
+        await syncCurrentUser();
+      } finally {
+        if (active) setUserSynced(true);
+      }
+    }
+
+    syncUserModules();
+
+    return () => {
+      active = false;
+    };
+  }, [accessToken, syncCurrentUser]);
+
   const handleModuleChange = (module: ModuleKey) => {
     if (module === "master" && permittedMasterModules.length > 0) {
       setMasterSubmodule((current) =>
@@ -123,7 +144,7 @@ export default function AdminPage() {
     await logout();
   };
 
-  if (loading) {
+  if (loading || !userSynced) {
     return (
       <FullPageLoader message="Checking admin access..." />
     );

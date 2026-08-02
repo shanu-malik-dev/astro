@@ -102,4 +102,9 @@ export class AuthController {
   logout(@Req() req: AuthenticatedRequest) {
     return this.authService.logout(req.user.sub);
   }
+
+  @Post('me')
+  me(@Req() req: AuthenticatedRequest) {
+    return this.authService.me(req.user.sub);
+  }
 }

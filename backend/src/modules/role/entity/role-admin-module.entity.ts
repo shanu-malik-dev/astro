@@ -10,9 +10,10 @@ import {
 } from 'typeorm';
 import { DATABASE_TABLES } from '../../../common/constants/database.constant';
 import { RoleEntity } from '../../auth/entity/role.entity';
+import { ModuleEntity } from './module.entity';
 
 @Entity({ name: DATABASE_TABLES.ROLE_ADMIN_MODULES })
-@Index('uq_role_admin_modules_role_module', ['role_id', 'module_key'], {
+@Index('uq_role_admin_modules_role_module', ['role_id', 'module_id'], {
   unique: true,
 })
 export class RoleAdminModuleEntity {
@@ -22,12 +23,16 @@ export class RoleAdminModuleEntity {
   @Column({ type: 'bigint', unsigned: true })
   role_id: number;
 
-  @Column({ type: 'varchar', length: 50 })
-  module_key: string;
+  @Column({ type: 'bigint', unsigned: true })
+  module_id: number;
 
   @ManyToOne(() => RoleEntity, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'role_id' })
   role: RoleEntity;
+
+  @ManyToOne(() => ModuleEntity, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'module_id' })
+  module: ModuleEntity;
 
   @CreateDateColumn({ type: 'timestamp' })
   created_at: Date;

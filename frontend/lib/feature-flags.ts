@@ -8,6 +8,7 @@ export const ADMIN_MODULE_FLAGS = {
   users: true,
   followUp: true,
   payments: true,
+  shop: false,
   products: true,
   support: true,
   roles: true,

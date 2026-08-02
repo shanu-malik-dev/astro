@@ -26,6 +26,7 @@ interface AuthContextValue extends AuthState {
   register: (data: { fullName: string; countryCode: string; mobile: string }) => Promise<OtpResponse>;
   verifyOtp: (data: { countryCode: string; mobile: string; otp: string }) => Promise<AuthUser>;
   resendOtp: (data: { countryCode: string; mobile: string }) => Promise<OtpResponse>;
+  syncCurrentUser: () => Promise<AuthUser | null>;
   logout: () => Promise<void>;
 }
 
@@ -170,6 +171,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return authApi.resendOtp(tenant.id, data);
   }, [tenant.id]);
 
+  const syncCurrentUser = useCallback(async () => {
+    if (!state.accessToken) return null;
+
+    const res = await authApi.me(tenant.id, state.accessToken);
+    const nextUser = res.user || res.data?.user || null;
+    if (!nextUser) return null;
+
+    const normalizedUser = {
+      ...nextUser,
+      fullName: nextUser.fullName || nextUser.name || "",
+    };
+
+    persist({
+      accessToken: state.accessToken,
+      refreshToken: state.refreshToken,
+      user: normalizedUser,
+    });
+
+    return normalizedUser;
+  }, [persist, state.accessToken, state.refreshToken, tenant.id]);
+
   const logout = useCallback(async () => {
     try {
       if (state.accessToken) await authApi.logout(tenant.id, state.accessToken);
@@ -180,7 +202,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [state.accessToken, tenant.id]);
 
   return (
-    <AuthContext.Provider value={{ ...state, loading, login, adminEmailLogin, sendForgotPasswordOtp, resetForgotPassword, register, verifyOtp, resendOtp, logout }}>
+    <AuthContext.Provider value={{ ...state, loading, login, adminEmailLogin, sendForgotPasswordOtp, resetForgotPassword, register, verifyOtp, resendOtp, syncCurrentUser, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,4 +1,5 @@
 export const DATABASE_TABLES = {
+  MODULES: 'modules',
   ROLES: 'roles',
   ROLE_ADMIN_MODULES: 'role_admin_modules',
   USERS: 'users',

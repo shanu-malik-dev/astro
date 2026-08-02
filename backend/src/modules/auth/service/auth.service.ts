@@ -375,6 +375,22 @@ export class AuthService {
     return successResponse('LOGOUT_SUCCESSFUL');
   }
 
+  async me(userId: string | number) {
+    const user = await this.authRepository.findUserById(Number(userId));
+    if (!user || user.is_delete !== 0 || user.status !== 1) {
+      throw new UnauthorizedException(this.message('USER_NOT_FOUND_OR_INACTIVE'));
+    }
+
+    const adminModules = await this.roleService.getModulesForRole(Number(user.role_id));
+
+    return successResponse('USER_FETCHED', {
+      user: this.toSafeUser(
+        user,
+        adminModules.length > 0 ? adminModules : undefined,
+      ),
+    });
+  }
+
   private async createAndSendOtp(
     userId: number,
     countryCode: string,

@@ -118,4 +118,10 @@ export const authApi = {
       accessToken,
       method: "POST",
     }),
+  me: (tenantId: TenantId, accessToken: string) =>
+    request<AuthResponse>("/auth/me", {
+      tenantId,
+      accessToken,
+      method: "POST",
+    }),
 };
