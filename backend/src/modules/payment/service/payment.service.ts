@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'crypto';
+import { DATABASE_TABLES } from '../../../common/constants/database.constant';
 import { PAYMENT_STATUS, PaymentStatus } from '../../../common/constants/status.constant';
 import { successResponse } from '../../../common/helpers/response.helper';
 import { RazorpayService } from '../../third-party/razorpay/razorpay.service';
@@ -14,6 +15,13 @@ import {
 } from '../entity/customer-payment.entity';
 import { PaymentRepository } from '../repository/payment.repository';
 
+type AuthUser = {
+  sub?: string | number;
+  role_id?: string | number;
+};
+
+const ADMIN_ROLE_ID = 1;
+
 @Injectable()
 export class PaymentService {
   constructor(
@@ -23,8 +31,11 @@ export class PaymentService {
     private readonly stripeService: StripeService,
   ) {}
 
-  async createPaymentLink(dto: CreatePaymentLinkDto) {
-    const enquiry = await this.paymentRepository.findEnquiry(dto.enq_id);
+  async createPaymentLink(dto: CreatePaymentLinkDto, authUser?: AuthUser) {
+    const enquiry = await this.paymentRepository.findAssignedEnquiry(
+      dto.enq_id,
+      this.getExecutiveId(authUser),
+    );
     if (!enquiry) throw new NotFoundException('Enquiry not found.');
 
     const provider = this.getProvider(enquiry.country_code);
@@ -60,13 +71,25 @@ export class PaymentService {
     return successResponse('PAYMENT_LINK_CREATED', this.formatPayment(payment));
   }
 
-  async findAll(query: ListPaymentDto) {
+  async findAll(query: ListPaymentDto, authUser?: AuthUser) {
     const page = query.page || 1;
     const limit = Math.min(query.limit || 10, 100);
     const skip = (page - 1) * limit;
     const queryBuilder = this.paymentRepository
       .getRepository()
       .createQueryBuilder('payment');
+
+    const executiveId = this.getExecutiveId(authUser);
+    if (executiveId) {
+      queryBuilder
+        .innerJoin(
+          DATABASE_TABLES.ENQUIRY_ASSIGNMENTS,
+          'assignment',
+          'assignment.enq_id = payment.enq_id AND assignment.is_active = :assignmentActive',
+          { assignmentActive: 1 },
+        )
+        .andWhere('assignment.executive_id = :executiveId', { executiveId });
+    }
 
     if (query.provider) {
       queryBuilder.andWhere('payment.provider = :provider', {
@@ -255,5 +278,14 @@ export class PaymentService {
       created_at: payment.created_at,
       updated_at: payment.updated_at,
     };
+  }
+
+  private getExecutiveId(authUser?: AuthUser) {
+    const userId = Number(authUser?.sub);
+    const roleId = Number(authUser?.role_id);
+    if (!Number.isFinite(userId) || userId <= 0 || roleId === ADMIN_ROLE_ID) {
+      return undefined;
+    }
+    return userId;
   }
 }

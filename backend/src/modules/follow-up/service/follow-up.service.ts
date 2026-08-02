@@ -5,19 +5,29 @@ import { ListFollowUpDto } from '../dto/list-follow-up.dto';
 import { FollowUpEntity } from '../entity/follow-up.entity';
 import { FollowUpRepository } from '../repository/follow-up.repository';
 
+type AuthUser = {
+  sub?: string | number;
+  role_id?: string | number;
+};
+
+const ADMIN_ROLE_ID = 1;
+
 @Injectable()
 export class FollowUpService {
   constructor(private readonly followUpRepository: FollowUpRepository) {}
 
-  async create(dto: CreateFollowUpDto) {
-    const enquiry = await this.followUpRepository.findEnquiry(dto.enq_id);
+  async create(dto: CreateFollowUpDto, authUser?: AuthUser) {
+    const enquiry = await this.followUpRepository.findAssignedEnquiry(
+      dto.enq_id,
+      this.getExecutiveId(authUser),
+    );
     if (!enquiry) throw new NotFoundException('Enquiry not found.');
 
     const followUp = await this.followUpRepository.createFollowUp(dto, enquiry);
     return successResponse('FOLLOW_UP_CREATED', this.formatFollowUp(followUp));
   }
 
-  async findAll(query: ListFollowUpDto) {
+  async findAll(query: ListFollowUpDto, authUser?: AuthUser) {
     const page = query.page || 1;
     const limit = Math.min(query.limit || 10, 100);
     const skip = (page - 1) * limit;
@@ -26,6 +36,24 @@ export class FollowUpService {
       .getRepository()
       .createQueryBuilder('followUp')
       .where('followUp.is_delete = :isDelete', { isDelete: 0 });
+
+    const executiveId = this.getExecutiveId(authUser);
+    if (executiveId) {
+      queryBuilder
+        .innerJoin(
+          'followUp.enquiry',
+          'enquiry',
+          'enquiry.is_delete = :enquiryIsDelete',
+          { enquiryIsDelete: 0 },
+        )
+        .innerJoin(
+          'enquiry.assignments',
+          'assignment',
+          'assignment.is_active = :assignmentActive',
+          { assignmentActive: 1 },
+        )
+        .andWhere('assignment.executive_id = :executiveId', { executiveId });
+    }
 
     if (query.status) {
       queryBuilder.andWhere('followUp.status = :status', {
@@ -84,5 +112,14 @@ export class FollowUpService {
       follow_up_at: followUp.follow_up_at || followUp.created_at,
       created_at: followUp.created_at,
     };
+  }
+
+  private getExecutiveId(authUser?: AuthUser) {
+    const userId = Number(authUser?.sub);
+    const roleId = Number(authUser?.role_id);
+    if (!Number.isFinite(userId) || userId <= 0 || roleId === ADMIN_ROLE_ID) {
+      return undefined;
+    }
+    return userId;
   }
 }

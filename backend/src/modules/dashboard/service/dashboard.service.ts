@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
+import { DATABASE_TABLES } from '../../../common/constants/database.constant';
 import {
   CUSTOMER_CALL_STATUS,
   ENQUIRY_STATUS,
@@ -18,6 +19,13 @@ type CountRow = {
   total: number | string;
 };
 
+type AuthUser = {
+  sub?: string | number;
+  role_id?: string | number;
+};
+
+const ADMIN_ROLE_ID = 1;
+
 @Injectable()
 export class DashboardService {
   constructor(
@@ -31,19 +39,22 @@ export class DashboardService {
     private readonly roleRepository: Repository<RoleEntity>,
   ) {}
 
-  async summary(dto: DashboardSummaryDto) {
+  async summary(dto: DashboardSummaryDto, authUser?: AuthUser) {
+    const executiveId = this.getExecutiveId(authUser);
     const [enquiryRows, followUpRows, customerRows] = await Promise.all([
       this.countByStatus(
         this.enquiryRepository.createQueryBuilder('enquiry'),
         'enquiry',
         dto,
+        executiveId,
       ),
       this.countByStatus(
         this.followUpRepository.createQueryBuilder('followUp'),
         'followUp',
         dto,
+        executiveId,
       ),
-      this.countCustomers(dto),
+      this.countCustomers(dto, executiveId),
     ]);
 
     const enquiryCounts = this.toCountMap(enquiryRows);
@@ -81,6 +92,7 @@ export class DashboardService {
     queryBuilder: SelectQueryBuilder<any>,
     alias: string,
     dto: DashboardSummaryDto,
+    executiveId?: number,
   ) {
     queryBuilder
       .select(`${alias}.status`, 'status')
@@ -88,11 +100,12 @@ export class DashboardService {
       .where(`${alias}.is_delete = :isDelete`, { isDelete: 0 });
 
     this.applyDateFilter(queryBuilder, alias, dto);
+    this.applyExecutiveFilter(queryBuilder, alias, executiveId);
 
     return queryBuilder.groupBy(`${alias}.status`).getRawMany<CountRow>();
   }
 
-  private async countCustomers(dto: DashboardSummaryDto) {
+  private async countCustomers(dto: DashboardSummaryDto, executiveId?: number) {
     const customerRole = await this.roleRepository.findOne({
       where: { name: 'Customer' },
     });
@@ -107,6 +120,28 @@ export class DashboardService {
       .andWhere('user.role_id = :roleId', { roleId: customerRole.id });
 
     this.applyDateFilter(queryBuilder, 'user', dto);
+
+    if (executiveId) {
+      queryBuilder.select('user.call_status', 'status').addSelect(
+        'COUNT(DISTINCT user.id)',
+        'total',
+      );
+
+      queryBuilder
+        .innerJoin(
+          EnquiryEntity,
+          'enquiry',
+          'enquiry.customer_id = user.id AND enquiry.is_delete = :enquiryIsDelete',
+          { enquiryIsDelete: 0 },
+        )
+        .innerJoin(
+          DATABASE_TABLES.ENQUIRY_ASSIGNMENTS,
+          'assignment',
+          'assignment.enq_id = enquiry.id AND assignment.is_active = :assignmentActive',
+          { assignmentActive: 1 },
+        )
+        .andWhere('assignment.executive_id = :executiveId', { executiveId });
+    }
 
     return queryBuilder.groupBy('user.call_status').getRawMany<CountRow>();
   }
@@ -139,5 +174,51 @@ export class DashboardService {
       counts[Number(row.status)] = Number(row.total) || 0;
       return counts;
     }, {});
+  }
+
+  private applyExecutiveFilter(
+    queryBuilder: SelectQueryBuilder<any>,
+    alias: string,
+    executiveId?: number,
+  ) {
+    if (!executiveId) return;
+
+    if (alias === 'enquiry') {
+      queryBuilder
+        .innerJoin(
+          DATABASE_TABLES.ENQUIRY_ASSIGNMENTS,
+          'assignment',
+          'assignment.enq_id = enquiry.id AND assignment.is_active = :assignmentActive',
+          { assignmentActive: 1 },
+        )
+        .andWhere('assignment.executive_id = :executiveId', { executiveId });
+      return;
+    }
+
+    if (alias === 'followUp') {
+      queryBuilder
+        .innerJoin(
+          'followUp.enquiry',
+          'enquiry',
+          'enquiry.is_delete = :enquiryIsDelete',
+          { enquiryIsDelete: 0 },
+        )
+        .innerJoin(
+          DATABASE_TABLES.ENQUIRY_ASSIGNMENTS,
+          'assignment',
+          'assignment.enq_id = enquiry.id AND assignment.is_active = :assignmentActive',
+          { assignmentActive: 1 },
+        )
+        .andWhere('assignment.executive_id = :executiveId', { executiveId });
+    }
+  }
+
+  private getExecutiveId(authUser?: AuthUser) {
+    const userId = Number(authUser?.sub);
+    const roleId = Number(authUser?.role_id);
+    if (!Number.isFinite(userId) || userId <= 0 || roleId === ADMIN_ROLE_ID) {
+      return undefined;
+    }
+    return userId;
   }
 }

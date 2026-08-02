@@ -12,13 +12,16 @@ export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
 
   @Post('generate-link')
-  createPaymentLink(@Body() dto: CreatePaymentLinkDto) {
-    return this.paymentService.createPaymentLink(dto);
+  createPaymentLink(
+    @Body() dto: CreatePaymentLinkDto,
+    @Req() req: Request & { user?: any },
+  ) {
+    return this.paymentService.createPaymentLink(dto, req.user);
   }
 
   @Post('list')
-  findAll(@Body() dto: ListPaymentDto) {
-    return this.paymentService.findAll(dto);
+  findAll(@Body() dto: ListPaymentDto, @Req() req: Request & { user?: any }) {
+    return this.paymentService.findAll(dto, req.user);
   }
 
   @IsPublic()

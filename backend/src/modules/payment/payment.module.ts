@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { EnquiryAssignmentEntity } from '../enquiry/entity/enquiry-assignment.entity';
 import { EnquiryEntity } from '../enquiry/entity/enquiry.entity';
 import { ThirdPartyModule } from '../third-party/third-party.module';
 import { PaymentController } from './controller/payment.controller';
@@ -9,7 +10,11 @@ import { PaymentService } from './service/payment.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([CustomerPaymentEntity, EnquiryEntity]),
+    TypeOrmModule.forFeature([
+      CustomerPaymentEntity,
+      EnquiryEntity,
+      EnquiryAssignmentEntity,
+    ]),
     ThirdPartyModule,
   ],
   controllers: [PaymentController],

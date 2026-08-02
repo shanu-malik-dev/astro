@@ -1,5 +1,6 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post, Req } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { Request } from 'express';
 import { IsPublic } from '../../auth/decorators/is-public.decorator';
 import { CheckMobileDto } from '../dto/check-mobile.dto';
 import { CloseEnquiryDto } from '../dto/close-enquiry.dto';
@@ -19,8 +20,8 @@ export class EnquiryController {
   }
 
   @Post('list')
-  findAll(@Body() dto: ListEnquiryDto) {
-    return this.enquiryService.findAll(dto);
+  findAll(@Body() dto: ListEnquiryDto, @Req() req: Request & { user?: any }) {
+    return this.enquiryService.findAll(dto, req.user);
   }
 
   @IsPublic()

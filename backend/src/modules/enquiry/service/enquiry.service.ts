@@ -7,10 +7,21 @@ import { CreateEnquiryDto } from '../dto/create-enquiry.dto';
 import { ListEnquiryDto } from '../dto/list-enquiry.dto';
 import { EnquiryEntity } from '../entity/enquiry.entity';
 import { EnquiryRepository } from '../repository/enquiry.repository';
+import { EnquiryAssignmentService } from './enquiry-assignment.service';
+
+type AuthUser = {
+  sub?: string | number;
+  role_id?: string | number;
+};
+
+const ADMIN_ROLE_ID = 1;
 
 @Injectable()
 export class EnquiryService {
-  constructor(private readonly enquiryRepository: EnquiryRepository) {}
+  constructor(
+    private readonly enquiryRepository: EnquiryRepository,
+    private readonly assignmentService: EnquiryAssignmentService,
+  ) {}
 
   async create(dto: CreateEnquiryDto) {
     const service = await this.enquiryRepository.findServiceById(dto.problem_id);
@@ -27,12 +38,14 @@ export class EnquiryService {
       dto.problem_name?.trim() ||
       this.getEnglishProblemName(service.translations || []);
     const enquiry = await this.enquiryRepository.createEnquiry(dto, problemName);
+    void this.assignmentService.assignRoundRobin(enquiry.id);
+
     const created = await this.findById(enquiry.id);
 
     return successResponse('ENQUIRY_CREATED', this.formatEnquiry(created));
   }
 
-  async findAll(query: ListEnquiryDto) {
+  async findAll(query: ListEnquiryDto, authUser?: AuthUser) {
     const page = query.page || 1;
     const limit = Math.min(query.limit || 10, 100);
     const skip = (page - 1) * limit;
@@ -43,6 +56,19 @@ export class EnquiryService {
       .leftJoinAndSelect('enquiry.problem', 'problem')
       .leftJoinAndSelect('problem.translations', 'translation')
       .where('enquiry.is_delete = :isDelete', { isDelete: 0 });
+
+    if (this.shouldScopeToExecutive(authUser)) {
+      queryBuilder
+        .innerJoin(
+          'enquiry.assignments',
+          'assignment',
+          'assignment.is_active = :assignmentActive',
+          { assignmentActive: 1 },
+        )
+        .andWhere('assignment.executive_id = :executiveId', {
+          executiveId: Number(authUser?.sub),
+        });
+    }
 
     if (query.status) {
       queryBuilder.andWhere('enquiry.status = :status', {
@@ -149,5 +175,11 @@ export class EnquiryService {
       translations[0]?.name ||
       ''
     );
+  }
+
+  private shouldScopeToExecutive(authUser?: AuthUser) {
+    const userId = Number(authUser?.sub);
+    const roleId = Number(authUser?.role_id);
+    return Number.isFinite(userId) && userId > 0 && roleId !== ADMIN_ROLE_ID;
   }
 }

@@ -5,6 +5,7 @@ import {
   Index,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -12,6 +13,7 @@ import { DATABASE_TABLES } from '../../../common/constants/database.constant';
 import { ENQUIRY_STATUS, EnquiryStatus } from '../../../common/constants/status.constant';
 import { UserEntity } from '../../auth/entity/user.entity';
 import { ServiceEntity } from '../../service/entity/service.entity';
+import { EnquiryAssignmentEntity } from './enquiry-assignment.entity';
 
 @Entity({ name: DATABASE_TABLES.ENQUIRIES })
 @Index('idx_enquiries_customer_mobile', ['country_code', 'mobile'])
@@ -60,6 +62,9 @@ export class EnquiryEntity {
   @ManyToOne(() => ServiceEntity, { onDelete: 'RESTRICT', onUpdate: 'CASCADE' })
   @JoinColumn({ name: 'problem_id' })
   problem: ServiceEntity;
+
+  @OneToMany(() => EnquiryAssignmentEntity, (assignment) => assignment.enquiry)
+  assignments: EnquiryAssignmentEntity[];
 
   @CreateDateColumn({ type: 'timestamp' })
   created_at: Date;

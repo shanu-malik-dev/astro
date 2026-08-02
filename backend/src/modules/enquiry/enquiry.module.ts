@@ -4,20 +4,23 @@ import { UserEntity } from '../auth/entity/user.entity';
 import { ServiceTranslationEntity } from '../service/entity/service-translation.entity';
 import { ServiceEntity } from '../service/entity/service.entity';
 import { EnquiryController } from './controller/enquiry.controller';
+import { EnquiryAssignmentEntity } from './entity/enquiry-assignment.entity';
 import { EnquiryEntity } from './entity/enquiry.entity';
 import { EnquiryRepository } from './repository/enquiry.repository';
+import { EnquiryAssignmentService } from './service/enquiry-assignment.service';
 import { EnquiryService } from './service/enquiry.service';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       EnquiryEntity,
+      EnquiryAssignmentEntity,
       ServiceEntity,
       ServiceTranslationEntity,
       UserEntity,
     ]),
   ],
   controllers: [EnquiryController],
-  providers: [EnquiryService, EnquiryRepository],
+  providers: [EnquiryService, EnquiryRepository, EnquiryAssignmentService],
 })
 export class EnquiryModule {}
