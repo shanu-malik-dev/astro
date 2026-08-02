@@ -82,6 +82,14 @@
   .btn-gold {
     @apply btn bg-gold text-ink hover:bg-gold-light;
   }
+
+  .content-section {
+    background-color: #f2ede2;
+    background-image: url('/images/cream_religious_bg.png');
+    background-size: 700px auto;
+    background-repeat: repeat;
+    background-attachment: local;
+  }
 }
 
 @layer utilities {

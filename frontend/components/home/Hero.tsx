@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Container } from "@/components/ui/Container";
 import CustomSelect, { SelectOption } from "../ui/CustomSelect";
 import { FullPageLoader } from "@/components/ui/FullPageLoader";
+import { SiteSnackbar } from "@/components/ui/SiteSnackbar";
 import { useCountryCodes } from "@/lib/country-code-store";
 import { useLanguage } from "@/lib/language-context";
 import { useAuth } from "@/lib/auth-context";
@@ -217,6 +218,8 @@ export function Hero() {
         />
       )}
 
+      <div className="pointer-events-none absolute inset-0 bg-[url('/images/sacred-golden-mandala-hero.png')] bg-cover bg-center opacity-75" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#070611]/90 via-[#070611]/60 to-[#070611]/75" />
       <div className="pointer-events-none absolute inset-0 bg-grain" />
 
       <Container className={user ? "relative py-12 sm:py-16 lg:py-20" : "relative grid gap-12 py-12 sm:py-16 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-16 lg:py-20"}>
@@ -368,15 +371,11 @@ export function Hero() {
       </Container>
 
       {toast && (
-        <div className="fixed right-6 top-6 z-[100] max-w-sm rounded-lg border border-white/10 bg-[#151521] px-4 py-3 text-sm text-parchment shadow-2xl">
-          <p
-            className={
-              toast.type === "success" ? "text-green-200" : "text-red-200"
-            }
-          >
-            {toast.message}
-          </p>
-        </div>
+        <SiteSnackbar
+          type={toast.type}
+          message={toast.message}
+          onClose={() => setToast(null)}
+        />
       )}
     </section>
   );

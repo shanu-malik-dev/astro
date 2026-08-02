@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
 import CustomSelect, { type SelectOption } from "@/components/ui/CustomSelect";
 import { FullPageLoader } from "@/components/ui/FullPageLoader";
+import { SiteSnackbar } from "@/components/ui/SiteSnackbar";
 import { ApiError, adminServiceApi, enquiryApi, type ServiceDropdownOptionDto } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { BOOK_ENQUIRY_EVENT, type BookEnquiryPayload } from "@/lib/book-enquiry-modal";
@@ -352,11 +353,11 @@ export function BookEnquiryModal() {
       )}
 
       {toast && (
-        <div className="fixed right-6 top-6 z-[120] max-w-sm rounded-lg border border-white/10 bg-[#151521] px-4 py-3 text-sm text-parchment shadow-2xl">
-          <p className={toast.type === "success" ? "text-green-200" : "text-red-200"}>
-            {toast.message}
-          </p>
-        </div>
+        <SiteSnackbar
+          type={toast.type}
+          message={toast.message}
+          onClose={() => setToast(null)}
+        />
       )}
     </>
   );

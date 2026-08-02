@@ -15,7 +15,7 @@ export function HowItWorks() {
   const { t } = useLanguage();
 
   return (
-    <Section tone="dim">
+    <Section className="content-section">
       <SectionHeading eyebrow={t("home.howItWorks.eyebrow")} title={t("home.howItWorks.title")} align="center" />
       <div className="mt-14 grid gap-x-8 gap-y-12 md:grid-cols-5">
         {STEPS.map((step) => (

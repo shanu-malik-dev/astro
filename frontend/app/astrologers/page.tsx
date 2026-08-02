@@ -106,7 +106,7 @@ export default function AstrologersPage() {
         </div>
       </Section>
 
-      <Section>
+      <Section className="content-section">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {astrologers.map((astrologer) => {
               const name =

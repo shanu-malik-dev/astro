@@ -76,7 +76,7 @@ export default function ServicesPage() {
       </Section>
 
       {/* Services */}
-      <Section>
+      <Section className="content-section">
         {isLoading && <FullPageLoader message={t("common.actions.pleaseWait")} />}
         <SiteSnackbar message={snackbar} onClose={() => setSnackbar("")} />
         {!isLoading && !isError && services.length === 0 && (
@@ -165,7 +165,7 @@ export default function ServicesPage() {
       </Section>
 
       {/* CTA */}
-      <Section tone="dim">
+      <Section className="content-section">
         <SectionHeading
           eyebrow={t("servicesPage.ctaEyebrow")}
           title={t("servicesPage.ctaTitle")}

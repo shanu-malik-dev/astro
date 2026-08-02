@@ -10,7 +10,7 @@ export function AboutTeaser() {
   const { t } = useLanguage();
 
   return (
-    <Section>
+    <Section className="content-section">
       <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
         <SectionHeading
           eyebrow={t("home.aboutTeaser.eyebrow")}

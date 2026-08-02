@@ -39,7 +39,7 @@ export function ServicesGrid({ limit }: { limit?: number }) {
   }, [snackbar]);
 
   return (
-    <Section>
+    <Section className="content-section">
       <SectionHeading
         eyebrow={t("home.dataSections.services.eyebrow")}
         title={t("home.dataSections.services.title")}
@@ -152,7 +152,7 @@ export function BlogTeaser() {
   if (isError || !data || data.length === 0) return null;
 
   return (
-    <Section tone="dim">
+    <Section className="content-section">
       <div className="flex items-end justify-between">
         <SectionHeading eyebrow={t("home.dataSections.blog.eyebrow")} title={t("home.dataSections.blog.title")} />
         <Link href="/blog" className="hidden text-sm uppercase tracking-[0.12em] text-wine md:block">

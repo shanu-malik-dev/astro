@@ -15,7 +15,7 @@ export function FaqTeaser() {
   const { t } = useLanguage();
 
   return (
-    <Section>
+    <Section className="content-section">
       <div className="grid gap-12 lg:grid-cols-[0.8fr_1.2fr]">
         <SectionHeading eyebrow={t("home.faq.eyebrow")} title={t("home.faq.title")} />
         <div>

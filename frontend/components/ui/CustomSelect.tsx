@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import Select, { StylesConfig } from "react-select";
 
 export interface SelectOption {
@@ -216,11 +217,15 @@ export default function CustomSelect({
   instanceId,
   variant = "dark",
 }: CustomSelectProps) {
+  const generatedId = useId().replace(/:/g, "");
+  const selectId = instanceId || `custom-select-${generatedId}`;
+
   return (
     <div className={className}>
       <Select<SelectOption, false>
         classNamePrefix="admin-select"
-        instanceId={instanceId}
+        instanceId={selectId}
+        inputId={`${selectId}-input`}
         options={options}
         value={value}
         defaultValue={defaultValue}

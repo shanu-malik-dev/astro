@@ -22,7 +22,7 @@ export default function AboutPage() {
         <ConstellationLine className="mt-4 h-auto w-full max-w-[220px]" variant="gold" />
       </Section>
 
-      <Section>
+      <Section className="content-section">
         <div className="grid gap-14 lg:grid-cols-2">
           <div className="space-y-5 text-[15px] leading-relaxed text-ink/70">
             <p>
@@ -59,7 +59,7 @@ export default function AboutPage() {
       </Section>
 
       {WEBSITE_MODULE_FLAGS.services && (
-        <Section tone="dim" className="text-center">
+        <Section className="content-section text-center">
           <SectionHeading align="center" eyebrow={t("about.ctaEyebrow")} title={t("about.ctaTitle")} />
           <Link href="/services" className="btn-primary mt-8 inline-flex">
             {t("about.ctaButton")}

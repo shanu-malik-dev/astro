@@ -33,7 +33,7 @@ export function ServicesBar() {
   const services = useMemo(() => (data?.data || []).slice(0, 5), [data?.data]);
 
   return (
-    <section className="border-b border-mist bg-parchment">
+    <section className="content-section border-b border-mist">
       <div className="mx-auto max-w-container px-6 py-12 md:px-10">
         {/* Heading */}
         <div className="mb-10 flex items-center justify-between">

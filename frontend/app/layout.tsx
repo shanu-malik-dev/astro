@@ -4,6 +4,7 @@ import './globals.css';
 import { Providers } from './providers';
 import { AppShell } from './app-shell';
 import { BRAND } from '@/lib/brand';
+import { defaultSeo, siteUrl } from '@/lib/seo-keywords';
 
 const fraunces = Fraunces({
   subsets: ['latin'],
@@ -24,9 +25,31 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: `${BRAND.name} — Premium Astrology Consultations`,
-  description:
-    'Book a private online astrology consultation on love, career, business, and family. Trusted guidance, delivered over a personal Google Meet session.',
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: defaultSeo.title,
+    template: `%s | ${BRAND.name}`,
+  },
+  description: defaultSeo.description,
+  keywords: defaultSeo.keywords,
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    title: defaultSeo.title,
+    description: defaultSeo.description,
+    url: siteUrl,
+    siteName: BRAND.name,
+    type: 'website',
+    images: [
+      {
+        url: BRAND.logoPath,
+        width: 512,
+        height: 512,
+        alt: BRAND.name,
+      },
+    ],
+  },
   icons: {
     icon: '/images/logo.png',
     shortcut: '/images/logo.png',
