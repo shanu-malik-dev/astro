@@ -21,6 +21,7 @@ export const DATABASE_TABLES = {
   CUSTOMER_PAYMENTS: 'customer_payment',
   PAYMENT_LOGS: 'payment_logs',
   SUPPORT_REQUESTS: 'support_requests',
+  SITE_CONTENT: 'site_content',
 } as const;
 
 export const DATABASE_CONSTANTS = DATABASE_TABLES;

@@ -12,6 +12,7 @@ export type ModuleKey =
   | "products"
   | "support"
   | "roles"
+  | "content"
   | "countryCodes"
   | "users";
 
@@ -20,6 +21,7 @@ export type MasterModuleKey =
   | "services"
   | "products"
   | "roles"
+  | "content"
   | "astrologers"
   | "countryCodes";
 
@@ -71,6 +73,7 @@ export type ServiceRow = {
 export type AstrologerRow = {
   id: number;
   createdAt?: string;
+  image: string;
   experience: string;
   languages: string;
   rating: number;

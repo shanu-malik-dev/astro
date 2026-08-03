@@ -26,7 +26,7 @@ export default function AdminPage() {
   const [dashboardFilter, setDashboardFilter] =
     useState<AdminDateFilter | null>(null);
   const [masterSubmodule, setMasterSubmodule] =
-    useState<MasterModuleKey>("users");
+    useState<MasterModuleKey | null>(null);
   const [filterToken, setFilterToken] = useState(0);
   const allowedModuleKeys = useMemo(() => {
     if (Number(user?.role_id) === 1) {
@@ -73,11 +73,11 @@ export default function AdminPage() {
   }, [activeModuleEnabled, permittedModules]);
 
   useEffect(() => {
-    if (!permittedMasterModules.length) return;
+    if (!masterSubmodule) return;
     if (!allowedModuleKeys.includes(masterSubmodule)) {
-      setMasterSubmodule(permittedMasterModules[0].key as MasterModuleKey);
+      setMasterSubmodule(null);
     }
-  }, [allowedModuleKeys, masterSubmodule, permittedMasterModules]);
+  }, [allowedModuleKeys, masterSubmodule]);
 
   useEffect(() => {
     const syncSidebar = () => setSidebarOpen(window.innerWidth >= 1024);
@@ -113,14 +113,6 @@ export default function AdminPage() {
   }, [accessToken, syncCurrentUser]);
 
   const handleModuleChange = (module: ModuleKey) => {
-    if (module === "master" && permittedMasterModules.length > 0) {
-      setMasterSubmodule((current) =>
-        allowedModuleKeys.includes(current)
-          ? current
-          : (permittedMasterModules[0].key as MasterModuleKey)
-      );
-    }
-
     setActiveModule(module);
   };
 

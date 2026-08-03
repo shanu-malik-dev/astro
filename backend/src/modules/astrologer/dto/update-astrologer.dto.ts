@@ -20,6 +20,10 @@ export class UpdateAstrologerDto {
 
   @IsOptional()
   @IsString()
+  image?: string;
+
+  @IsOptional()
+  @IsString()
   experience?: string;
 
   @IsOptional()

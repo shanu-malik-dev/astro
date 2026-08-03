@@ -28,6 +28,7 @@ import type { DateRangeValue } from "@/components/ui/CustomDatePicker";
 import type { AstrologerRow, AstrologerTranslation } from "../types";
 
 type AstrologerFormErrors = {
+  image?: string;
   experience?: string;
   languages?: string;
   rating?: string;
@@ -61,6 +62,7 @@ function mapAstrologerDto(astrologer: AdminAstrologerDto): AstrologerRow {
   return syncAstrologerTranslations({
     id: Number(astrologer.id),
     createdAt: astrologer.created_at,
+    image: astrologer.image || "",
     experience: astrologer.experience || "",
     languages: astrologer.languages || "",
     rating: Number(astrologer.rating || 0),
@@ -87,6 +89,19 @@ function cleanCommaValue(value: string) {
     .map((item) => item.trim())
     .filter(Boolean)
     .join(", ");
+}
+
+function toText(value: unknown) {
+  return String(value ?? "");
+}
+
+function readFileAsDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
 }
 
 export function AstrologersModule() {
@@ -176,6 +191,7 @@ export function AstrologersModule() {
     setFormErrors({});
     setDraft({
       id: 0,
+      image: "",
       experience: "",
       languages: "",
       rating: 0,
@@ -203,7 +219,7 @@ export function AstrologersModule() {
       errors.rating = "Rating cannot be negative.";
     }
 
-    if (!currentDraft.consultations.trim()) {
+    if (!toText(currentDraft.consultations).trim()) {
       errors.consultations = "Consultations are required.";
     }
 
@@ -241,10 +257,11 @@ export function AstrologersModule() {
     if (!validateDraft(draft)) return;
 
     const payload = {
+      image: draft.image.trim(),
       experience: draft.experience.trim(),
       languages: cleanCommaValue(draft.languages),
       rating: draft.rating,
-      consultations: draft.consultations.trim(),
+      consultations: toText(draft.consultations).trim(),
       translations: toTranslationPayload(draft.translations),
     };
 
@@ -326,6 +343,30 @@ export function AstrologersModule() {
     }
   };
 
+  const uploadAstrologerImage = async (file: File | undefined) => {
+    if (!draft || !file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setFormErrors((current) => ({
+        ...current,
+        image: "Please upload a valid image file.",
+      }));
+      return;
+    }
+
+    if (file.size > 1.5 * 1024 * 1024) {
+      setFormErrors((current) => ({
+        ...current,
+        image: "Image size must be 1.5 MB or less.",
+      }));
+      return;
+    }
+
+    const dataUrl = await readFileAsDataUrl(file);
+    setFormErrors((current) => ({ ...current, image: undefined }));
+    setDraft({ ...draft, image: dataUrl });
+  };
+
   return (
     <>
       <ModuleHeader
@@ -377,10 +418,11 @@ export function AstrologersModule() {
           loading={loading}
         />
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[980px] border-collapse text-left">
+          <table className="w-full min-w-[1060px] border-collapse text-left">
             <thead className="bg-parchment">
               <tr className="border-b border-mist text-[11px] uppercase tracking-wide text-ink/55">
                 <th className="w-20 px-4 py-2.5 font-semibold">ID</th>
+                <th className="w-24 px-4 py-2.5 font-semibold">Image</th>
                 <th className="w-44 px-4 py-2.5 font-semibold">Created Date</th>
                 <th className="w-52 px-4 py-2.5 font-semibold">Name</th>
                 <th className="w-32 px-4 py-2.5 font-semibold">Experience</th>
@@ -397,7 +439,7 @@ export function AstrologersModule() {
             <tbody className="divide-y divide-mist">
               {astrologers.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="px-4 py-5">
+                  <td colSpan={11} className="px-4 py-5">
                     <EmptyListState
                       loading={loading}
                       message="No astrologers yet. Create the first astrologer."
@@ -417,6 +459,19 @@ export function AstrologersModule() {
                     >
                       <td data-label="ID" className="px-4 py-2.5 font-mono text-[11px] text-ink/45">
                         #{astrologer.id.toString().padStart(3, "0")}
+                      </td>
+                      <td data-label="Image" className="px-4 py-2.5">
+                        {astrologer.image ? (
+                          <img
+                            src={astrologer.image}
+                            alt={english?.name || "Astrologer"}
+                            className="h-10 w-10 rounded-md border border-mist bg-parchment object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-10 w-10 items-center justify-center rounded-md border border-mist bg-parchment text-xs font-semibold text-ink/45">
+                            NA
+                          </div>
+                        )}
                       </td>
                       <td data-label="Created Date" className="px-4 py-2.5 text-ink/60">
                         {formatAdminDate(astrologer.createdAt)}
@@ -515,6 +570,69 @@ export function AstrologersModule() {
             </div>
 
             <div className="max-h-[calc(92vh-136px)] overflow-y-auto p-5">
+              <div className="mb-5 rounded-lg border border-mist bg-parchment p-4">
+                <label className="block text-sm font-medium text-ink">
+                  Astrologer Image
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) =>
+                      uploadAstrologerImage(event.target.files?.[0])
+                    }
+                    className="mt-2 block w-full text-xs text-ink/60 file:mr-3 file:rounded-md file:border-0 file:bg-ink file:px-3 file:py-2 file:text-xs file:font-medium file:text-white hover:file:bg-ink/90"
+                  />
+                </label>
+                <p className="mt-2 text-xs text-ink/45">
+                  Upload image, or paste an image URL below.
+                </p>
+                <div className="mt-3 grid gap-4 md:grid-cols-[1fr_112px]">
+                  <input
+                    type="text"
+                    value={draft.image}
+                    onChange={(event) => {
+                      setFormErrors((current) => ({
+                        ...current,
+                        image: undefined,
+                      }));
+                      setDraft({ ...draft, image: event.target.value });
+                    }}
+                    className="w-full rounded-md border border-mist bg-white px-3 py-2 text-sm outline-none focus:border-gold"
+                    placeholder="https://..."
+                  />
+                  {draft.image ? (
+                    <div className="space-y-2">
+                      <img
+                        src={draft.image}
+                        alt="Astrologer preview"
+                        className="aspect-square w-28 rounded-md border border-mist bg-white object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormErrors((current) => ({
+                            ...current,
+                            image: undefined,
+                          }));
+                          setDraft({ ...draft, image: "" });
+                        }}
+                        className="w-28 rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex aspect-square w-28 items-center justify-center rounded-md border border-mist bg-white text-xs font-semibold text-ink/40">
+                      No Image
+                    </div>
+                  )}
+                </div>
+                {formErrors.image && (
+                  <p className="mt-2 text-xs text-red-600">
+                    {formErrors.image}
+                  </p>
+                )}
+              </div>
+
               <div className="grid gap-4 md:grid-cols-4">
                 <label className="block text-sm font-medium text-ink">
                   Experience <span className="text-red-500">*</span>

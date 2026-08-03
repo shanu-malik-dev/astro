@@ -24,6 +24,7 @@ export class AstrologerService {
 
         return this.astrologerRepository.createAstrologer(
           {
+            image: this.cleanOptionalText(dto.image),
             experience: dto.experience.trim(),
             languages: this.cleanCommaText(dto.languages),
             rating: dto.rating ?? 0,
@@ -121,6 +122,10 @@ export class AstrologerService {
         await this.astrologerRepository.getAstrologerRepository(manager).update(
           dto.id,
           {
+            image:
+              dto.image === undefined
+                ? existing.image
+                : this.cleanOptionalText(dto.image),
             experience:
               dto.experience === undefined
                 ? existing.experience
@@ -300,6 +305,11 @@ export class AstrologerService {
     return cleaned;
   }
 
+  private cleanOptionalText(value?: string) {
+    const cleaned = value?.trim();
+    return cleaned || null;
+  }
+
   private formatAstrologer(astrologer?: AstrologerEntity | null) {
     if (!astrologer) return null;
 
@@ -312,6 +322,7 @@ export class AstrologerService {
 
     return {
       id: astrologer.id,
+      image: astrologer.image || '',
       name: english?.name || '',
       description: english?.description || '',
       expertise: english?.expertise || '',
@@ -342,6 +353,7 @@ export class AstrologerService {
 
     return {
       id: astrologer.id,
+      image: astrologer.image || '',
       en_name: english?.name || fallback?.name || '',
       hi_name: hindi?.name || english?.name || fallback?.name || '',
       en_description: english?.description || fallback?.description || '',

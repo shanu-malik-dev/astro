@@ -31,6 +31,7 @@ export const MASTER_MODULE_KEYS = [
   "services",
   "products",
   "roles",
+  "content",
   "astrologers",
   "countryCodes",
 ] as const;
@@ -113,6 +114,12 @@ export const ALL_MODULES: AdminModule[] = [
     label: "Roles",
     description: "Assign admin modules to each role.",
     icon: ShieldCheck,
+  },
+  {
+    key: "content",
+    label: "Content",
+    description: "Manage contact links and legal page content.",
+    icon: ListChecks,
   },
 ];
 

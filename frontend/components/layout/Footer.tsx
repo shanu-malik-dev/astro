@@ -37,14 +37,14 @@ export function Footer() {
 
   return (
     <footer className="bg-ink text-parchment">
-      <Container className="grid grid-cols-2 gap-6 py-8 md:grid-cols-5 md:py-10">
-        <div className="col-span-2">
-          <p className="flex items-center gap-2.5 font-display text-2xl font-semibold italic">
+      <Container className="grid grid-cols-3 gap-x-4 gap-y-3 py-4 md:grid-cols-5 md:gap-6 md:py-10">
+        <div className="col-span-3 md:col-span-2">
+          <p className="flex items-center gap-2 font-display text-base font-semibold italic md:gap-2.5 md:text-2xl">
             {BRAND.logoPath && (
               <img
                 src={BRAND.logoPath}
                 alt={brandName}
-                className="h-10 w-10 rounded-full object-contain"
+                className="h-7 w-7 rounded-full object-contain md:h-10 md:w-10"
                 onError={(event) => {
                   event.currentTarget.style.display = 'none';
                 }}
@@ -52,7 +52,7 @@ export function Footer() {
             )}
             <span>{brandName}</span>
           </p>
-          <p className="mt-3 max-w-xs text-sm leading-relaxed text-parchment/60">
+          <p className="mt-1.5 line-clamp-2 max-w-sm text-[11px] leading-4 text-parchment/60 md:mt-3 md:line-clamp-none md:max-w-xs md:text-sm md:leading-relaxed">
             {t("footer.description")}
           </p>
         </div>
@@ -60,10 +60,10 @@ export function Footer() {
         {COLUMNS.map((col) => (
           <div key={col.titleKey}>
             <p className="eyebrow-on-dark">{t(col.titleKey)}</p>
-            <ul className="mt-3 space-y-1.5">
+            <ul className="mt-1.5 space-y-0.5 md:mt-3 md:space-y-1.5">
               {col.links.map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="text-sm text-parchment/70 hover:text-parchment">
+                  <Link href={link.href} className="text-[11px] leading-5 text-parchment/70 hover:text-parchment md:text-sm">
                     {t(link.labelKey)}
                   </Link>
                 </li>
@@ -74,9 +74,9 @@ export function Footer() {
       </Container>
 
       <div className="hairline-dark">
-        <Container className="flex flex-col items-center justify-between gap-2 py-3 text-xs text-parchment/40 md:flex-row">
+        <Container className="flex items-center justify-center py-1.5 text-center text-[10px] leading-4 text-parchment/40 md:justify-between md:py-3 md:text-xs">
           <p>© {new Date().getFullYear()} {brandName}. {t("footer.rights")}</p>
-          <p>{t("footer.meta")}</p>
+          <p className="hidden md:block">{t("footer.meta")}</p>
         </Container>
       </div>
     </footer>

@@ -18,6 +18,9 @@ export class AstrologerEntity {
   @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true })
   id: number;
 
+  @Column({ type: 'text', nullable: true })
+  image?: string | null;
+
   @Column({ type: 'varchar', length: 50 })
   experience: string;
 

@@ -12,6 +12,7 @@ export const ADMIN_MODULE_FLAGS = {
   products: true,
   support: true,
   roles: true,
+  content: true,
   login: false,
 } as const;
 

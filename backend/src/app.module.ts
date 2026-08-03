@@ -14,6 +14,7 @@ import { PaymentModule } from './modules/payment/payment.module';
 import { ProductModule } from './modules/product/product.module';
 import { ServiceModule } from './modules/service/service.module';
 import { SharedModule } from './modules/shared-module/shared.module';
+import { SiteContentModule } from './modules/site-content/site-content.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { RoleModule } from './modules/role/role.module';
 import { SupportModule } from './modules/support/support.module';
@@ -31,6 +32,7 @@ import { UserModule } from './modules/user/user.module';
     AuthModule,
     DashboardModule,
     SharedModule,
+    SiteContentModule,
     ServiceModule,
     AstrologerModule,
     EnquiryModule,

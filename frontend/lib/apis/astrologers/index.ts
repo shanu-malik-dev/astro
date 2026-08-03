@@ -3,6 +3,7 @@ import type { ServiceNameDto } from "../services";
 
 export interface AdminAstrologerDto {
   id: number;
+  image?: string;
   name: string;
   description: string;
   experience: string;
@@ -39,6 +40,7 @@ export interface AdminAstrologerResponse {
 
 export interface PublicAstrologerDto {
   id: number;
+  image?: string;
   en_name: string;
   hi_name: string;
   en_description: string;
@@ -82,6 +84,7 @@ export const adminAstrologerApi = {
     tenantId: TenantId,
     accessToken: string,
     data: {
+      image?: string;
       experience: string;
       languages: string;
       rating?: number;
@@ -105,6 +108,7 @@ export const adminAstrologerApi = {
     accessToken: string,
     data: {
       id: number;
+      image?: string;
       experience?: string;
       languages?: string;
       rating?: number;

@@ -17,7 +17,7 @@ export function AdminSidebar({
   modules: AdminModule[];
   masterModules: AdminModule[];
   sidebarOpen: boolean;
-  activeMasterSubmodule: MasterModuleKey;
+  activeMasterSubmodule: MasterModuleKey | null;
   onModuleChange: (module: ModuleKey) => void;
   onMasterSubmoduleChange: (module: MasterModuleKey) => void;
   onToggle: () => void;
@@ -71,12 +71,7 @@ export function AdminSidebar({
                 type="button"
                 onClick={() => {
                   if (isMaster) {
-                    if (active) {
-                      setMasterExpanded((expanded) => !expanded);
-                    } else {
-                      setMasterExpanded(true);
-                      onModuleChange(module.key);
-                    }
+                    setMasterExpanded((expanded) => !expanded);
                     return;
                   }
 

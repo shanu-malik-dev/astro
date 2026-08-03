@@ -62,7 +62,7 @@ export class AstrologerRepository {
   async createAstrologer(
     payload: Pick<
       AstrologerEntity,
-      'experience' | 'languages' | 'rating' | 'consultations'
+      'image' | 'experience' | 'languages' | 'rating' | 'consultations'
     >,
     translations: AstrologerTranslationDto[],
     manager: EntityManager,

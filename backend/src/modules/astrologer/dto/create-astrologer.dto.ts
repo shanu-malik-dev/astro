@@ -12,6 +12,10 @@ import {
 import { AstrologerTranslationDto } from './astrologer-translation.dto';
 
 export class CreateAstrologerDto {
+  @IsOptional()
+  @IsString()
+  image?: string;
+
   @IsString()
   @IsNotEmpty()
   experience: string;

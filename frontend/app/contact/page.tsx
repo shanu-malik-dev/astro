@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Facebook, Instagram, Mail } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { Facebook, Instagram, Link as LinkIcon, Mail, Youtube } from 'lucide-react';
 import { Section, SectionHeading } from '@/components/ui/Section';
 import { SiteSnackbar } from '@/components/ui/SiteSnackbar';
-import { ApiError, supportApi } from '@/lib/api';
+import { ApiError, siteContentApi, supportApi } from '@/lib/api';
 import { openBookEnquiryModal } from '@/lib/book-enquiry-modal';
 import { useTenant } from '@/lib/tenant-context';
 
@@ -12,10 +13,21 @@ const CONTACT = {
   email: 'contact@shreesamriddhiatro.com',
   facebookHref: 'https://facebook.com/',
   instagramHref: 'https://instagram.com/',
+  youtubeHref: '',
 };
+
+const SOCIAL_ICONS = {
+  facebook: Facebook,
+  instagram: Instagram,
+  youtube: Youtube,
+} as const;
 
 export default function ContactPage() {
   const { tenant } = useTenant();
+  const { data: contentData } = useQuery({
+    queryKey: ["site-content", tenant.id],
+    queryFn: () => siteContentApi.public(tenant.id),
+  });
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState("");
@@ -25,6 +37,37 @@ export default function ContactPage() {
     subject: "",
     message: "",
   });
+  const content = contentData?.data || {};
+  const contact = {
+    email: content["contact.email"] || CONTACT.email,
+    facebookHref: content["social.facebook"] || CONTACT.facebookHref,
+    instagramHref: content["social.instagram"] || CONTACT.instagramHref,
+    youtubeHref: content["social.youtube"] || CONTACT.youtubeHref,
+  };
+  const socialLinks = Object.entries({
+    "social.facebook": contact.facebookHref,
+    "social.instagram": contact.instagramHref,
+    "social.youtube": contact.youtubeHref,
+    ...Object.fromEntries(
+      Object.entries(content).filter(([key]) => key.startsWith("social."))
+    ),
+  })
+    .map(([key, href]) => {
+      const label = key.replace(/^social\./, "");
+      const Icon =
+        SOCIAL_ICONS[label as keyof typeof SOCIAL_ICONS] || LinkIcon;
+
+      return {
+        href,
+        label: label
+          .split(/[-_.\s]+/)
+          .filter(Boolean)
+          .map((part) => part[0].toUpperCase() + part.slice(1))
+          .join(" "),
+        Icon,
+      };
+    })
+    .filter((link) => link.href);
 
   useEffect(() => {
     if (!snackbar) return;
@@ -69,32 +112,26 @@ export default function ContactPage() {
               </span>
               <div className="min-w-0">
                 <p className="font-medium text-ink">Email</p>
-                <a href={`mailto:${CONTACT.email}`} className="mt-1 block break-all text-sm text-ink/60 hover:text-wine">
-                  {CONTACT.email}
+                <a href={`mailto:${contact.email}`} className="mt-1 block break-all text-sm text-ink/60 hover:text-wine">
+                  {contact.email}
                 </a>
               </div>
             </div>
             <div className="rounded-lg border border-mist bg-white p-4 shadow-sm">
               <p className="font-medium text-ink">Follow Us</p>
               <div className="mt-3 flex gap-3">
-                <a
-                  href={CONTACT.facebookHref}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-mist text-ink/60 transition hover:border-gold hover:text-wine"
-                  aria-label="Facebook"
-                >
-                  <Facebook size={18} />
-                </a>
-                <a
-                  href={CONTACT.instagramHref}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-mist text-ink/60 transition hover:border-gold hover:text-wine"
-                  aria-label="Instagram"
-                >
-                  <Instagram size={18} />
-                </a>
+                {socialLinks.map(({ href, label, Icon }) => (
+                  <a
+                    key={label}
+                    href={href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-mist text-ink/60 transition hover:border-gold hover:text-wine"
+                    aria-label={label}
+                  >
+                    <Icon size={18} />
+                  </a>
+                ))}
               </div>
             </div>
           </div>

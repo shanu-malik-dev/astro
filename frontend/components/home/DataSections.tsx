@@ -3,7 +3,16 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Star, ArrowRight } from 'lucide-react';
+import {
+  Star,
+  ArrowRight,
+  BadgeIndianRupee,
+  BriefcaseBusiness,
+  Gem,
+  Heart,
+  Sparkles,
+  type LucideIcon,
+} from 'lucide-react';
 import { Section, SectionHeading } from '@/components/ui/Section';
 import { FullPageLoader } from '@/components/ui/FullPageLoader';
 import { SiteSnackbar } from '@/components/ui/SiteSnackbar';
@@ -15,6 +24,44 @@ import { useLanguage } from '@/lib/language-context';
 function EmptyState({ message }: { message: string }) {
   return <p className="mt-10 text-sm text-ink/50">{message}</p>;
 }
+
+const serviceVisuals: {
+  Icon: LucideIcon;
+  wrap: string;
+  icon: string;
+  glow: string;
+}[] = [
+  {
+    Icon: Heart,
+    wrap: "from-rose-100 via-white to-gold/20",
+    icon: "text-wine",
+    glow: "bg-wine/10",
+  },
+  {
+    Icon: BriefcaseBusiness,
+    wrap: "from-sky-100 via-white to-gold/20",
+    icon: "text-indigo",
+    glow: "bg-indigo/10",
+  },
+  {
+    Icon: Gem,
+    wrap: "from-amber-100 via-white to-rose-100",
+    icon: "text-gold-dark",
+    glow: "bg-gold/15",
+  },
+  {
+    Icon: BadgeIndianRupee,
+    wrap: "from-emerald-100 via-white to-gold/20",
+    icon: "text-emerald-700",
+    glow: "bg-emerald-100",
+  },
+  {
+    Icon: Sparkles,
+    wrap: "from-parchment via-white to-gold/25",
+    icon: "text-gold-dark",
+    glow: "bg-gold/15",
+  },
+];
 
 export function ServicesGrid({ limit }: { limit?: number }) {
   const { tenant, formatMoney } = useTenant();
@@ -51,41 +98,73 @@ export function ServicesGrid({ limit }: { limit?: number }) {
 
       {services && services.length > 0 && (
         <div className="mt-12 grid gap-6 md:grid-cols-3">
-          {services.map((service) => (
-            <div key={service.id} className="group flex flex-col justify-between border border-mist bg-parchment p-7 transition-colors hover:border-gold">
-              <div>
-                {service.category && <p className="eyebrow">{service.category}</p>}
-                <h3 className="mt-3 text-xl text-ink">{service.name}</h3>
-                {service.description && <p className="mt-2 text-sm leading-relaxed text-ink/60">{service.description}</p>}
-              </div>
-              <div className="mt-8 flex items-end justify-between">
-                {(service.price !== undefined || service.durationMinutes !== undefined) && (
-                  <div>
-                    {service.price !== undefined && (
-                      <p className="font-display text-2xl text-ink">{formatMoney(service.price)}</p>
-                    )}
-                    {service.durationMinutes !== undefined && (
-                      <p className="text-xs uppercase tracking-wide text-ink/40">{service.durationMinutes} {t("home.dataSections.services.minutes")}</p>
-                    )}
+          {services.map((service, index) => {
+            const visual = serviceVisuals[index % serviceVisuals.length];
+            const Icon = visual.Icon;
+
+            return (
+              <div
+                key={service.id}
+                className="group relative flex min-h-[290px] flex-col justify-between overflow-hidden rounded-lg border border-gold/25 bg-white p-6 shadow-[0_14px_40px_rgba(20,19,31,0.08)] transition duration-300 hover:-translate-y-1 hover:border-gold/80 hover:shadow-[0_22px_54px_rgba(176,138,46,0.2)]"
+              >
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-wine via-gold to-indigo opacity-85" />
+                <div
+                  className={`pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full ${visual.glow} transition group-hover:scale-110`}
+                />
+
+                <div className="relative">
+                  <div
+                    className={`flex h-14 w-14 items-center justify-center rounded-lg bg-gradient-to-br ${visual.wrap} shadow-sm ring-1 ring-white/75`}
+                  >
+                    <Icon className={`h-7 w-7 ${visual.icon}`} />
                   </div>
-                )}
-                <button
-                  type="button"
-                  onClick={() =>
-                    openBookEnquiryModal({
-                      concern: {
-                        value: service.id,
-                        label: service.name,
-                      },
-                    })
-                  }
-                  className="flex items-center gap-1 text-sm text-wine opacity-0 transition-opacity group-hover:opacity-100"
-                >
-                  {t("common.actions.book")} <ArrowRight size={14} />
-                </button>
+
+                  {service.category && (
+                    <p className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-gold-dark">
+                      {service.category}
+                    </p>
+                  )}
+
+                  <h3 className="mt-3 line-clamp-2 text-xl leading-tight text-ink">
+                    {service.name}
+                  </h3>
+
+                  {service.description && (
+                    <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-ink/60">
+                      {service.description}
+                    </p>
+                  )}
+                </div>
+
+                <div className="relative mt-8 flex items-end justify-between gap-4 border-t border-mist/80 pt-5">
+                  {(service.price !== undefined || service.durationMinutes !== undefined) && (
+                    <div>
+                      {service.price !== undefined && (
+                        <p className="font-display text-2xl text-ink">{formatMoney(service.price)}</p>
+                      )}
+                      {service.durationMinutes !== undefined && (
+                        <p className="text-xs uppercase tracking-wide text-ink/40">{service.durationMinutes} {t("home.dataSections.services.minutes")}</p>
+                      )}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      openBookEnquiryModal({
+                        concern: {
+                          value: service.id,
+                          label: service.name,
+                        },
+                      })
+                    }
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-wine px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-wine-light"
+                  >
+                    {t("common.actions.book")} <ArrowRight size={14} />
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

@@ -35,6 +35,16 @@ function getTokenFromHeaders(headers: HeadersInit | undefined) {
   return match?.[1] || null;
 }
 
+function withAuthorizationHeader(
+  headers: HeadersInit | undefined,
+  accessToken: string
+) {
+  return {
+    ...Object.fromEntries(new Headers(headers).entries()),
+    Authorization: `Bearer ${accessToken}`,
+  };
+}
+
 function findStoredSession(accessToken: string | null) {
   if (typeof window === "undefined") return null;
 
@@ -113,6 +123,10 @@ async function refreshAccessToken(headers: HeadersInit | undefined) {
   const tenantId = new Headers(headers).get("x-tenant-id");
 
   if (!stored || !refreshToken || !tenantId) return null;
+
+  if (stored.session.accessToken && stored.session.accessToken !== accessToken) {
+    return stored.session.accessToken;
+  }
 
   if (!refreshPromise) {
     refreshPromise = fetch(`${API_BASE_URL}/auth/refresh`, {
@@ -226,17 +240,34 @@ export async function apiService<T>(
   const existingRequest = dedupeKey ? inFlightRequests.get(dedupeKey) : null;
   if (existingRequest) return existingRequest as Promise<T>;
 
+  const getCurrentHeaders = (requestHeaders: HeadersInit | undefined) => {
+    const requestToken = getTokenFromHeaders(requestHeaders);
+    if (!requestToken) return requestHeaders;
+
+    const stored = findStoredSession(requestToken);
+    const storedToken = stored?.session.accessToken;
+
+    if (storedToken && storedToken !== requestToken) {
+      return withAuthorizationHeader(requestHeaders, storedToken);
+    }
+
+    return requestHeaders;
+  };
+
   const executeRequest = (
     requestHeaders: HeadersInit | undefined,
     retry = true
-  ): Promise<T> =>
+  ): Promise<T> => {
+    const currentHeaders = getCurrentHeaders(requestHeaders);
+
+    return (
     fetch(`${API_BASE_URL}${path}`, {
       ...options,
       body: serializedBody,
       headers: {
         "Content-Type": "application/json",
         "Accept-Language": getAcceptLanguage(),
-        ...requestHeaders,
+        ...currentHeaders,
       },
     }).then(async (response) => {
     const contentType = response.headers.get("content-type");
@@ -244,14 +275,11 @@ export async function apiService<T>(
     const data = isJson ? await response.json().catch(() => null) : null;
 
     if (response.status === 401 || data?.statusCode === 401) {
-      if (retry && path !== "/auth/refresh" && getTokenFromHeaders(requestHeaders)) {
-        const nextAccessToken = await refreshAccessToken(requestHeaders);
+      if (retry && path !== "/auth/refresh" && getTokenFromHeaders(currentHeaders)) {
+        const nextAccessToken = await refreshAccessToken(currentHeaders);
         if (nextAccessToken) {
           return executeRequest(
-            {
-              ...requestHeaders,
-              Authorization: `Bearer ${nextAccessToken}`,
-            },
+            withAuthorizationHeader(currentHeaders, nextAccessToken),
             false
           );
         }
@@ -283,7 +311,9 @@ export async function apiService<T>(
     }
 
     return data as T;
-  });
+  })
+    );
+  };
 
   const requestPromise = executeRequest(headers).finally(() => {
     if (dedupeKey) inFlightRequests.delete(dedupeKey);

@@ -13,3 +13,4 @@ export * from "./products";
 export * from "./country-codes";
 export * from "./support";
 export * from "./home";
+export * from "./site-content";
