@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUpRight, CalendarDays, HelpCircle, ListChecks, Loader2, Users } from "lucide-react";
 import CustomDatePicker, { type DateRangeValue } from "@/components/ui/CustomDatePicker";
 import {
@@ -103,6 +103,7 @@ export function DashboardModule({ onNavigate }: DashboardModuleProps) {
     followUps: { hot: 0, warm: 0, cold: 0, total: 0 },
   });
   const [loading, setLoading] = useState(false);
+  const lastRequestKeyRef = useRef("");
 
   const appliedFilter = useMemo(() => {
     if (preset === "today") return dayRange();
@@ -112,6 +113,14 @@ export function DashboardModule({ onNavigate }: DashboardModuleProps) {
 
   const loadTotals = useCallback(async () => {
     if (!accessToken) return;
+    const requestKey = JSON.stringify({
+      tenantId: tenant.id,
+      accessToken,
+      start: appliedFilter.start || "",
+      end: appliedFilter.end || "",
+    });
+    if (lastRequestKeyRef.current === requestKey) return;
+    lastRequestKeyRef.current = requestKey;
 
     setLoading(true);
     try {
@@ -140,6 +149,7 @@ export function DashboardModule({ onNavigate }: DashboardModuleProps) {
         },
       });
     } catch (error) {
+      lastRequestKeyRef.current = "";
       snackbar.error(
         error instanceof ApiError ? error.message : "Unable to load dashboard."
       );

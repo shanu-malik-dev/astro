@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { authApi, AuthUser, ApiError, OtpResponse } from './api';
 import { AUTH_UNAUTHORIZED_EVENT } from './api-service';
@@ -72,30 +72,43 @@ function getAuthSession(res: Awaited<ReturnType<typeof authApi.verifyOtp>>): Aut
   };
 }
 
+function readStoredSession(storageKey: string): AuthState | null {
+  if (typeof window === "undefined") return null;
+
+  const raw = window.localStorage.getItem(storageKey);
+  if (!raw) return null;
+
+  try {
+    return JSON.parse(raw) as AuthState;
+  } catch {
+    window.localStorage.removeItem(storageKey);
+    return null;
+  }
+}
+
+function sameUser(left: AuthUser | null, right: AuthUser | null) {
+  return JSON.stringify(left || null) === JSON.stringify(right || null);
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { tenant } = useTenant();
   const pathname = usePathname();
   const sessionScope = pathname?.startsWith('/admin') ? 'admin' : 'website';
   const storageKey = STORAGE_KEYS[sessionScope];
   const [state, setState] = useState<AuthState>({ user: null, accessToken: null, refreshToken: null });
+  const stateRef = useRef<AuthState>(state);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       window.localStorage.removeItem(LEGACY_STORAGE_KEY);
     }
 
-    const raw = typeof window !== 'undefined' ? window.localStorage.getItem(storageKey) : null;
-    if (raw) {
-      try {
-        setState(JSON.parse(raw));
-      } catch {
-        window.localStorage.removeItem(storageKey);
-        setState({ user: null, accessToken: null, refreshToken: null });
-      }
-    } else {
-      setState({ user: null, accessToken: null, refreshToken: null });
-    }
+    setState(readStoredSession(storageKey) || { user: null, accessToken: null, refreshToken: null });
     setLoading(false);
   }, [storageKey]);
 
@@ -119,7 +132,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }>).detail;
 
       if (detail?.storageKey === storageKey && detail.session) {
-        setState(detail.session);
+        setState((current) => {
+          const nextUser = detail.session?.user || null;
+          if (sameUser(current.user, nextUser)) return current;
+
+          return {
+            ...current,
+            user: nextUser,
+          };
+        });
       }
     };
 
@@ -172,9 +193,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [tenant.id]);
 
   const syncCurrentUser = useCallback(async () => {
-    if (!state.accessToken) return null;
+    const latestSession = readStoredSession(storageKey) || stateRef.current;
+    if (!latestSession.accessToken) return null;
 
-    const res = await authApi.me(tenant.id, state.accessToken);
+    const res = await authApi.me(tenant.id, latestSession.accessToken);
     const nextUser = res.user || res.data?.user || null;
     if (!nextUser) return null;
 
@@ -184,13 +206,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     persist({
-      accessToken: state.accessToken,
-      refreshToken: state.refreshToken,
+      accessToken: latestSession.accessToken,
+      refreshToken: latestSession.refreshToken,
       user: normalizedUser,
     });
 
     return normalizedUser;
-  }, [persist, state.accessToken, state.refreshToken, tenant.id]);
+  }, [persist, storageKey, tenant.id]);
 
   const logout = useCallback(async () => {
     try {

@@ -47,9 +47,11 @@ export class PaymentService {
     const currency = (dto.currency || (provider === 'razorpay' ? 'INR' : 'USD')).toUpperCase();
     const amount = Number(dto.amount.toFixed(2));
     if (amount <= 0) throw new BadRequestException('Amount must be greater than zero.');
+    const paymentLinkExpiry = this.getPaymentLinkExpiry(provider);
     const paymentLinkOptions = {
-      expireBy: this.getPaymentLinkExpireBy(),
+      expireBy: paymentLinkExpiry.expireBy,
     };
+    
 
     const providerResult =
       provider === 'razorpay'
@@ -74,6 +76,7 @@ export class PaymentService {
         qr_code_url: this.createQrCodeUrl(providerResult.paymentLink),
         payment_status: PAYMENT_STATUS.PENDING,
         provider_response: providerResult.raw as any,
+        expires_at: paymentLinkExpiry.expiresAt,
       })
       .setParameters({
         amount: String(amount),
@@ -360,18 +363,55 @@ export class PaymentService {
     );
   }
 
-  private getPaymentLinkExpireBy() {
-    const enabled =
-      this.configService.get<string>('PAYMENT_LINK_EXPIRY_ENABLED', 'false') === 'true';
-    if (!enabled) return undefined;
-
-    const minutes = Number(
-      this.configService.get<string>('PAYMENT_LINK_EXPIRY_MINUTES', '60'),
+  private getPaymentLinkExpiry(provider?: PaymentProvider) {
+    const expiryDuration = this.configService.get<string>(
+      'PAYMENT_LINK_EXPIRY_MINUTES',
     );
-    if (!Number.isFinite(minutes) || minutes <= 0) return undefined;
+    const parsedDurationMs = this.parseExpiryDurationMs(expiryDuration);
 
-    const cappedMinutes = Math.min(minutes, 60 * 24 * 180);
-    return Math.floor(Date.now() / 1000) + Math.floor(cappedMinutes * 60);
+    if (!parsedDurationMs || !Number.isFinite(parsedDurationMs)) {
+      return { expireBy: undefined, expiresAt: null };
+    }
+
+    const durationMs = parsedDurationMs;
+    const maxDurationMs = 180 * 24 * 60 * 60 * 1000;
+    const providerBufferMs = provider === 'razorpay' ? 60 * 1000 : 0;
+    const expiresAt = new Date(
+      Date.now() + Math.min(durationMs + providerBufferMs, maxDurationMs),
+    );
+    
+
+    return {
+      expireBy: Math.floor(expiresAt.getTime() / 1000),
+      expiresAt,
+    };
+  }
+
+  private parseExpiryDurationMs(value?: string | null) {
+    const raw = String(value || '').trim().toLowerCase();
+    if (!raw) return null;
+
+    const match = /^(\d+(?:\.\d+)?)(s|sec|secs|second|seconds|m|min|mins|minute|minutes|h|hr|hrs|hour|hours|d|day|days|y|yr|yrs|year|years)?$/.exec(raw);
+    if (!match) return null;
+
+    const amount = Number(match[1]);
+    const unit = match[2] || 'm';
+    if (!Number.isFinite(amount) || amount <= 0) return null;
+
+    if (['s', 'sec', 'secs', 'second', 'seconds'].includes(unit)) {
+      return Math.floor(amount * 1000);
+    }
+    if (['h', 'hr', 'hrs', 'hour', 'hours'].includes(unit)) {
+      return Math.floor(amount * 60 * 60 * 1000);
+    }
+    if (['d', 'day', 'days'].includes(unit)) {
+      return Math.floor(amount * 24 * 60 * 60 * 1000);
+    }
+    if (['y', 'yr', 'yrs', 'year', 'years'].includes(unit)) {
+      return Math.floor(amount * 365 * 24 * 60 * 60 * 1000);
+    }
+
+    return Math.floor(amount * 60 * 1000);
   }
 
   private createQrCodeUrl(paymentLink: string) {
@@ -393,10 +433,24 @@ export class PaymentService {
       provider_payment_id: payment.provider_payment_id,
       payment_link: payment.payment_link,
       qr_code_url: payment.qr_code_url,
-      payment_status: payment.payment_status,
+      payment_status: this.getDisplayPaymentStatus(payment),
+      expires_at: payment.expires_at,
       created_at: payment.created_at,
       updated_at: payment.updated_at,
     };
+  }
+
+  private getDisplayPaymentStatus(payment: CustomerPaymentEntity) {
+    if (
+      payment.expires_at &&
+      payment.expires_at <= new Date() &&
+      (payment.payment_status === PAYMENT_STATUS.CREATED ||
+        payment.payment_status === PAYMENT_STATUS.PENDING)
+    ) {
+      return PAYMENT_STATUS.EXPIRED;
+    }
+
+    return payment.payment_status;
   }
 
   private toAmountMap(rawRows: Array<Record<string, unknown>>) {

@@ -13,6 +13,7 @@ export interface CustomerPaymentDto {
   payment_link?: string | null;
   qr_code_url?: string | null;
   payment_status: number;
+  expires_at?: string | null;
   created_at?: string;
   updated_at?: string;
 }

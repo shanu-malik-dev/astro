@@ -58,6 +58,9 @@ export class CustomerPaymentEntity {
   @Column({ type: 'json', nullable: true })
   provider_response: Record<string, unknown> | null;
 
+  @Column({ type: 'datetime', nullable: true })
+  expires_at: Date | null;
+
   @ManyToOne(() => EnquiryEntity, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'enq_id' })
   enquiry: EnquiryEntity | null;
