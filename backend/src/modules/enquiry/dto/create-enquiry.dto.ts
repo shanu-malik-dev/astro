@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import {
   IsInt,
+  IsBoolean,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -9,6 +10,10 @@ import {
 } from 'class-validator';
 
 export class CreateEnquiryDto {
+  @IsOptional()
+  @IsBoolean()
+  newCustomer?: boolean;
+
   @IsOptional()
   @Type(() => Number)
   @IsInt()

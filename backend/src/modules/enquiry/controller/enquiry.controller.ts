@@ -31,7 +31,7 @@ export class EnquiryController {
   }
 
   @Post('close')
-  close(@Body() dto: CloseEnquiryDto) {
-    return this.enquiryService.close(dto);
+  close(@Body() dto: CloseEnquiryDto, @Req() req: Request & { user?: any }) {
+    return this.enquiryService.close(dto, req.user);
   }
 }

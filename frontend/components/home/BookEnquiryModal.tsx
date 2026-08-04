@@ -159,12 +159,6 @@ export function BookEnquiryModal() {
 
         const exists = Boolean(response.data?.exists);
         setMobileExists(exists);
-        if (exists) {
-          setErrors((current) => ({
-            ...current,
-            phone: t("common.validation.mobileExists"),
-          }));
-        }
       })
       .catch(() => {
         if (!active) return;
@@ -176,7 +170,7 @@ export function BookEnquiryModal() {
     return () => {
       active = false;
     };
-  }, [countryCode, language, maxMobileLength, open, phone, t, tenant.id]);
+  }, [countryCode, language, maxMobileLength, open, phone, tenant.id]);
 
   const validateForm = () => {
     const nextErrors: FormErrors = {};
@@ -192,7 +186,6 @@ export function BookEnquiryModal() {
     }
 
     if (mobileChecking) nextErrors.phone = t("common.validation.checkingMobile");
-    if (mobileExists) nextErrors.phone = t("common.validation.mobileExists");
     if (!problem) nextErrors.problem = t("common.validation.concernRequired");
 
     setErrors(nextErrors);
@@ -223,6 +216,7 @@ export function BookEnquiryModal() {
         mobile: phone,
         problem_id: Number(problem.value),
         problem_name: selectedProblem?.label || problem.label,
+        newCustomer: !mobileExists,
       });
 
       setToast({

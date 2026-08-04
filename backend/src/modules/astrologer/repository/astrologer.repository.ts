@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { AstrologerTranslationDto } from '../dto/astrologer-translation.dto';
+import { AstrologerConsultCountEntity } from '../entity/astrologer-consult-count.entity';
 import { AstrologerTranslationEntity } from '../entity/astrologer-translation.entity';
 import { AstrologerEntity } from '../entity/astrologer.entity';
 
@@ -28,6 +29,26 @@ export class AstrologerRepository {
     return manager
       ? manager.getRepository(AstrologerTranslationEntity)
       : this.dataSource.getRepository(AstrologerTranslationEntity);
+  }
+
+  async getConsultCountsByAstrologerIds(astrologerIds: number[]) {
+    if (astrologerIds.length === 0) return new Map<number, number>();
+
+    const rows = await this.dataSource
+      .getRepository(AstrologerConsultCountEntity)
+      .createQueryBuilder('consultCount')
+      .select('consultCount.astrologer_id', 'astrologer_id')
+      .addSelect('SUM(consultCount.consult_count)', 'consult_count')
+      .where('consultCount.astrologer_id IN (:...astrologerIds)', {
+        astrologerIds,
+      })
+      .groupBy('consultCount.astrologer_id')
+      .getRawMany<{ astrologer_id: string; consult_count: string }>();
+
+    return rows.reduce<Map<number, number>>((map, row) => {
+      map.set(Number(row.astrologer_id), Number(row.consult_count) || 0);
+      return map;
+    }, new Map<number, number>());
   }
 
   findById(id: number, manager?: EntityManager) {

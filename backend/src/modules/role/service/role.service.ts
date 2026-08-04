@@ -161,11 +161,38 @@ export class RoleService {
     return map;
   }
 
-  private getActiveModules() {
+  private async getActiveModules() {
+    await this.ensureCustomersModule();
     return this.moduleRepository.find({
       where: { status: 1 },
       order: { sort_order: 'ASC', id: 'ASC' },
     });
+  }
+
+  private async ensureCustomersModule() {
+    const existing = await this.moduleRepository.findOne({
+      where: { module_key: 'customers' },
+    });
+
+    if (existing) {
+      if (existing.status !== 1 || existing.name !== 'Customers') {
+        await this.moduleRepository.update(existing.id, {
+          name: 'Customers',
+          status: 1,
+        });
+      }
+      return;
+    }
+
+    await this.moduleRepository.save(
+      this.moduleRepository.create({
+        module_key: 'customers',
+        name: 'Customers',
+        parent_id: null,
+        sort_order: 35,
+        status: 1,
+      }),
+    );
   }
 
   private async getModuleMap() {

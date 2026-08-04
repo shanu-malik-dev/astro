@@ -57,3 +57,17 @@ export const CUSTOMER_CALL_STATUS_LABELS: Record<number, string> = {
   [CUSTOMER_CALL_STATUS.NOT_CALLED]: "Not called",
   [CUSTOMER_CALL_STATUS.CALLED]: "Called",
 };
+
+export const CUSTOMER_SEGMENT = {
+  PENDING: 0,
+  CONSULTATION_PRODUCT: 1,
+  CONSULTATION_ONLY: 2,
+  OTHER: 3,
+} as const;
+
+export const CUSTOMER_SEGMENT_LABELS: Record<number, string> = {
+  [CUSTOMER_SEGMENT.PENDING]: "Pending",
+  [CUSTOMER_SEGMENT.CONSULTATION_PRODUCT]: "Consultation + Product",
+  [CUSTOMER_SEGMENT.CONSULTATION_ONLY]: "Consultation Only",
+  [CUSTOMER_SEGMENT.OTHER]: "Other",
+};

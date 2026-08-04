@@ -33,6 +33,11 @@ const emptyForm: RoleForm = {
 const moduleLabels = new Map<string, string>(
   ALL_MODULES.map((module) => [module.key, module.label])
 );
+const ensureFrontendModules = (modules: string[]) => {
+  const merged = new Set(modules);
+  ALL_MODULES.forEach((module) => merged.add(module.key));
+  return Array.from(merged);
+};
 
 export function RoleModule() {
   const { accessToken } = useAuth();
@@ -85,7 +90,9 @@ export function RoleModule() {
           date_to: range.end || undefined,
         });
         setRoles(response.data?.records || []);
-        setAvailableModules(response.data?.available_modules || availableModules);
+        setAvailableModules(
+          ensureFrontendModules(response.data?.available_modules || availableModules)
+        );
         setCurrentPage(response.data?.pagination?.page || page);
         setTotalPages(response.data?.pagination?.total_pages || 1);
         setTotalRecords(response.data?.pagination?.total || 0);

@@ -11,6 +11,9 @@ export interface AdminUserDto {
   email: string;
   status: number;
   call_status: number;
+  customer_segment?: number | null;
+  astrologer_id?: number | null;
+  astrologer_name?: string;
   created_at: string;
   updated_at: string;
 }
@@ -21,6 +24,11 @@ export interface AdminUserListResponse {
   message?: string;
   data?: {
     records: AdminUserDto[];
+    role_counts?: Record<number, number>;
+    customer_range_counts?: {
+      all: number;
+      today: number;
+    };
     pagination: PaginationMeta;
   };
 }
@@ -44,6 +52,7 @@ export const adminUserApi = {
       sort_order?: SortOrder;
       range?: "today" | "all";
       call_status?: number;
+      customer_segment?: number;
       date_from?: string;
       date_to?: string;
     }
@@ -66,6 +75,7 @@ export const adminUserApi = {
       email: string;
       password?: string;
       status?: number;
+      astrologer_id?: number;
     }
   ) =>
     request<AdminUserResponse>("/users/save", {

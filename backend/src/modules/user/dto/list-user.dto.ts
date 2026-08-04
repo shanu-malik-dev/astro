@@ -1,6 +1,11 @@
 import { Type } from 'class-transformer';
 import { IsDateString, IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
-import { CUSTOMER_CALL_STATUS, CustomerCallStatus } from '../../../common/constants/status.constant';
+import {
+  CUSTOMER_CALL_STATUS,
+  CUSTOMER_SEGMENT,
+  CustomerCallStatus,
+  CustomerSegment,
+} from '../../../common/constants/status.constant';
 
 export class ListUserDto {
   @IsOptional()
@@ -38,6 +43,11 @@ export class ListUserDto {
   @Type(() => Number)
   @IsIn(Object.values(CUSTOMER_CALL_STATUS))
   call_status?: CustomerCallStatus;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsIn(Object.values(CUSTOMER_SEGMENT))
+  customer_segment?: CustomerSegment;
 
   @IsOptional()
   @IsDateString()

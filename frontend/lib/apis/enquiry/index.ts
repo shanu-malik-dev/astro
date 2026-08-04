@@ -11,6 +11,7 @@ export interface EnquiryDto {
   problem_name: string;
   status: number;
   close_remark?: string | null;
+  customer_segment?: number | null;
   created_at?: string;
 }
 
@@ -56,6 +57,7 @@ export const enquiryApi = {
       mobile: string;
       problem_id: number;
       problem_name: string;
+      newCustomer?: boolean;
     }
   ) =>
     request<EnquiryResponse>("/enquiry", {
@@ -96,7 +98,12 @@ export const enquiryApi = {
   close: (
     tenantId: TenantId,
     accessToken: string,
-    data: { id: number; remark: string }
+    data: {
+      id: number;
+      remark: string;
+      customer_segment: number;
+      astrologer_id?: number;
+    }
   ) =>
     request<EnquiryResponse>("/enquiry/close", {
       tenantId,

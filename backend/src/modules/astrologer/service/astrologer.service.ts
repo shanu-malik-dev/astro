@@ -202,10 +202,17 @@ export class AstrologerService {
       .skip(skip)
       .take(limit)
       .getManyAndCount();
+    const consultCountMap =
+      await this.astrologerRepository.getConsultCountsByAstrologerIds(
+        astrologers.map((astrologer) => Number(astrologer.id)),
+      );
 
     return successResponse('ASTROLOGER_PUBLIC_LIST_FETCHED', {
       records: astrologers.map((astrologer) =>
-        this.formatPublicAstrologer(astrologer),
+        this.formatPublicAstrologer(
+          astrologer,
+          consultCountMap.get(Number(astrologer.id)) || 0,
+        ),
       ),
       pagination: {
         total,
@@ -341,7 +348,10 @@ export class AstrologerService {
     };
   }
 
-  private formatPublicAstrologer(astrologer: AstrologerEntity) {
+  private formatPublicAstrologer(
+    astrologer: AstrologerEntity,
+    consultCount = 0,
+  ) {
     const translations = astrologer.translations || [];
     const english = translations.find(
       (translation) => translation.lang_code === 'en',
@@ -364,7 +374,17 @@ export class AstrologerService {
       experience: astrologer.experience,
       languages: astrologer.languages,
       rating: astrologer.rating,
-      consultations: astrologer.consultations,
+      consultations: String(
+        this.toConsultationCount(astrologer.consultations) + consultCount,
+      ),
     };
+  }
+
+  private toConsultationCount(value?: string | null) {
+    const numeric = Number(value);
+    if (Number.isFinite(numeric)) return numeric;
+
+    const parsed = Number.parseInt(String(value || '').replace(/[^\d]/g, ''), 10);
+    return Number.isFinite(parsed) ? parsed : 0;
   }
 }

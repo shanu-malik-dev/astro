@@ -9,6 +9,7 @@ import * as bcrypt from 'bcrypt';
 import { QueryFailedError, Repository } from 'typeorm';
 import { CUSTOMER_CALL_STATUS } from '../../../common/constants/status.constant';
 import { successResponse } from '../../../common/helpers/response.helper';
+import { AstrologerEntity } from '../../astrologer/entity/astrologer.entity';
 import { RoleEntity } from '../../auth/entity/role.entity';
 import { UserEntity } from '../../auth/entity/user.entity';
 import { NotificationService } from '../../notification/notification.service';
@@ -18,6 +19,7 @@ import { SaveUserDto } from '../dto/save-user.dto';
 import { UpdateUserCallStatusDto } from '../dto/update-user-call-status.dto';
 
 const ADMIN_ROLE_ID = 1;
+const CUSTOMER_ROLE_ID = 3;
 
 @Injectable()
 export class UserService {
@@ -26,6 +28,8 @@ export class UserService {
     private readonly userRepository: Repository<UserEntity>,
     @InjectRepository(RoleEntity)
     private readonly roleRepository: Repository<RoleEntity>,
+    @InjectRepository(AstrologerEntity)
+    private readonly astrologerRepository: Repository<AstrologerEntity>,
     private readonly notificationService: NotificationService,
   ) {}
 
@@ -37,6 +41,8 @@ export class UserService {
     const queryBuilder = this.userRepository
       .createQueryBuilder('user')
       .leftJoinAndSelect('user.role', 'role')
+      .leftJoinAndSelect('user.astrologer', 'astrologer')
+      .leftJoinAndSelect('astrologer.translations', 'astrologerTranslation')
       .where('user.is_delete = 0')
       .andWhere('user.role_id != :adminRoleId', { adminRoleId: ADMIN_ROLE_ID });
 
@@ -60,6 +66,18 @@ export class UserService {
       queryBuilder.andWhere('user.call_status = :callStatus', {
         callStatus: query.call_status,
       });
+    }
+
+    if (query.customer_segment !== undefined) {
+      if (Number(query.customer_segment) === 0) {
+        queryBuilder.andWhere(
+          '(user.customer_segment IS NULL OR user.customer_segment = 0)',
+        );
+      } else {
+        queryBuilder.andWhere('user.customer_segment = :customerSegment', {
+          customerSegment: query.customer_segment,
+        });
+      }
     }
 
     if (query.date_from) {
@@ -88,8 +106,13 @@ export class UserService {
       .take(limit)
       .getManyAndCount();
 
+    const roleCounts = await this.getRoleCounts(query);
+    const customerRangeCounts = await this.getCustomerRangeCounts(query);
+
     return successResponse('USER_LIST_FETCHED', {
       records: users.map((user) => this.formatUser(user)),
+      role_counts: roleCounts,
+      customer_range_counts: customerRangeCounts,
       pagination: {
         total,
         page,
@@ -103,12 +126,31 @@ export class UserService {
     if (Number(dto.role_id) === ADMIN_ROLE_ID) {
       throw new BadRequestException('Admin role users cannot be managed here.');
     }
+    if (!dto.id && Number(dto.role_id) === CUSTOMER_ROLE_ID) {
+      throw new BadRequestException('Customers are created from website enquiries.');
+    }
 
     const role = await this.roleRepository.findOne({
       where: { id: dto.role_id, status: 1 },
     });
     if (!role || Number(role.id) === ADMIN_ROLE_ID) {
       throw new BadRequestException('Invalid role selected.');
+    }
+    const roleName = role.name.toLowerCase();
+    const isExecutiveRole = roleName === 'executive';
+    let astrologerId: number | null = null;
+
+    if (isExecutiveRole) {
+      const selectedAstrologerId = Number(dto.astrologer_id);
+      if (!Number.isFinite(selectedAstrologerId) || selectedAstrologerId <= 0) {
+        throw new BadRequestException('Astrologer is required for executives.');
+      }
+
+      const astrologer = await this.astrologerRepository.findOne({
+        where: { id: selectedAstrologerId, is_delete: 0, status: 1 },
+      });
+      if (!astrologer) throw new BadRequestException('Invalid astrologer selected.');
+      astrologerId = selectedAstrologerId;
     }
 
     const user = dto.id
@@ -146,6 +188,7 @@ export class UserService {
     user.mobile = mobile;
     user.email = email;
     user.status = dto.status === 0 ? 0 : 1;
+    user.astrologer_id = astrologerId;
     user.is_delete = 0;
 
     const plainPassword = dto.password?.trim();
@@ -187,12 +230,6 @@ export class UserService {
       { id: dto.id },
       {
         is_delete: 1,
-        status: 0,
-        country_code: '+0',
-        mobile: `deleted-${dto.id}`,
-        email: `deleted-${dto.id}@deleted.local`,
-        token: null,
-        token_expiry: null,
       },
     );
 
@@ -238,9 +275,124 @@ export class UserService {
       email: user.email,
       status: user.status,
       call_status: user.call_status || CUSTOMER_CALL_STATUS.NOT_CALLED,
+      customer_segment: user.customer_segment || null,
+      astrologer_id: user.astrologer_id || null,
+      astrologer_name:
+        user.astrologer?.translations?.find((translation) => translation.lang_code === 'en')
+          ?.name ||
+        user.astrologer?.translations?.[0]?.name ||
+        '',
       created_at: user.created_at,
       updated_at: user.updated_at,
     };
+  }
+
+  private async getRoleCounts(query: ListUserDto) {
+    const queryBuilder = this.userRepository
+      .createQueryBuilder('user')
+      .select('user.role_id', 'role_id')
+      .addSelect('COUNT(user.id)', 'total')
+      .where('user.is_delete = 0')
+      .andWhere('user.role_id != :adminRoleId', { adminRoleId: ADMIN_ROLE_ID });
+
+    if (query.range === 'today') {
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+      const end = new Date();
+      end.setHours(23, 59, 59, 999);
+
+      queryBuilder.andWhere('user.created_at BETWEEN :start AND :end', {
+        start,
+        end,
+      });
+    }
+
+    if (query.search) {
+      queryBuilder.andWhere(
+        '(user.name LIKE :search OR user.email LIKE :search OR user.mobile LIKE :search)',
+        { search: `%${query.search}%` },
+      );
+    }
+
+    if (query.date_from) {
+      queryBuilder.andWhere('user.created_at >= :dateFrom', {
+        dateFrom: new Date(query.date_from),
+      });
+    }
+
+    if (query.date_to) {
+      queryBuilder.andWhere('user.created_at <= :dateTo', {
+        dateTo: new Date(query.date_to),
+      });
+    }
+
+    const rows = await queryBuilder.groupBy('user.role_id').getRawMany<{
+      role_id: string;
+      total: string;
+    }>();
+
+    return rows.reduce<Record<number, number>>((counts, row) => {
+      counts[Number(row.role_id)] = Number(row.total);
+      return counts;
+    }, {});
+  }
+
+  private async getCustomerRangeCounts(query: ListUserDto) {
+    const applySharedFilters = (
+      queryBuilder: ReturnType<Repository<UserEntity>['createQueryBuilder']>,
+    ) => {
+      queryBuilder
+        .where('user.is_delete = 0')
+        .andWhere('user.role_id = :customerRoleId', {
+          customerRoleId: CUSTOMER_ROLE_ID,
+        });
+
+      if (query.search) {
+        queryBuilder.andWhere(
+          '(user.name LIKE :search OR user.email LIKE :search OR user.mobile LIKE :search)',
+          { search: `%${query.search}%` },
+        );
+      }
+
+      if (query.call_status) {
+        queryBuilder.andWhere('user.call_status = :callStatus', {
+          callStatus: query.call_status,
+        });
+      }
+
+      if (query.customer_segment !== undefined) {
+        if (Number(query.customer_segment) === 0) {
+          queryBuilder.andWhere(
+            '(user.customer_segment IS NULL OR user.customer_segment = 0)',
+          );
+        } else {
+          queryBuilder.andWhere('user.customer_segment = :customerSegment', {
+            customerSegment: query.customer_segment,
+          });
+        }
+      }
+    };
+
+    const allQuery = this.userRepository.createQueryBuilder('user');
+    applySharedFilters(allQuery);
+
+    const todayQuery = this.userRepository.createQueryBuilder('user');
+    applySharedFilters(todayQuery);
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date();
+    end.setHours(23, 59, 59, 999);
+    todayQuery.andWhere('user.created_at BETWEEN :start AND :end', {
+      start,
+      end,
+    });
+
+    const [all, today] = await Promise.all([
+      allQuery.getCount(),
+      todayQuery.getCount(),
+    ]);
+
+    return { all, today };
   }
 
   private sendLoginCredentialsEmail(user: UserEntity, password: string) {

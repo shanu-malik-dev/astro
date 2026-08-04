@@ -175,7 +175,7 @@ export function DashboardModule({ onNavigate }: DashboardModuleProps) {
         { label: "Called", value: totals.customers.called },
         { label: "Not Called", value: totals.customers.notCalled },
       ],
-      onClick: () => onNavigate("master", appliedFilter, "users"),
+      onClick: () => onNavigate("customers", appliedFilter),
     },
     {
       key: "followUps",

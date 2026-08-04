@@ -56,6 +56,12 @@ export const ALL_MODULES: AdminModule[] = [
     icon: ListChecks,
   },
   {
+    key: "customers",
+    label: "Customers",
+    description: "Review customer records, call status, and sales segment.",
+    icon: Users,
+  },
+  {
     key: "payments",
     label: "Payments",
     description: "Track generated payment links and payment status.",

@@ -28,6 +28,13 @@ export const CUSTOMER_CALL_STATUS = {
   CALLED: 2,
 } as const;
 
+export const CUSTOMER_SEGMENT = {
+  PENDING: 0,
+  CONSULTATION_PRODUCT: 1,
+  CONSULTATION_ONLY: 2,
+  OTHER: 3,
+} as const;
+
 export const ASTROLOGER_CONSULTATION_STATUS = {
   PENDING: 1,
   CONFIRMED: 2,
@@ -41,5 +48,7 @@ export type PaymentStatus = (typeof PAYMENT_STATUS)[keyof typeof PAYMENT_STATUS]
 export type SupportStatus = (typeof SUPPORT_STATUS)[keyof typeof SUPPORT_STATUS];
 export type CustomerCallStatus =
   (typeof CUSTOMER_CALL_STATUS)[keyof typeof CUSTOMER_CALL_STATUS];
+export type CustomerSegment =
+  (typeof CUSTOMER_SEGMENT)[keyof typeof CUSTOMER_SEGMENT];
 export type AstrologerConsultationStatus =
   (typeof ASTROLOGER_CONSULTATION_STATUS)[keyof typeof ASTROLOGER_CONSULTATION_STATUS];

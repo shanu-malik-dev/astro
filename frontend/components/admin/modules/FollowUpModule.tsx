@@ -273,7 +273,7 @@ export function FollowUpModule({
     <>
       <div className="admin-filter-panel">
         <div className="w-full space-y-3">
-          <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="admin-filter-controls flex flex-wrap items-center justify-end gap-2">
             <div className="admin-filter-segment">
               {(["today", "all"] as MainDateTab[]).map((tab) => (
                 <button

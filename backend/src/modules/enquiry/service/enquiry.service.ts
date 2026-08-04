@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { ENQUIRY_STATUS } from '../../../common/constants/status.constant';
+import { CUSTOMER_SEGMENT, ENQUIRY_STATUS } from '../../../common/constants/status.constant';
 import { successResponse } from '../../../common/helpers/response.helper';
 import { CheckMobileDto } from '../dto/check-mobile.dto';
 import { CloseEnquiryDto } from '../dto/close-enquiry.dto';
@@ -37,7 +37,14 @@ export class EnquiryService {
     const problemName =
       dto.problem_name?.trim() ||
       this.getEnglishProblemName(service.translations || []);
-    const enquiry = await this.enquiryRepository.createEnquiry(dto, problemName);
+    const customer = await this.findOrCreateCustomer(dto);
+    const enquiry = await this.enquiryRepository.createEnquiry(
+      {
+        ...dto,
+        customer_id: customer?.id || dto.customer_id,
+      },
+      problemName,
+    );
     void this.assignmentService.assignRoundRobin(enquiry.id);
 
     const created = await this.findById(enquiry.id);
@@ -53,6 +60,7 @@ export class EnquiryService {
     const queryBuilder = this.enquiryRepository
       .getRepository()
       .createQueryBuilder('enquiry')
+      .leftJoinAndSelect('enquiry.customer', 'customer')
       .leftJoinAndSelect('enquiry.problem', 'problem')
       .leftJoinAndSelect('problem.translations', 'translation')
       .where('enquiry.is_delete = :isDelete', { isDelete: 0 });
@@ -124,26 +132,104 @@ export class EnquiryService {
     });
   }
 
-  async close(dto: CloseEnquiryDto) {
+  async close(dto: CloseEnquiryDto, authUser?: AuthUser) {
     const enquiry = await this.findById(dto.id);
     if (!enquiry) throw new NotFoundException('Enquiry not found.');
     if (enquiry.status === ENQUIRY_STATUS.CLOSED) {
       throw new BadRequestException('Enquiry is already closed.');
     }
+    const closingAstrologerId = await this.getClosingAstrologerId(authUser, dto);
 
     await this.enquiryRepository.getRepository().update(dto.id, {
       status: ENQUIRY_STATUS.CLOSED,
       close_remark: dto.remark.trim(),
     });
 
+    if (enquiry.customer_id) {
+      await this.enquiryRepository.updateCustomerSegment(
+        Number(enquiry.customer_id),
+        dto.customer_segment,
+      );
+      if (dto.customer_segment !== CUSTOMER_SEGMENT.OTHER) {
+        await this.recordAstrologerConsultCount(enquiry, closingAstrologerId);
+      }
+    }
+
     const updated = await this.findById(dto.id);
     return successResponse('ENQUIRY_CLOSED', this.formatEnquiry(updated));
+  }
+
+  private async findOrCreateCustomer(dto: CreateEnquiryDto) {
+    const existing = await this.enquiryRepository.findActiveUserByMobile(
+      dto.country_code,
+      dto.mobile,
+    );
+    if (existing) return existing;
+
+    if (dto.customer_id) return null;
+
+    return this.enquiryRepository.createCustomerUser(dto);
+  }
+
+  private async getClosingAstrologerId(authUser: AuthUser | undefined, dto: CloseEnquiryDto) {
+    if (dto.customer_segment === CUSTOMER_SEGMENT.OTHER) return null;
+
+    if (!this.shouldScopeToExecutive(authUser)) {
+      const astrologerId = Number(dto.astrologer_id);
+      if (!Number.isFinite(astrologerId) || astrologerId <= 0) {
+        throw new BadRequestException('Astrologer is required.');
+      }
+
+      const astrologer = await this.enquiryRepository.findActiveAstrologerById(
+        astrologerId,
+      );
+      if (!astrologer) throw new BadRequestException('Invalid astrologer selected.');
+
+      return astrologerId;
+    }
+
+    const userId = Number(authUser?.sub);
+    const user = await this.enquiryRepository.findActiveUserById(userId);
+    const astrologerId = Number(user?.astrologer_id);
+
+    if (!Number.isFinite(astrologerId) || astrologerId <= 0) {
+      throw new BadRequestException(
+        'Please connect to admin for assign astrologer first.',
+      );
+    }
+
+    return astrologerId;
+  }
+
+  private async recordAstrologerConsultCount(
+    enquiry: EnquiryEntity,
+    closingAstrologerId?: number | null,
+  ) {
+    const assignedExecutive = enquiry.assignments?.find(
+      (assignment) => Number(assignment.is_active) === 1,
+    )?.executive;
+    const astrologerId = Number(
+      closingAstrologerId || assignedExecutive?.astrologer_id,
+    );
+    const customerId = Number(enquiry.customer_id);
+
+    if (!Number.isFinite(astrologerId) || astrologerId <= 0) return;
+    if (!Number.isFinite(customerId) || customerId <= 0) return;
+
+    await this.enquiryRepository.upsertAstrologerConsultCount(
+      astrologerId,
+      customerId,
+    );
   }
 
   private findById(id: number) {
     return this.enquiryRepository.getRepository().findOne({
       where: { id, is_delete: 0 },
-      relations: { problem: { translations: true } },
+      relations: {
+        customer: true,
+        problem: { translations: true },
+        assignments: { executive: true },
+      },
     });
   }
 
@@ -163,6 +249,7 @@ export class EnquiryService {
         this.getEnglishProblemName(enquiry.problem?.translations || []),
       status: enquiry.status,
       close_remark: enquiry.close_remark,
+      customer_segment: enquiry.customer?.customer_segment || null,
       created_at: enquiry.created_at,
     };
   }

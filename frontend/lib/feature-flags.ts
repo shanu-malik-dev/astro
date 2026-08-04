@@ -3,6 +3,7 @@ export const ADMIN_MODULE_FLAGS = {
   master: true,
   services: true,
   astrologers: true,
+  customers: true,
   enquiry: true,
   countryCodes: true,
   users: true,

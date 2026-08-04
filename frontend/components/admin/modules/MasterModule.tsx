@@ -31,7 +31,6 @@ export function MasterModule({
       )}
       {activeSubmodule === "users" && (
         <UsersModule
-          initialRoleName="Customer"
           initialDateFilter={userFilter}
           filterToken={filterToken}
         />

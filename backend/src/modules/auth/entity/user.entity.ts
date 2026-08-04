@@ -9,7 +9,12 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { DATABASE_TABLES } from '../../../common/constants/database.constant';
-import { CUSTOMER_CALL_STATUS, CustomerCallStatus } from '../../../common/constants/status.constant';
+import {
+  CUSTOMER_CALL_STATUS,
+  CustomerCallStatus,
+  CustomerSegment,
+} from '../../../common/constants/status.constant';
+import { AstrologerEntity } from '../../astrologer/entity/astrologer.entity';
 import { RoleEntity } from './role.entity';
 
 @Entity({ name: DATABASE_TABLES.USERS })
@@ -61,9 +66,19 @@ export class UserEntity {
   @Column({ type: 'tinyint', default: CUSTOMER_CALL_STATUS.NOT_CALLED })
   call_status: CustomerCallStatus;
 
+  @Column({ type: 'tinyint', nullable: true })
+  customer_segment: CustomerSegment | null;
+
+  @Column({ type: 'bigint', unsigned: true, nullable: true })
+  astrologer_id: number | null;
+
   @ManyToOne(() => RoleEntity)
   @JoinColumn({ name: 'role_id' })
   role: RoleEntity;
+
+  @ManyToOne(() => AstrologerEntity, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'astrologer_id' })
+  astrologer: AstrologerEntity | null;
 
   @CreateDateColumn({ type: 'timestamp' })
   created_at: Date;

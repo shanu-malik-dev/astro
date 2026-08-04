@@ -5,6 +5,7 @@ export type ModuleKey =
   | "master"
   | "services"
   | "astrologers"
+  | "customers"
   | "enquiry"
   | "followUp"
   | "payments"
@@ -105,6 +106,7 @@ export type EnquiryRow = {
   problem_name: string;
   status: EnquiryStatus;
   remark?: string;
+  customer_segment?: number | null;
 };
 
 export type FollowUpStatus = number;

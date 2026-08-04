@@ -5,6 +5,7 @@ import { AdminHeader } from "@/components/admin/AdminHeader";
 import { AdminLogin } from "@/components/admin/AdminLogin";
 import { AdminSnackbarProvider } from "@/components/admin/AdminSnackbar";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { CustomersModule } from "@/components/admin/modules/CustomersModule";
 import { DashboardModule } from "@/components/admin/modules/DashboardModule";
 import { EnquiryModule } from "@/components/admin/modules/EnquiryModule";
 import { FollowUpModule } from "@/components/admin/modules/FollowUpModule";
@@ -36,7 +37,9 @@ export default function AdminPage() {
     }
 
     const modules = user?.admin_modules || [];
-    return modules;
+    return modules.includes("users") && !modules.includes("customers")
+      ? modules.concat("customers")
+      : modules;
   }, [user?.admin_modules, user?.role_id]);
   const permittedModules = useMemo(() => {
     return SIDEBAR_MODULES.filter((module) => {
@@ -114,11 +117,13 @@ export default function AdminPage() {
 
   const handleModuleChange = (module: ModuleKey) => {
     setActiveModule(module);
+    if (window.innerWidth < 1024) setSidebarOpen(false);
   };
 
   const handleMasterSubmoduleChange = (module: MasterModuleKey) => {
     setMasterSubmodule(module);
     setActiveModule("master");
+    if (window.innerWidth < 1024) setSidebarOpen(false);
   };
 
   const navigateWithFilter = (
@@ -194,6 +199,13 @@ export default function AdminPage() {
 
               {activeModuleEnabled && activeModule === "followUp" && (
                 <FollowUpModule
+                  initialDateFilter={dashboardFilter}
+                  filterToken={filterToken}
+                />
+              )}
+
+              {activeModuleEnabled && activeModule === "customers" && (
+                <CustomersModule
                   initialDateFilter={dashboardFilter}
                   filterToken={filterToken}
                 />

@@ -15,6 +15,7 @@ export const DATABASE_TABLES = {
   ASTROLOGER_TRANSLATIONS: 'astrologers_translations',
   ASTROLOGER_RATINGS: 'astrologer_ratings',
   ASTROLOGER_CONSULTATIONS: 'astrologer_consultations',
+  ASTROLOGER_CONSULT_COUNTS: 'astrologer_consult_counts',
   ENQUIRIES: 'enquiries',
   ENQUIRY_ASSIGNMENTS: 'enquiry_assignments',
   FOLLOW_UPS: 'follow_ups',

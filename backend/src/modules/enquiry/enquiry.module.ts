@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AstrologerConsultCountEntity } from '../astrologer/entity/astrologer-consult-count.entity';
+import { AstrologerEntity } from '../astrologer/entity/astrologer.entity';
 import { UserEntity } from '../auth/entity/user.entity';
 import { ServiceTranslationEntity } from '../service/entity/service-translation.entity';
 import { ServiceEntity } from '../service/entity/service.entity';
@@ -18,6 +20,8 @@ import { EnquiryService } from './service/enquiry.service';
       ServiceEntity,
       ServiceTranslationEntity,
       UserEntity,
+      AstrologerConsultCountEntity,
+      AstrologerEntity,
     ]),
   ],
   controllers: [EnquiryController],

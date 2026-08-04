@@ -3,10 +3,12 @@ import { CalendarClock, Copy, CreditCard, ExternalLink, Phone, Save, Search, Sha
 import CustomDatePicker, { type DateRangeValue } from "@/components/ui/CustomDatePicker";
 import CustomSelect from "@/components/ui/CustomSelect";
 import {
+  adminAstrologerApi,
   ApiError,
   enquiryApi,
   followUpApi,
   paymentApi,
+  type AdminAstrologerDto,
   type CustomerPaymentDto,
   type EnquiryDto,
 } from "@/lib/api";
@@ -14,6 +16,8 @@ import { useAuth } from "@/lib/auth-context";
 import {
   ENQUIRY_STATUS,
   ENQUIRY_STATUS_LABELS,
+  CUSTOMER_SEGMENT,
+  CUSTOMER_SEGMENT_LABELS,
   FOLLOW_UP_STATUS,
 } from "@/lib/status-constants";
 import { useTenant } from "@/lib/tenant-context";
@@ -23,6 +27,20 @@ import { EmptyListState, formatAdminDate, ListPanelHeader, Pagination } from "..
 import type { AdminDateFilter, EnquiryRow, EnquiryStatus, FollowUpStatus } from "../types";
 
 type MainDateTab = "today" | "all";
+const CUSTOMER_SEGMENT_OPTIONS = [
+  {
+    value: String(CUSTOMER_SEGMENT.CONSULTATION_PRODUCT),
+    label: CUSTOMER_SEGMENT_LABELS[CUSTOMER_SEGMENT.CONSULTATION_PRODUCT],
+  },
+  {
+    value: String(CUSTOMER_SEGMENT.CONSULTATION_ONLY),
+    label: CUSTOMER_SEGMENT_LABELS[CUSTOMER_SEGMENT.CONSULTATION_ONLY],
+  },
+  {
+    value: String(CUSTOMER_SEGMENT.OTHER),
+    label: CUSTOMER_SEGMENT_LABELS[CUSTOMER_SEGMENT.OTHER],
+  },
+];
 type EnquiryTabData = Record<
   EnquiryStatus,
   {
@@ -76,6 +94,7 @@ function mapEnquiryDto(enquiry: EnquiryDto): EnquiryRow {
     problem_name: enquiry.problem_name,
     status: enquiry.status,
     remark: enquiry.close_remark || undefined,
+    customer_segment: enquiry.customer_segment || null,
   };
 }
 
@@ -86,9 +105,11 @@ export function EnquiryModule({
   initialDateFilter?: AdminDateFilter | null;
   filterToken?: number;
 } = {}) {
-  const { accessToken } = useAuth();
+  const { accessToken, user } = useAuth();
   const { tenant } = useTenant();
   const snackbar = useAdminSnackbar();
+  const isAdminUser = Number(user?.role_id) === 1;
+  const [astrologers, setAstrologers] = useState<AdminAstrologerDto[]>([]);
   const [rows, setRows] = useState<EnquiryRow[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -115,6 +136,8 @@ export function EnquiryModule({
   const [followStatus, setFollowStatus] = useState<FollowUpStatus>(FOLLOW_UP_STATUS.WARM);
   const [followUpAt, setFollowUpAt] = useState("");
   const [closeDraft, setCloseDraft] = useState<EnquiryRow | null>(null);
+  const [closeCustomerSegment, setCloseCustomerSegment] = useState<number>(0);
+  const [closeAstrologerId, setCloseAstrologerId] = useState<number>(0);
   const [closeRemarkError, setCloseRemarkError] = useState("");
   const [followError, setFollowError] = useState("");
   const [paymentDraft, setPaymentDraft] = useState<EnquiryRow | null>(null);
@@ -128,6 +151,33 @@ export function EnquiryModule({
   useEffect(() => {
     activeTabRef.current = activeTab;
   }, [activeTab]);
+
+  useEffect(() => {
+    if (!accessToken || !isAdminUser) return;
+
+    let active = true;
+    adminAstrologerApi
+      .list(tenant.id, accessToken, {
+        page: 1,
+        limit: 100,
+        status: 1,
+      })
+      .then((response) => {
+        if (active) setAstrologers(response.data?.records || []);
+      })
+      .catch((error) => {
+        if (!active) return;
+        snackbar.error(
+          error instanceof ApiError
+            ? error.message
+            : "Unable to load astrologers."
+        );
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [accessToken, isAdminUser, snackbar, tenant.id]);
 
   useEffect(() => {
     if (!filterToken || !initialDateFilter) return;
@@ -318,15 +368,31 @@ export function EnquiryModule({
       setCloseRemarkError("Close remark is required.");
       return;
     }
+    if (!closeCustomerSegment) {
+      setCloseRemarkError("Customer segment is required.");
+      return;
+    }
+    const requiresAstrologer =
+      closeCustomerSegment !== CUSTOMER_SEGMENT.OTHER;
+    if (isAdminUser && requiresAstrologer && !closeAstrologerId) {
+      setCloseRemarkError("Astrologer is required.");
+      return;
+    }
 
     snackbar.setPageLoading(true);
     try {
       await enquiryApi.close(tenant.id, accessToken, {
         id: closeDraft.enq_id,
         remark: closeDraft.remark.trim(),
+        customer_segment: closeCustomerSegment,
+        ...(isAdminUser && requiresAstrologer
+          ? { astrologer_id: closeAstrologerId }
+          : {}),
       });
       snackbar.success("Enquiry closed successfully.");
       setCloseDraft(null);
+      setCloseCustomerSegment(0);
+      setCloseAstrologerId(0);
       setCloseRemarkError("");
       await loadEnquiries(
         currentPage,
@@ -445,7 +511,7 @@ export function EnquiryModule({
       <div className="admin-filter-panel">
         <div className="w-full">
           <div className="space-y-3">
-            <div className="flex flex-wrap items-center justify-end gap-2">
+            <div className="admin-filter-controls flex flex-wrap items-center justify-end gap-2">
               <div className="admin-filter-segment">
                 {(["today", "all"] as MainDateTab[]).map((tab) => (
                   <button
@@ -609,7 +675,7 @@ export function EnquiryModule({
                     )}
                     {activeTab === ENQUIRY_STATUS.OPEN && (
                       <td data-label="Actions" className="px-4 py-2.5">
-                        <div className="flex justify-end gap-2">
+                        <div className="admin-row-actions flex justify-end gap-2">
                           <a
                             href={`tel:${enquiry.customer_number.replace(/\s/g, "")}`}
                             className="inline-flex items-center gap-1.5 rounded-md border border-mist bg-white px-2.5 py-1.5 text-xs font-medium text-ink/70 transition hover:border-gold hover:bg-gold/10 hover:text-ink"
@@ -642,6 +708,8 @@ export function EnquiryModule({
                             type="button"
                             onClick={() => {
                               setCloseRemarkError("");
+                              setCloseCustomerSegment(0);
+                              setCloseAstrologerId(0);
                               setCloseDraft({ ...enquiry, remark: "" });
                             }}
                             className="rounded-md border border-mist bg-white px-2.5 py-1.5 text-xs font-medium text-ink/65 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
@@ -800,6 +868,8 @@ export function EnquiryModule({
                 type="button"
                 onClick={() => {
                   setCloseDraft(null);
+                  setCloseCustomerSegment(0);
+                  setCloseAstrologerId(0);
                   setCloseRemarkError("");
                 }}
                 className="rounded-md border border-mist p-2 text-ink/60 hover:text-ink"
@@ -820,6 +890,60 @@ export function EnquiryModule({
                   <p className="mt-1 font-medium text-ink">{closeDraft.problem_name}</p>
                 </div>
               </div>
+
+              <label className="block text-sm font-medium text-ink">
+                Customer Segment <span className="text-red-500">*</span>
+                <CustomSelect
+                  instanceId="close-customer-segment"
+                  options={CUSTOMER_SEGMENT_OPTIONS}
+                  value={
+                    CUSTOMER_SEGMENT_OPTIONS.find(
+                      (option) => Number(option.value) === closeCustomerSegment
+                    ) || null
+                  }
+                  variant="light"
+                  onChange={(option) => {
+                    setCloseRemarkError("");
+                    const nextSegment = Number(option?.value || 0);
+                    setCloseCustomerSegment(nextSegment);
+                    if (nextSegment === CUSTOMER_SEGMENT.OTHER) {
+                      setCloseAstrologerId(0);
+                    }
+                  }}
+                  className="mt-2"
+                  placeholder="Select customer segment"
+                />
+              </label>
+
+              {isAdminUser && closeCustomerSegment !== CUSTOMER_SEGMENT.OTHER && (
+                <label className="block text-sm font-medium text-ink">
+                  Astrologer <span className="text-red-500">*</span>
+                  <CustomSelect
+                    instanceId="close-astrologer"
+                    options={astrologers.map((astrologer) => ({
+                      value: String(astrologer.id),
+                      label: astrologer.name,
+                    }))}
+                    value={
+                      astrologers
+                        .map((astrologer) => ({
+                          value: String(astrologer.id),
+                          label: astrologer.name,
+                        }))
+                        .find(
+                          (option) => Number(option.value) === closeAstrologerId
+                        ) || null
+                    }
+                    variant="light"
+                    onChange={(option) => {
+                      setCloseRemarkError("");
+                      setCloseAstrologerId(Number(option?.value || 0));
+                    }}
+                    className="mt-2"
+                    placeholder="Select astrologer"
+                  />
+                </label>
+              )}
 
               <label className="block text-sm font-medium text-ink">
                 Close remark <span className="text-red-500">*</span>
@@ -847,6 +971,8 @@ export function EnquiryModule({
                 type="button"
                 onClick={() => {
                   setCloseDraft(null);
+                  setCloseCustomerSegment(0);
+                  setCloseAstrologerId(0);
                   setCloseRemarkError("");
                 }}
                 className="rounded-md border border-mist bg-white px-4 py-2.5 text-sm font-medium text-ink/65 hover:text-ink"

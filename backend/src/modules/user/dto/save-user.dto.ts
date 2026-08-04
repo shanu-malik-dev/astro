@@ -48,4 +48,10 @@ export class SaveUserDto {
   @Type(() => Number)
   @IsInt()
   status?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  astrologer_id?: number;
 }
