@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AstrologerStatusModule } from '../astrologer-status/astrologer-status.module';
 import { AstrologerController } from './controller/astrologer.controller';
+import { AstrologerUploadController } from './controller/astrologer-upload.controller';
 import { AstrologerConsultCountEntity } from './entity/astrologer-consult-count.entity';
 import { AstrologerConsultationEntity } from './entity/astrologer-consultation.entity';
 import { AstrologerRatingEntity } from './entity/astrologer-rating.entity';
@@ -21,7 +22,7 @@ import { AstrologerService } from './service/astrologer.service';
       AstrologerConsultCountEntity,
     ]),
   ],
-  controllers: [AstrologerController],
+  controllers: [AstrologerController, AstrologerUploadController],
   providers: [AstrologerService, AstrologerRepository],
   exports: [AstrologerService],
 })
