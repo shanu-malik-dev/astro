@@ -3,9 +3,9 @@ const API_BASE_URL =
 
 export async function GET(
   _request: Request,
-  context: { params: { path: string[] } | Promise<{ path: string[] }> }
+  context: { params: Promise<{ path: string[] }> }
 ) {
-  const params = await Promise.resolve(context.params);
+  const params = await context.params;
   const filePath = (params.path || [])
     .map((part) => encodeURIComponent(part))
     .join("/");
