@@ -99,6 +99,7 @@ function toText(value: unknown) {
 }
 
 function getApiAssetBaseUrl() {
+  if (typeof window !== "undefined") return window.location.origin;
   return API_BASE_URL.replace(/\/api\/?$/, "").replace(/\/$/, "");
 }
 

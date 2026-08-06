@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { randomUUID } from 'crypto';
 import { Request } from 'express';
 import { mkdir, writeFile } from 'fs/promises';
+import { existsSync } from 'fs';
 import { extname, join } from 'path';
 import { EntityManager } from 'typeorm';
 import { successResponse } from '../../../common/helpers/response.helper';
@@ -17,12 +18,6 @@ import { AstrologerRepository } from '../repository/astrologer.repository';
 
 @Injectable()
 export class AstrologerService {
-  private readonly uploadDir = join(
-    process.cwd(),
-    'public',
-    'uploads',
-    'astrologers',
-  );
   private readonly allowedImageTypes = new Map([
     ['image/jpeg', '.jpg'],
     ['image/png', '.png'],
@@ -191,8 +186,10 @@ export class AstrologerService {
       originalExtension || extension
     }`;
 
-    await mkdir(this.uploadDir, { recursive: true });
-    await writeFile(join(this.uploadDir, filename), file.buffer);
+    const uploadDir = this.getUploadDir();
+
+    await mkdir(uploadDir, { recursive: true });
+    await writeFile(join(uploadDir, filename), file.buffer);
 
     const path = `/uploads/astrologers/${filename}`;
 
@@ -374,6 +371,20 @@ export class AstrologerService {
     if (uploadPathIndex >= 0) return cleaned?.slice(uploadPathIndex);
 
     return cleaned;
+  }
+
+  private getUploadDir() {
+    const configuredUploadRoot = process.env.PUBLIC_UPLOAD_ROOT?.trim();
+    if (configuredUploadRoot) {
+      return join(configuredUploadRoot, 'uploads', 'astrologers');
+    }
+
+    const frontendPublicRoot = join(process.cwd(), '..', 'frontend', 'public');
+    if (existsSync(frontendPublicRoot)) {
+      return join(frontendPublicRoot, 'uploads', 'astrologers');
+    }
+
+    return join(process.cwd(), 'public', 'uploads', 'astrologers');
   }
 
   private getPublicBaseUrl(request: Request) {

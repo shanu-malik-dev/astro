@@ -18,6 +18,10 @@ backend/public/uploads/**
 !backend/public/uploads/
 !backend/public/uploads/astrologers/
 !backend/public/uploads/astrologers/.gitkeep
+frontend/public/uploads/**
+!frontend/public/uploads/
+!frontend/public/uploads/astrologers/
+!frontend/public/uploads/astrologers/.gitkeep
 
 # TypeScript
 *.tsbuildinfo
