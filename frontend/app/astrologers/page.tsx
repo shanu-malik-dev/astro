@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -14,6 +13,7 @@ import {
 import { Section } from "@/components/ui/Section";
 import { DisabledRouteRedirect } from "@/components/DisabledRouteRedirect";
 import { FullPageLoader } from "@/components/ui/FullPageLoader";
+import { PublicAssetImage } from "@/components/ui/PublicAssetImage";
 import { SiteSnackbar } from "@/components/ui/SiteSnackbar";
 import { ApiError, astrologerApi, type PublicAstrologerDto } from "@/lib/api";
 import { API_BASE_URL } from "@/lib/api-service";
@@ -182,11 +182,12 @@ export default function AstrologersPage() {
 
                 <div className="relative flex items-start gap-3">
                   {photo ? (
-                    <Image
+                    <PublicAssetImage
                       src={photo}
                       alt={name}
                       width={72}
                       height={72}
+                      fallback={<DummyAstrologerAvatar />}
                       className="h-20 w-20 shrink-0 rounded-xl object-cover shadow-[0_12px_28px_rgba(176,138,46,0.22)] ring-1 ring-gold/20"
                     />
                   ) : (

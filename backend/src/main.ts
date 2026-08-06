@@ -16,6 +16,7 @@ async function bootstrap() {
 
   app.set('trust proxy', 1);
   app.useStaticAssets(join(process.cwd(), 'public'));
+  app.use('/api/uploads', express.static(join(process.cwd(), 'public', 'uploads')));
 
   app.use('/api/payments/razorpay-webhook', express.raw({ type: 'application/json' }));
   app.use(express.json());

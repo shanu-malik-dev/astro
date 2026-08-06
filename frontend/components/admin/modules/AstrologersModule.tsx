@@ -26,6 +26,7 @@ import {
 } from "../shared";
 import type { DateRangeValue } from "@/components/ui/CustomDatePicker";
 import { FileUpload } from "@/components/ui/FileUpload";
+import { PublicAssetImage } from "@/components/ui/PublicAssetImage";
 import { API_BASE_URL } from "@/lib/api-service";
 import type { AstrologerRow, AstrologerTranslation } from "../types";
 
@@ -131,20 +132,25 @@ function AstrologerListImage({ src, alt }: { src?: string; alt: string }) {
   const resolvedSrc = resolveAssetUrl(src);
 
   if (!resolvedSrc || failed) {
-    return (
-      <div className="flex h-10 w-10 items-center justify-center rounded-md border border-mist bg-parchment text-xs font-semibold text-ink/45">
-        NA
-      </div>
-    );
+    return <AstrologerImageFallback />;
   }
 
   return (
-    <img
+    <PublicAssetImage
       src={resolvedSrc}
       alt={alt}
+      fallback={<AstrologerImageFallback />}
       onError={() => setFailed(true)}
       className="h-10 w-10 rounded-md border border-mist bg-parchment object-cover"
     />
+  );
+}
+
+function AstrologerImageFallback() {
+  return (
+    <div className="flex h-10 w-10 items-center justify-center rounded-md border border-mist bg-parchment text-xs font-semibold text-ink/45">
+      NA
+    </div>
   );
 }
 

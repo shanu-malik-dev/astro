@@ -2,6 +2,7 @@
 
 import { ChangeEvent, DragEvent, useEffect, useRef, useState } from "react";
 import { CloudUpload, X } from "lucide-react";
+import { PublicAssetImage } from "./PublicAssetImage";
 
 interface FileUploadProps {
   value?: string;
@@ -104,7 +105,7 @@ export function FileUpload({
               className="h-48 w-full bg-black object-contain"
             />
           ) : (
-            <img
+            <PublicAssetImage
               src={previewUrl}
               alt={previewAlt}
               className="h-48 w-full bg-white object-contain"
