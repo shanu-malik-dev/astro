@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CalendarClock, Copy, CreditCard, ExternalLink, Phone, Save, Search, Share2, X } from "lucide-react";
+import { CalendarClock, Copy, CreditCard, Download, ExternalLink, Phone, Save, Search, Share2, X } from "lucide-react";
 import CustomDatePicker, { type DateRangeValue } from "@/components/ui/CustomDatePicker";
 import CustomSelect from "@/components/ui/CustomSelect";
 import {
   adminAstrologerApi,
   ApiError,
+  csvApi,
   enquiryApi,
   followUpApi,
   paymentApi,
@@ -145,6 +146,7 @@ export function EnquiryModule({
   const [paymentError, setPaymentError] = useState("");
   const [generatedPayment, setGeneratedPayment] =
     useState<CustomerPaymentDto | null>(null);
+  const [exportingCsv, setExportingCsv] = useState(false);
   const lastFetchKeyRef = useRef("");
   const activeTabRef = useRef(activeTab);
 
@@ -506,6 +508,41 @@ export function EnquiryModule({
     setCurrentPage(1);
   };
 
+  const exportEnquiries = async () => {
+    if (!accessToken || exportingCsv) return;
+
+    setExportingCsv(true);
+    snackbar.setPageLoading(true);
+    try {
+      const response = await enquiryApi.exportCsv(tenant.id, accessToken, {
+        status: activeTab,
+        search: appliedCustomerFilter.trim() || undefined,
+        date_from: appliedDateFilter.start
+          ? new Date(appliedDateFilter.start).toISOString()
+          : undefined,
+        date_to: appliedDateFilter.end
+          ? new Date(appliedDateFilter.end).toISOString()
+          : undefined,
+      });
+
+      if (!response.data) {
+        throw new Error("Export file was not created.");
+      }
+
+      await csvApi.download(tenant.id, accessToken, response.data);
+      snackbar.success("Enquiry CSV downloaded.");
+    } catch (err) {
+      snackbar.error(
+        err instanceof ApiError || err instanceof Error
+          ? err.message
+          : "Unable to export enquiries."
+      );
+    } finally {
+      setExportingCsv(false);
+      snackbar.setPageLoading(false);
+    }
+  };
+
   return (
     <>
       <div className="admin-filter-panel">
@@ -601,6 +638,16 @@ export function EnquiryModule({
                   <X size={15} />
                 </button>
               )}
+              <button
+                type="button"
+                onClick={exportEnquiries}
+                disabled={exportingCsv}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-mist bg-white text-ink/60 transition hover:border-gold hover:bg-gold/10 hover:text-ink disabled:cursor-not-allowed disabled:opacity-60"
+                title={exportingCsv ? "Exporting CSV" : "Export CSV"}
+                aria-label="Export CSV"
+              >
+                <Download size={14} />
+              </button>
               <button
                 type="button"
                 onClick={applyFilters}

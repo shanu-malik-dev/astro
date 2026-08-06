@@ -3,6 +3,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
 import * as express from 'express';
+import { join } from 'path';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { AdminModuleGuard } from './modules/auth/guards/admin-module.guard';
@@ -12,6 +13,9 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bodyParser: false,
   });
+
+  app.set('trust proxy', 1);
+  app.useStaticAssets(join(process.cwd(), 'public'));
 
   app.use('/api/payments/razorpay-webhook', express.raw({ type: 'application/json' }));
   app.use(express.json());

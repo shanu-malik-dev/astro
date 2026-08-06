@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Edit3, Loader2, Power, Save, Search, Trash2, X } from "lucide-react";
+import { Clock3, Edit3, Loader2, Power, Save, Search, Trash2, X } from "lucide-react";
 import {
   adminAstrologerApi,
   ApiError,
@@ -25,6 +25,8 @@ import {
   toAdminDateRange,
 } from "../shared";
 import type { DateRangeValue } from "@/components/ui/CustomDatePicker";
+import { FileUpload } from "@/components/ui/FileUpload";
+import { API_BASE_URL } from "@/lib/api-service";
 import type { AstrologerRow, AstrologerTranslation } from "../types";
 
 type AstrologerFormErrors = {
@@ -95,13 +97,57 @@ function toText(value: unknown) {
   return String(value ?? "");
 }
 
-function readFileAsDataUrl(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ""));
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
+function getApiAssetBaseUrl() {
+  console.log('API_BASE_URL==',API_BASE_URL);
+  
+  return API_BASE_URL.replace(/\/api\/?$/, "").replace(/\/$/, "");
+}
+
+function resolveAssetUrl(value?: string) {
+  const path = value?.trim();
+  if (!path) return "";
+  if (/^(data:|blob:)/i.test(path)) return path;
+
+  const uploadPathIndex = path.indexOf("/uploads/");
+  if (uploadPathIndex >= 0) {
+    return `${getApiAssetBaseUrl()}${path.slice(uploadPathIndex)}`;
+  }
+
+  if (/^https?:\/\//i.test(path)) return path;
+
+  return `${getApiAssetBaseUrl()}${path.startsWith("/") ? "" : "/"}${path}`;
+}
+
+function toStoredImagePath(value?: string) {
+  const image = value?.trim();
+  if (!image) return "";
+
+  const uploadPathIndex = image.indexOf("/uploads/");
+  if (uploadPathIndex >= 0) return image.slice(uploadPathIndex);
+
+  return image;
+}
+
+function AstrologerListImage({ src, alt }: { src?: string; alt: string }) {
+  const [failed, setFailed] = useState(false);
+  const resolvedSrc = resolveAssetUrl(src);
+
+  if (!resolvedSrc || failed) {
+    return (
+      <div className="flex h-10 w-10 items-center justify-center rounded-md border border-mist bg-parchment text-xs font-semibold text-ink/45">
+        NA
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={resolvedSrc}
+      alt={alt}
+      onError={() => setFailed(true)}
+      className="h-10 w-10 rounded-md border border-mist bg-parchment object-cover"
+    />
+  );
 }
 
 export function AstrologersModule() {
@@ -115,6 +161,9 @@ export function AstrologersModule() {
   const [totalRecords, setTotalRecords] = useState(0);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [statusSaving, setStatusSaving] = useState(false);
+  const [liveStartTime, setLiveStartTime] = useState("");
+  const [liveEndTime, setLiveEndTime] = useState("");
   const [formErrors, setFormErrors] = useState<AstrologerFormErrors>({});
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [dateFilter, setDateFilter] = useState<DateRangeValue>({
@@ -175,6 +224,31 @@ export function AstrologersModule() {
     loadAstrologers(1);
   }, [accessToken, appliedDateFilter, loadAstrologers, tenant.id]);
 
+  useEffect(() => {
+    if (!accessToken) return;
+
+    let active = true;
+    adminAstrologerApi
+      .statusDetails(tenant.id, accessToken)
+      .then((response) => {
+        if (!active) return;
+        setLiveStartTime(response.data?.start_time?.slice(0, 5) || "");
+        setLiveEndTime(response.data?.end_time?.slice(0, 5) || "");
+      })
+      .catch((err) => {
+        if (!active) return;
+        snackbar.error(
+          err instanceof ApiError
+            ? err.message
+            : "Unable to load astrologer live timing."
+        );
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [accessToken, snackbar, tenant.id]);
+
   const applyDateFilter = (range = dateFilter) => {
     setAppliedDateFilter(toAdminDateRange(range));
     setCurrentPage(1);
@@ -185,6 +259,34 @@ export function AstrologersModule() {
     setDateFilter(emptyRange);
     setAppliedDateFilter(emptyRange);
     setCurrentPage(1);
+  };
+
+  const saveLiveTiming = async () => {
+    if (!accessToken || statusSaving) return;
+
+    if (!liveStartTime || !liveEndTime) {
+      snackbar.error("Start time and end time are required.");
+      return;
+    }
+
+    setStatusSaving(true);
+    snackbar.setPageLoading(true);
+    try {
+      await adminAstrologerApi.saveStatus(tenant.id, accessToken, {
+        start_time: liveStartTime,
+        end_time: liveEndTime,
+      });
+      snackbar.success("Astrologer live timing saved successfully.");
+    } catch (err) {
+      snackbar.error(
+        err instanceof ApiError
+          ? err.message
+          : "Unable to save astrologer live timing."
+      );
+    } finally {
+      setStatusSaving(false);
+      snackbar.setPageLoading(false);
+    }
   };
 
   const startCreate = () => {
@@ -217,6 +319,10 @@ export function AstrologersModule() {
 
     if (currentDraft.rating < 0) {
       errors.rating = "Rating cannot be negative.";
+    }
+
+    if (currentDraft.image.trim().startsWith("data:")) {
+      errors.image = "Please upload image file instead of base64.";
     }
 
     if (!toText(currentDraft.consultations).trim()) {
@@ -257,7 +363,7 @@ export function AstrologersModule() {
     if (!validateDraft(draft)) return;
 
     const payload = {
-      image: draft.image.trim(),
+      image: toStoredImagePath(draft.image),
       experience: draft.experience.trim(),
       languages: cleanCommaValue(draft.languages),
       rating: draft.rating,
@@ -344,7 +450,7 @@ export function AstrologersModule() {
   };
 
   const uploadAstrologerImage = async (file: File | undefined) => {
-    if (!draft || !file) return;
+    if (!draft || !file || !accessToken) return;
 
     if (!file.type.startsWith("image/")) {
       setFormErrors((current) => ({
@@ -362,9 +468,33 @@ export function AstrologersModule() {
       return;
     }
 
-    const dataUrl = await readFileAsDataUrl(file);
-    setFormErrors((current) => ({ ...current, image: undefined }));
-    setDraft({ ...draft, image: dataUrl });
+    snackbar.setPageLoading(true);
+
+    try {
+      const response = await adminAstrologerApi.uploadImage(
+        tenant.id,
+        accessToken,
+        file
+      );
+      const imagePath = response.data?.path || toStoredImagePath(response.data?.url);
+
+      if (!imagePath) throw new Error("Image upload failed.");
+
+      setFormErrors((current) => ({ ...current, image: undefined }));
+      setDraft((currentDraft) =>
+        currentDraft ? { ...currentDraft, image: imagePath } : currentDraft
+      );
+    } catch (err) {
+      setFormErrors((current) => ({
+        ...current,
+        image:
+          err instanceof ApiError
+            ? err.message
+            : "Unable to upload astrologer image.",
+      }));
+    } finally {
+      snackbar.setPageLoading(false);
+    }
   };
 
   return (
@@ -384,6 +514,40 @@ export function AstrologersModule() {
       />
 
       <div className="admin-filter-panel mt-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="inline-flex h-10 items-center gap-2 rounded-md border border-mist bg-white px-3 text-xs font-semibold text-ink/65">
+            <Clock3 size={14} />
+            Live Time
+          </span>
+          <input
+            type="time"
+            value={liveStartTime}
+            onChange={(event) => setLiveStartTime(event.target.value)}
+            className="h-10 rounded-md border border-mist bg-white px-3 text-sm text-ink outline-none transition focus:border-gold"
+            aria-label="Astrologer live start time"
+          />
+          <input
+            type="time"
+            value={liveEndTime}
+            onChange={(event) => setLiveEndTime(event.target.value)}
+            className="h-10 rounded-md border border-mist bg-white px-3 text-sm text-ink outline-none transition focus:border-gold"
+            aria-label="Astrologer live end time"
+          />
+          <button
+            type="button"
+            onClick={saveLiveTiming}
+            disabled={statusSaving}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-mist bg-white text-ink/60 transition hover:border-gold hover:bg-gold/10 hover:text-ink disabled:cursor-not-allowed disabled:opacity-60"
+            title="Save live timing"
+            aria-label="Save live timing"
+          >
+            {statusSaving ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <Save size={14} />
+            )}
+          </button>
+        </div>
         <DateRangeFilter
           value={dateFilter}
           onChange={setDateFilter}
@@ -461,17 +625,10 @@ export function AstrologersModule() {
                         #{astrologer.id.toString().padStart(3, "0")}
                       </td>
                       <td data-label="Image" className="px-4 py-2.5">
-                        {astrologer.image ? (
-                          <img
-                            src={astrologer.image}
-                            alt={english?.name || "Astrologer"}
-                            className="h-10 w-10 rounded-md border border-mist bg-parchment object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-10 w-10 items-center justify-center rounded-md border border-mist bg-parchment text-xs font-semibold text-ink/45">
-                            NA
-                          </div>
-                        )}
+                        <AstrologerListImage
+                          src={astrologer.image}
+                          alt={english?.name || "Astrologer"}
+                        />
                       </td>
                       <td data-label="Created Date" className="px-4 py-2.5 text-ink/60">
                         {formatAdminDate(astrologer.createdAt)}
@@ -571,61 +728,22 @@ export function AstrologersModule() {
 
             <div className="max-h-[calc(92vh-136px)] overflow-y-auto p-5">
               <div className="mb-5 rounded-lg border border-mist bg-parchment p-4">
-                <label className="block text-sm font-medium text-ink">
-                  Astrologer Image
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(event) =>
-                      uploadAstrologerImage(event.target.files?.[0])
-                    }
-                    className="mt-2 block w-full text-xs text-ink/60 file:mr-3 file:rounded-md file:border-0 file:bg-ink file:px-3 file:py-2 file:text-xs file:font-medium file:text-white hover:file:bg-ink/90"
-                  />
-                </label>
-                <p className="mt-2 text-xs text-ink/45">
-                  Upload image, or paste an image URL below.
-                </p>
-                <div className="mt-3 grid gap-4 md:grid-cols-[1fr_112px]">
-                  <input
-                    type="text"
-                    value={draft.image}
-                    onChange={(event) => {
-                      setFormErrors((current) => ({
-                        ...current,
-                        image: undefined,
-                      }));
-                      setDraft({ ...draft, image: event.target.value });
-                    }}
-                    className="w-full rounded-md border border-mist bg-white px-3 py-2 text-sm outline-none focus:border-gold"
-                    placeholder="https://..."
-                  />
-                  {draft.image ? (
-                    <div className="space-y-2">
-                      <img
-                        src={draft.image}
-                        alt="Astrologer preview"
-                        className="aspect-square w-28 rounded-md border border-mist bg-white object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFormErrors((current) => ({
-                            ...current,
-                            image: undefined,
-                          }));
-                          setDraft({ ...draft, image: "" });
-                        }}
-                        className="w-28 rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex aspect-square w-28 items-center justify-center rounded-md border border-mist bg-white text-xs font-semibold text-ink/40">
-                      No Image
-                    </div>
-                  )}
-                </div>
+                <FileUpload
+                  value={resolveAssetUrl(draft.image)}
+                  accept="image/*"
+                  title="Choose a file or drag & drop it here"
+                  helperText="JPEG, PNG, WEBP, and GIF formats, up to 1.5MB"
+                  buttonLabel="Browse File"
+                  previewAlt="Astrologer preview"
+                  onFileSelect={uploadAstrologerImage}
+                  onClear={() => {
+                    setFormErrors((current) => ({
+                      ...current,
+                      image: undefined,
+                    }));
+                    setDraft({ ...draft, image: "" });
+                  }}
+                />
                 {formErrors.image && (
                   <p className="mt-2 text-xs text-red-600">
                     {formErrors.image}

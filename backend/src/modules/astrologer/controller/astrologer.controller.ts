@@ -1,5 +1,14 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Post,
+  Req,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags } from '@nestjs/swagger';
+import { Request } from 'express';
 import { IsPublic } from '../../auth/decorators/is-public.decorator';
 import { CreateAstrologerDto } from '../dto/create-astrologer.dto';
 import { DeleteAstrologerDto } from '../dto/delete-astrologer.dto';
@@ -32,6 +41,16 @@ export class AstrologerController {
   @Post('update')
   update(@Body() dto: UpdateAstrologerDto) {
     return this.astrologerService.update(dto);
+  }
+
+  @Post('upload-image')
+  @UseInterceptors(
+    FileInterceptor('image', {
+      limits: { fileSize: 1.5 * 1024 * 1024 },
+    }),
+  )
+  uploadImage(@UploadedFile() file: any, @Req() request: Request) {
+    return this.astrologerService.uploadImage(file, request);
   }
 
   @Post('status')

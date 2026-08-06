@@ -16,6 +16,7 @@ import { DisabledRouteRedirect } from "@/components/DisabledRouteRedirect";
 import { FullPageLoader } from "@/components/ui/FullPageLoader";
 import { SiteSnackbar } from "@/components/ui/SiteSnackbar";
 import { ApiError, astrologerApi, type PublicAstrologerDto } from "@/lib/api";
+import { API_BASE_URL } from "@/lib/api-service";
 import { useAuth } from "@/lib/auth-context";
 import { useLanguage } from "@/lib/language-context";
 import { useTenant } from "@/lib/tenant-context";
@@ -34,9 +35,28 @@ type AstrologerWithPhoto = PublicAstrologerDto & {
   profile_image?: string;
 };
 
+function getApiAssetBaseUrl() {
+  return API_BASE_URL.replace(/\/api\/?$/, "").replace(/\/$/, "");
+}
+
+function resolveImageUrl(value?: string) {
+  const image = value?.trim();
+  if (!image) return "";
+  if (/^(data:|blob:)/i.test(image)) return image;
+
+  const uploadPathIndex = image.indexOf("/uploads/");
+  if (uploadPathIndex >= 0) {
+    return `${getApiAssetBaseUrl()}${image.slice(uploadPathIndex)}`;
+  }
+
+  if (/^https?:\/\//i.test(image)) return image;
+
+  return `${getApiAssetBaseUrl()}${image.startsWith("/") ? "" : "/"}${image}`;
+}
+
 function getAstrologerPhoto(astrologer: PublicAstrologerDto) {
   const record = astrologer as AstrologerWithPhoto;
-  return (
+  return resolveImageUrl(
     record.image ||
     record.photo ||
     record.image_url ||
@@ -174,9 +194,18 @@ export default function AstrologersPage() {
                   )}
 
                   <div className="min-w-0 flex-1">
-                    <h2 className="line-clamp-2 min-h-[48px] text-base font-semibold leading-6 text-ink">
-                      {name}
-                    </h2>
+                    <div className="flex min-h-[48px] items-start gap-2">
+                      <h2 className="line-clamp-2 text-base font-semibold leading-6 text-ink">
+                        {name}
+                      </h2>
+                      {astrologer.live && (
+                        <span
+                          className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-green-500 shadow-[0_0_0_3px_rgba(34,197,94,0.18)]"
+                          title="Live now"
+                          aria-label="Live now"
+                        />
+                      )}
+                    </div>
 
                     <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-gold/15 px-2.5 py-1 text-xs font-semibold text-gold-dark ring-1 ring-gold/20">
                       <Star size={13} fill="currentColor" />

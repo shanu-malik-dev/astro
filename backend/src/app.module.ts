@@ -7,6 +7,7 @@ import { LanguageMiddleware } from './common/middleware/language.middleware';
 import { getDatabaseConfig } from './config/database.config';
 import { AuthModule } from './modules/auth/auth.module';
 import { AstrologerModule } from './modules/astrologer/astrologer.module';
+import { CsvModule } from './modules/csv/csv.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { EnquiryModule } from './modules/enquiry/enquiry.module';
 import { FollowUpModule } from './modules/follow-up/follow-up.module';
@@ -30,6 +31,7 @@ import { UserModule } from './modules/user/user.module';
     }),
     ApiLoggingModule,
     AuthModule,
+    CsvModule,
     DashboardModule,
     SharedModule,
     SiteContentModule,

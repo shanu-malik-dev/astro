@@ -24,6 +24,11 @@ export class EnquiryController {
     return this.enquiryService.findAll(dto, req.user);
   }
 
+  @Post('export')
+  exportCsv(@Body() dto: ListEnquiryDto, @Req() req: Request & { user?: any }) {
+    return this.enquiryService.exportCsv(dto, req.user);
+  }
+
   @IsPublic()
   @Post('mobile-check')
   checkMobile(@Body() dto: CheckMobileDto) {

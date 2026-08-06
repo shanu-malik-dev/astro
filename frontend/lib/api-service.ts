@@ -1,5 +1,5 @@
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
 export const AUTH_UNAUTHORIZED_EVENT = "astronova:unauthorized";
 const inFlightRequests = new Map<string, Promise<unknown>>();
 const AUTH_STORAGE_KEYS = [
@@ -222,9 +222,13 @@ export async function apiService<T>(
   path: string,
   { headers, body, dedupe, ...options }: ApiRequestOptions = {}
 ): Promise<T> {
+  const isFormData =
+    typeof FormData !== "undefined" && body instanceof FormData;
   const serializedBody =
     body === undefined
       ? undefined
+      : isFormData
+        ? body
       : typeof body === "string"
         ? body
         : JSON.stringify(body);
@@ -235,7 +239,11 @@ export async function apiService<T>(
   };
   const dedupeEnabled = shouldDedupeRequest(path, requestOptions, body);
   const dedupeKey = dedupeEnabled
-    ? getDedupeKey(path, requestOptions, serializedBody)
+    ? getDedupeKey(
+        path,
+        requestOptions,
+        typeof serializedBody === "string" ? serializedBody : undefined
+      )
     : "";
   const existingRequest = dedupeKey ? inFlightRequests.get(dedupeKey) : null;
   if (existingRequest) return existingRequest as Promise<T>;
@@ -265,7 +273,7 @@ export async function apiService<T>(
       ...options,
       body: serializedBody,
       headers: {
-        "Content-Type": "application/json",
+        ...(isFormData ? {} : { "Content-Type": "application/json" }),
         "Accept-Language": getAcceptLanguage(),
         ...currentHeaders,
       },

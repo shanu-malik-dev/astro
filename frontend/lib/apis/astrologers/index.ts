@@ -51,6 +51,7 @@ export interface PublicAstrologerDto {
   languages: string;
   rating: number;
   consultations: string;
+  live?: boolean;
 }
 
 export interface PublicAstrologerListResponse {
@@ -65,6 +66,31 @@ export interface PublicAstrologerListResponse {
       limit: number;
       total_pages: number;
     };
+  };
+}
+
+export interface AstrologerStatusDto {
+  id: number;
+  start_time: string;
+  end_time: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface AstrologerStatusResponse {
+  success?: boolean;
+  statusCode?: number;
+  message?: string;
+  data?: AstrologerStatusDto | null;
+}
+
+export interface AstrologerImageUploadResponse {
+  success?: boolean;
+  statusCode?: number;
+  message?: string;
+  data?: {
+    url: string;
+    path: string;
   };
 }
 
@@ -127,6 +153,17 @@ export const adminAstrologerApi = {
       method: "POST",
       body: JSON.stringify(data),
     }),
+  uploadImage: (tenantId: TenantId, accessToken: string, file: File) => {
+    const formData = new FormData();
+    formData.append("image", file);
+
+    return request<AstrologerImageUploadResponse>("/astrologer/upload-image", {
+      tenantId,
+      accessToken,
+      method: "POST",
+      body: formData,
+    });
+  },
   updateStatus: (
     tenantId: TenantId,
     accessToken: string,
@@ -140,6 +177,24 @@ export const adminAstrologerApi = {
     }),
   remove: (tenantId: TenantId, accessToken: string, data: { id: number }) =>
     request<{ success?: boolean; statusCode?: number; message?: string }>("/astrologer/delete", {
+      tenantId,
+      accessToken,
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  statusDetails: (tenantId: TenantId, accessToken: string) =>
+    request<AstrologerStatusResponse>("/astrologer-status/details", {
+      tenantId,
+      accessToken,
+      method: "POST",
+      body: JSON.stringify({}),
+    }),
+  saveStatus: (
+    tenantId: TenantId,
+    accessToken: string,
+    data: { start_time: string; end_time: string }
+  ) =>
+    request<AstrologerStatusResponse>("/astrologer-status/save", {
       tenantId,
       accessToken,
       method: "POST",

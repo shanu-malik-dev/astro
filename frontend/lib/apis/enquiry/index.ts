@@ -1,4 +1,5 @@
 import { request, type TenantId } from "../shared";
+import type { CsvExportResponse } from "../csv";
 
 export interface EnquiryDto {
   id: number;
@@ -106,6 +107,22 @@ export const enquiryApi = {
     }
   ) =>
     request<EnquiryResponse>("/enquiry/close", {
+      tenantId,
+      accessToken,
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  exportCsv: (
+    tenantId: TenantId,
+    accessToken: string,
+    data: {
+      status?: number;
+      search?: string;
+      date_from?: string;
+      date_to?: string;
+    }
+  ) =>
+    request<CsvExportResponse>("/enquiry/export", {
       tenantId,
       accessToken,
       method: "POST",

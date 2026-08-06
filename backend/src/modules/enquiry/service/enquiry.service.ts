@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { CUSTOMER_SEGMENT, ENQUIRY_STATUS } from '../../../common/constants/status.constant';
 import { successResponse } from '../../../common/helpers/response.helper';
+import { CsvService } from '../../csv/service/csv.service';
 import { CheckMobileDto } from '../dto/check-mobile.dto';
 import { CloseEnquiryDto } from '../dto/close-enquiry.dto';
 import { CreateEnquiryDto } from '../dto/create-enquiry.dto';
@@ -21,6 +22,7 @@ export class EnquiryService {
   constructor(
     private readonly enquiryRepository: EnquiryRepository,
     private readonly assignmentService: EnquiryAssignmentService,
+    private readonly csvService: CsvService,
   ) {}
 
   async create(dto: CreateEnquiryDto) {
@@ -56,52 +58,7 @@ export class EnquiryService {
     const page = query.page || 1;
     const limit = Math.min(query.limit || 10, 100);
     const skip = (page - 1) * limit;
-
-    const queryBuilder = this.enquiryRepository
-      .getRepository()
-      .createQueryBuilder('enquiry')
-      .leftJoinAndSelect('enquiry.customer', 'customer')
-      .leftJoinAndSelect('enquiry.problem', 'problem')
-      .leftJoinAndSelect('problem.translations', 'translation')
-      .where('enquiry.is_delete = :isDelete', { isDelete: 0 });
-
-    if (this.shouldScopeToExecutive(authUser)) {
-      queryBuilder
-        .innerJoin(
-          'enquiry.assignments',
-          'assignment',
-          'assignment.is_active = :assignmentActive',
-          { assignmentActive: 1 },
-        )
-        .andWhere('assignment.executive_id = :executiveId', {
-          executiveId: Number(authUser?.sub),
-        });
-    }
-
-    if (query.status) {
-      queryBuilder.andWhere('enquiry.status = :status', {
-        status: query.status,
-      });
-    }
-
-    if (query.search) {
-      queryBuilder.andWhere(
-        '(enquiry.customer_name LIKE :search OR enquiry.mobile LIKE :search OR enquiry.country_code LIKE :search)',
-        { search: `%${query.search}%` },
-      );
-    }
-
-    if (query.date_from) {
-      queryBuilder.andWhere('enquiry.created_at >= :dateFrom', {
-        dateFrom: new Date(query.date_from),
-      });
-    }
-
-    if (query.date_to) {
-      queryBuilder.andWhere('enquiry.created_at <= :dateTo', {
-        dateTo: new Date(query.date_to),
-      });
-    }
+    const queryBuilder = this.createFilteredQuery(query, authUser);
 
     const [enquiries, total] = await queryBuilder
       .orderBy('enquiry.id', 'DESC')
@@ -118,6 +75,46 @@ export class EnquiryService {
         total_pages: Math.max(1, Math.ceil(total / limit)),
       },
     });
+  }
+
+  async exportCsv(query: ListEnquiryDto, authUser?: AuthUser) {
+    const enquiries = await this.createFilteredQuery(query, authUser)
+      .orderBy('enquiry.id', 'DESC')
+      .getMany();
+    const exportFile = await this.csvService.createExport({
+      filename: 'enquiries',
+      columns: [
+        { key: 'enq_id', header: 'Enq ID' },
+        { key: 'created_at', header: 'Created Date' },
+        { key: 'customer_name', header: 'Customer Name' },
+        { key: 'customer_number', header: 'Customer Number' },
+        { key: 'problem_name', header: 'Problem' },
+        { key: 'status', header: 'Status' },
+        { key: 'close_remark', header: 'Close Remark' },
+        { key: 'customer_segment', header: 'Customer Segment' },
+      ],
+      rows: enquiries.map((enquiry) => {
+        const formatted = this.formatEnquiry(enquiry);
+
+        return {
+          enq_id: formatted?.id,
+          created_at: formatted?.created_at
+            ? new Date(formatted.created_at).toLocaleString('en-IN')
+            : '',
+          customer_name: formatted?.customer_name || '',
+          customer_number: formatted?.customer_mobile || '',
+          problem_name: formatted?.problem_name || '',
+          status:
+            formatted?.status === ENQUIRY_STATUS.CLOSED ? 'Closed' : 'Open',
+          close_remark: formatted?.close_remark || '',
+          customer_segment: this.getCustomerSegmentLabel(
+            formatted?.customer_segment,
+          ),
+        };
+      }),
+    });
+
+    return successResponse('ENQUIRY_EXPORT_CREATED', exportFile);
   }
 
   async checkMobile(dto: CheckMobileDto) {
@@ -233,6 +230,56 @@ export class EnquiryService {
     });
   }
 
+  private createFilteredQuery(query: ListEnquiryDto, authUser?: AuthUser) {
+    const queryBuilder = this.enquiryRepository
+      .getRepository()
+      .createQueryBuilder('enquiry')
+      .leftJoinAndSelect('enquiry.customer', 'customer')
+      .leftJoinAndSelect('enquiry.problem', 'problem')
+      .leftJoinAndSelect('problem.translations', 'translation')
+      .where('enquiry.is_delete = :isDelete', { isDelete: 0 });
+
+    if (this.shouldScopeToExecutive(authUser)) {
+      queryBuilder
+        .innerJoin(
+          'enquiry.assignments',
+          'assignment',
+          'assignment.is_active = :assignmentActive',
+          { assignmentActive: 1 },
+        )
+        .andWhere('assignment.executive_id = :executiveId', {
+          executiveId: Number(authUser?.sub),
+        });
+    }
+
+    if (query.status) {
+      queryBuilder.andWhere('enquiry.status = :status', {
+        status: query.status,
+      });
+    }
+
+    if (query.search) {
+      queryBuilder.andWhere(
+        '(enquiry.customer_name LIKE :search OR enquiry.mobile LIKE :search OR enquiry.country_code LIKE :search)',
+        { search: `%${query.search}%` },
+      );
+    }
+
+    if (query.date_from) {
+      queryBuilder.andWhere('enquiry.created_at >= :dateFrom', {
+        dateFrom: new Date(query.date_from),
+      });
+    }
+
+    if (query.date_to) {
+      queryBuilder.andWhere('enquiry.created_at <= :dateTo', {
+        dateTo: new Date(query.date_to),
+      });
+    }
+
+    return queryBuilder;
+  }
+
   private formatEnquiry(enquiry?: EnquiryEntity | null) {
     if (!enquiry) return null;
 
@@ -262,6 +309,18 @@ export class EnquiryService {
       translations[0]?.name ||
       ''
     );
+  }
+
+  private getCustomerSegmentLabel(segment?: number | null) {
+    if (segment === CUSTOMER_SEGMENT.CONSULTATION_PRODUCT) {
+      return 'Consultation + Product';
+    }
+    if (segment === CUSTOMER_SEGMENT.CONSULTATION_ONLY) {
+      return 'Consultation Only';
+    }
+    if (segment === CUSTOMER_SEGMENT.OTHER) return 'Other';
+
+    return '';
   }
 
   private shouldScopeToExecutive(authUser?: AuthUser) {

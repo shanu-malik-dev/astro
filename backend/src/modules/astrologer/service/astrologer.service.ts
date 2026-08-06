@@ -1,6 +1,11 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { randomUUID } from 'crypto';
+import { Request } from 'express';
+import { mkdir, writeFile } from 'fs/promises';
+import { extname, join } from 'path';
 import { EntityManager } from 'typeorm';
 import { successResponse } from '../../../common/helpers/response.helper';
+import { AstrologerStatusService } from '../../astrologer-status/service/astrologer-status.service';
 import { AstrologerTranslationDto } from '../dto/astrologer-translation.dto';
 import { CreateAstrologerDto } from '../dto/create-astrologer.dto';
 import { DeleteAstrologerDto } from '../dto/delete-astrologer.dto';
@@ -12,7 +17,23 @@ import { AstrologerRepository } from '../repository/astrologer.repository';
 
 @Injectable()
 export class AstrologerService {
-  constructor(private readonly astrologerRepository: AstrologerRepository) {}
+  private readonly uploadDir = join(
+    process.cwd(),
+    'public',
+    'uploads',
+    'astrologers',
+  );
+  private readonly allowedImageTypes = new Map([
+    ['image/jpeg', '.jpg'],
+    ['image/png', '.png'],
+    ['image/webp', '.webp'],
+    ['image/gif', '.gif'],
+  ]);
+
+  constructor(
+    private readonly astrologerRepository: AstrologerRepository,
+    private readonly astrologerStatusService: AstrologerStatusService,
+  ) {}
 
   async create(dto: CreateAstrologerDto) {
     this.validateTranslations(dto.translations);
@@ -24,7 +45,7 @@ export class AstrologerService {
 
         return this.astrologerRepository.createAstrologer(
           {
-            image: this.cleanOptionalText(dto.image),
+            image: this.cleanImageUrl(dto.image),
             experience: dto.experience.trim(),
             languages: this.cleanCommaText(dto.languages),
             rating: dto.rating ?? 0,
@@ -125,7 +146,7 @@ export class AstrologerService {
             image:
               dto.image === undefined
                 ? existing.image
-                : this.cleanOptionalText(dto.image),
+                : this.cleanImageUrl(dto.image),
             experience:
               dto.experience === undefined
                 ? existing.experience
@@ -155,6 +176,30 @@ export class AstrologerService {
     );
 
     return successResponse('ASTROLOGER_UPDATED', this.formatAstrologer(astrologer));
+  }
+
+  async uploadImage(file: any, request: Request) {
+    if (!file) throw new BadRequestException('Image file is required.');
+
+    const extension = this.allowedImageTypes.get(file.mimetype);
+    if (!extension) {
+      throw new BadRequestException('Please upload a valid image file.');
+    }
+
+    const originalExtension = extname(file.originalname || '').toLowerCase();
+    const filename = `${Date.now()}-${randomUUID()}${
+      originalExtension || extension
+    }`;
+
+    await mkdir(this.uploadDir, { recursive: true });
+    await writeFile(join(this.uploadDir, filename), file.buffer);
+
+    const path = `/uploads/astrologers/${filename}`;
+
+    return successResponse('ASTROLOGER_IMAGE_UPLOADED', {
+      url: `${this.getPublicBaseUrl(request)}${path}`,
+      path,
+    });
   }
 
   async updateStatus(dto: UpdateAstrologerStatusDto) {
@@ -206,12 +251,14 @@ export class AstrologerService {
       await this.astrologerRepository.getConsultCountsByAstrologerIds(
         astrologers.map((astrologer) => Number(astrologer.id)),
       );
+    const live = await this.astrologerStatusService.isLive();
 
     return successResponse('ASTROLOGER_PUBLIC_LIST_FETCHED', {
       records: astrologers.map((astrologer) =>
         this.formatPublicAstrologer(
           astrologer,
           consultCountMap.get(Number(astrologer.id)) || 0,
+          live,
         ),
       ),
       pagination: {
@@ -317,6 +364,29 @@ export class AstrologerService {
     return cleaned || null;
   }
 
+  private cleanImageUrl(value?: string) {
+    const cleaned = this.cleanOptionalText(value);
+    if (cleaned?.startsWith('data:')) {
+      throw new BadRequestException('Please upload image file instead of base64.');
+    }
+
+    const uploadPathIndex = cleaned?.indexOf('/uploads/') ?? -1;
+    if (uploadPathIndex >= 0) return cleaned?.slice(uploadPathIndex);
+
+    return cleaned;
+  }
+
+  private getPublicBaseUrl(request: Request) {
+    const configuredBaseUrl = process.env.PUBLIC_BASE_URL?.trim();
+    if (configuredBaseUrl) return configuredBaseUrl.replace(/\/$/, '');
+
+    const forwardedProtocol = request.get('x-forwarded-proto')?.split(',')[0];
+    const protocol = forwardedProtocol || request.protocol;
+    const host = request.get('host');
+
+    return `${protocol}://${host}`;
+  }
+
   private formatAstrologer(astrologer?: AstrologerEntity | null) {
     if (!astrologer) return null;
 
@@ -351,6 +421,7 @@ export class AstrologerService {
   private formatPublicAstrologer(
     astrologer: AstrologerEntity,
     consultCount = 0,
+    live = false,
   ) {
     const translations = astrologer.translations || [];
     const english = translations.find(
@@ -377,6 +448,7 @@ export class AstrologerService {
       consultations: String(
         this.toConsultationCount(astrologer.consultations) + consultCount,
       ),
+      live,
     };
   }
 

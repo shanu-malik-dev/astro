@@ -89,6 +89,8 @@ export function BookEnquiryModal() {
 
     window.addEventListener(BOOK_ENQUIRY_EVENT, onOpenEvent);
     document.addEventListener("click", onDocumentClick, true);
+    openModal();
+
     return () => {
       window.removeEventListener(BOOK_ENQUIRY_EVENT, onOpenEvent);
       document.removeEventListener("click", onDocumentClick, true);
