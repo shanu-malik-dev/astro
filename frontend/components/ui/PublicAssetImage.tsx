@@ -1,6 +1,7 @@
 "use client";
 
 import { ImgHTMLAttributes, ReactNode, useEffect, useState } from "react";
+import { API_BASE_URL } from "@/lib/api-service";
 
 type PublicAssetImageProps = ImgHTMLAttributes<HTMLImageElement> & {
   src: string;
@@ -9,6 +10,13 @@ type PublicAssetImageProps = ImgHTMLAttributes<HTMLImageElement> & {
 
 function shouldFetchWithoutCookies(src: string) {
   return src.includes("/uploads/");
+}
+
+function getUploadFetchUrl(src: string) {
+  const uploadPathIndex = src.indexOf("/uploads/");
+  if (uploadPathIndex < 0) return src;
+
+  return `${API_BASE_URL.replace(/\/$/, "")}${src.slice(uploadPathIndex)}`;
 }
 
 export function PublicAssetImage({
@@ -33,7 +41,7 @@ export function PublicAssetImage({
     let cancelled = false;
     let nextObjectUrl = "";
 
-    fetch(src, { credentials: "omit", cache: "force-cache" })
+    fetch(getUploadFetchUrl(src), { credentials: "omit", cache: "force-cache" })
       .then((response) => {
         if (!response.ok) throw new Error("Unable to load image.");
         return response.blob();
