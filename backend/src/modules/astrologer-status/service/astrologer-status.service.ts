@@ -69,11 +69,6 @@ export class AstrologerStatusService {
     const startMinutes = this.toMinutes(status.start_time);
     const endMinutes = this.toMinutes(status.end_time);
 
-    console.log('UTC Date ==', date);
-    console.log('India Time ==', `${hour}:${minute}`);
-    console.log('currentMinutes ==', currentMinutes);
-    console.log('startMinutes ==', startMinutes);
-    console.log('endMinutes ==', endMinutes);
 
     if (startMinutes <= endMinutes) {
       return (
