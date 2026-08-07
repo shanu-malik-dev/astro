@@ -249,7 +249,6 @@ export class AstrologerService {
         astrologers.map((astrologer) => Number(astrologer.id)),
       );
     const live = await this.astrologerStatusService.isLive();
-    console.log('live===',live)
 
     return successResponse('ASTROLOGER_PUBLIC_LIST_FETCHED', {
       records: astrologers.map((astrologer) =>
