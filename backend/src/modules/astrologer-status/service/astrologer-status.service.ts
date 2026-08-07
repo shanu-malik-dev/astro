@@ -42,11 +42,18 @@ export class AstrologerStatusService {
 
   async isLive(date = new Date()) {
     const status = await this.getStatusConfig();
+    console.log('status==',status)
     if (!status) return false;
 
+    console.log('date==',date);
+    
     const currentMinutes = date.getHours() * 60 + date.getMinutes();
+    console.log('currentMinutes==',currentMinutes);
+    
     const startMinutes = this.toMinutes(status.start_time);
+    console.log('startMinutes==',startMinutes)
     const endMinutes = this.toMinutes(status.end_time);
+    console.log('endMinutes==',endMinutes)
 
     if (startMinutes <= endMinutes) {
       return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
