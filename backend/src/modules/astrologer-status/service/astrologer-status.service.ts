@@ -40,26 +40,52 @@ export class AstrologerStatusService {
     );
   }
 
-  async isLive(date = new Date()) {
+  async isLive(
+    date = new Date(),
+    timeZone = 'Asia/Kolkata',
+  ) {
     const status = await this.getStatusConfig();
-    console.log('status==',status)
     if (!status) return false;
 
-    console.log('date==',date);
-    
-    const currentMinutes = date.getHours() * 60 + date.getMinutes();
-    console.log('currentMinutes==',currentMinutes);
-    
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    });
+
+    const parts = formatter.formatToParts(date);
+
+    const hour = Number(
+      parts.find((item) => item.type === 'hour')?.value || 0,
+    );
+
+    const minute = Number(
+      parts.find((item) => item.type === 'minute')?.value || 0,
+    );
+
+    const currentMinutes = hour * 60 + minute;
+
     const startMinutes = this.toMinutes(status.start_time);
-    console.log('startMinutes==',startMinutes)
     const endMinutes = this.toMinutes(status.end_time);
-    console.log('endMinutes==',endMinutes)
+
+    console.log('UTC Date ==', date);
+    console.log('India Time ==', `${hour}:${minute}`);
+    console.log('currentMinutes ==', currentMinutes);
+    console.log('startMinutes ==', startMinutes);
+    console.log('endMinutes ==', endMinutes);
 
     if (startMinutes <= endMinutes) {
-      return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+      return (
+        currentMinutes >= startMinutes &&
+        currentMinutes <= endMinutes
+      );
     }
 
-    return currentMinutes >= startMinutes || currentMinutes <= endMinutes;
+    return (
+      currentMinutes >= startMinutes ||
+      currentMinutes <= endMinutes
+    );
   }
 
   private getStatusConfig() {
